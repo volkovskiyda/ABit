@@ -11,6 +11,7 @@ import com.gmail.volkovskiyda.abit.buildlogic.configureConnectedTestGuard
 import com.gmail.volkovskiyda.abit.buildlogic.configureManagedDevices
 import com.gmail.volkovskiyda.abit.buildlogic.configureWearManagedDevices
 import com.gmail.volkovskiyda.abit.buildlogic.libs
+import com.gmail.volkovskiyda.abit.buildlogic.loadEnv
 import com.gmail.volkovskiyda.abit.buildlogic.version
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
@@ -114,17 +115,31 @@ private fun ApplicationExtension.configureApplication(project: Project, versioni
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val keystore = loadEnv(project.rootProject.file("keystore.properties"))
+
     signingConfigs {
         // A project-local debug keystore, committed with the standard debug credentials, instead of
         // the per-machine ~/.android/debug.keystore AGP would generate. It gives this laptop, any
         // contributor and CI the same debug SHA-1, which is what the Firebase Android API key
-        // restriction is pinned to. The release config is created in the signing item, and only
-        // when keystore.properties exists.
+        // restriction is pinned to.
         getByName("debug") {
             storeFile = project.rootProject.file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+        }
+        // Created only when keystore.properties supplies a keystore. Without it assembleRelease
+        // still configures and builds, producing an *unsigned* APK — which is what a fresh clone
+        // and a fork's pull request want, and is the same rule the Kotzilla and Firebase config
+        // files follow.
+        if (keystore.containsKey("KEYSTORE_FILE")) {
+            create("release") {
+                storeFile = project.rootProject.file(keystore.getValue("KEYSTORE_FILE"))
+                storePassword = keystore.getValue("KEYSTORE_PASSWORD")
+                keyAlias = keystore.getValue("KEY_ALIAS")
+                // PKCS12, keytool's default store type: the key password *is* the store password.
+                keyPassword = keystore.getValue("KEYSTORE_PASSWORD")
+            }
         }
     }
 
@@ -135,6 +150,10 @@ private fun ApplicationExtension.configureApplication(project: Project, versioni
             versionNameSuffix = "-debug"
         }
         release {
+            // findByName, not getByName: null on a checkout with no keystore.properties, which
+            // leaves the APK unsigned rather than failing configuration. minSdk 30 means AGP signs
+            // with v2+ automatically, so no per-scheme flags are needed.
+            signingConfig = signingConfigs.findByName("release")
             // R8 through the AGP 9 DSL; `isMinifyEnabled` is the legacy spelling, and setting both
             // is what confuses the baseline-profile plugin later.
             optimization {
