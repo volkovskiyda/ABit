@@ -1,40 +1,21 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM).
+# ABit
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+Change a bit. A Kotlin Multiplatform pomodoro timer that syncs across an Android phone, a Wear OS
+watch, a macOS menu-bar app and the web.
 
-* [/sharedLogic](./sharedLogic/src) is for the code that will be shared between app targets in the project.
-  The most important subfolder is [commonMain](./sharedLogic/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+**Infrastructure in progress.** Business logic is shared through Kotlin Multiplatform; the UI is
+written per platform. The full README, release runbook and baseline-profile runbook arrive in
+`docs/` once the infrastructure plan lands.
 
-* [/sharedUI](./sharedUI/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - [commonMain](./sharedUI/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./sharedUI/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./sharedUI/src/jvmMain/kotlin)
-      folder is the appropriate location.
+## Building
 
-### Running the apps
+Requires JDK 21 (auto-provisioned by Gradle) and the Android SDK.
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and
-options:
+```sh
+./gradlew :androidApp:assembleDebug     # Android phone app
+./gradlew :desktopApp:run               # macOS desktop app
+./gradlew :sharedLogic:allTests         # shared logic tests on every target
+```
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- Desktop app:
-    - Hot reload: `./gradlew :desktopApp:hotRun --auto`
-    - Standard run: `./gradlew :desktopApp:run`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
-
-### Running tests
-
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
-
-- Android tests: `./gradlew :sharedUI:testAndroidHostTest :sharedLogic:testAndroidHostTest`
-- Desktop tests: `./gradlew :sharedUI:jvmTest :sharedLogic:jvmTest`
-- iOS tests: `./gradlew :sharedLogic:iosSimulatorArm64Test`
-
----
-
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+A fresh clone builds with no secrets: release signing, Kotzilla monitoring and Firebase are each
+switched off when their (git-ignored) config file is absent.

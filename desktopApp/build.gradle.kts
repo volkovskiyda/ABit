@@ -6,10 +6,15 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
-    implementation(project(":sharedUI"))
+    implementation(project(":sharedLogic"))
 
     implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
     implementation(libs.kotlinx.coroutinesSwing)
 
     implementation(libs.compose.uiToolingPreview)
@@ -20,8 +25,10 @@ compose.desktop {
         mainClass = "com.gmail.volkovskiyda.abit.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.gmail.volkovskiyda.abit"
+            // Dmg only: macOS is the one desktop target ABit ships (plan item 04 turns this into a
+            // menu-bar tray app). Msi and Deb would be untested artifacts nobody asked for.
+            targetFormats(TargetFormat.Dmg)
+            packageName = "ABit"
             packageVersion = "1.0.0"
         }
     }
