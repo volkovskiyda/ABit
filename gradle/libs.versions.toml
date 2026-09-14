@@ -1,7 +1,8 @@
 [versions]
-agp = "9.1.1"
+agp = "9.4.0"
 android-compileSdk = "37"
-android-minSdk = "24"
+# Android 11. Wear OS 3+ sits at 30 too, so phone and watch share one floor.
+android-minSdk = "30"
 android-targetSdk = "37"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
@@ -11,9 +12,16 @@ androidx-lifecycle = "2.11.0"
 androidx-testExt = "1.3.0"
 composeMultiplatform = "1.12.0"
 junit = "4.13.2"
-kotlin = "2.4.20"
+# Pinned back from 2.4.20, and it is load-bearing: the Kotzilla Gradle plugin (2.3.6, arriving in
+# item 06) registers its Compose instrumentation through the K1 ComponentRegistrar interface that
+# Kotlin 2.4.20 deleted. Read the kotzilla block in app/shared/build.gradle.kts before bumping.
+kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
-material3 = "1.12.0-alpha03"
+# Paired to the Kotlin version above; KSP releases track Kotlin releases one-for-one.
+ksp = "2.3.12"
+# The stable JetBrains material3 line. Deliberately not the 1.12.0-alpha03 the wizard shipped:
+# it moves with Compose Multiplatform previews rather than with releases.
+material3 = "1.9.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
