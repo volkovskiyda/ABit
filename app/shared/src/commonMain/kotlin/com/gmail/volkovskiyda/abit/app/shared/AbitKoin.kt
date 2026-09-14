@@ -4,7 +4,9 @@ import com.gmail.volkovskiyda.abit.core.auth.di.authModule
 import com.gmail.volkovskiyda.abit.core.common.di.commonModule
 import com.gmail.volkovskiyda.abit.core.data.di.dataModule
 import com.gmail.volkovskiyda.abit.core.database.di.databaseModule
+import com.gmail.volkovskiyda.abit.core.database.di.platformDatabaseModule
 import com.gmail.volkovskiyda.abit.core.datastore.di.datastoreModule
+import com.gmail.volkovskiyda.abit.core.datastore.di.platformDatastoreModule
 import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.di.pomodoroModule
@@ -23,7 +25,9 @@ val abitModules: List<Module> =
     listOf(
         commonModule,
         observabilityModule,
+        platformDatabaseModule,
         databaseModule,
+        platformDatastoreModule,
         datastoreModule,
         authModule,
         syncModule,
