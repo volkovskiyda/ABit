@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.composeScreenshot)
+    alias(libs.plugins.baselineprofile)
     // Before the convention plugin: Kotzilla adjusts Kotlin compiler options and the Kotlin
     // extension the convention plugin configures finalises them. It is applied here rather than at
     // the root project — see the comment on the root plugins block — and in this module rather than
@@ -29,8 +30,19 @@ android {
     }
 }
 
+// A release build must never need a device. Generation is a deliberate step — `./gradlew
+// :app:android:generateReleaseBaselineProfile`, or the baseline-profile workflow — with its output
+// committed, so assembleRelease just packages whatever is checked in. Left at its default `true`,
+// assembleRelease would try to boot an emulator and CI would fail.
+baselineProfile {
+    automaticGenerationDuringBuild = false
+}
+
 dependencies {
     implementation(projects.app.shared)
+    // Installs the packaged profile on first run for devices that do not do it themselves.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)

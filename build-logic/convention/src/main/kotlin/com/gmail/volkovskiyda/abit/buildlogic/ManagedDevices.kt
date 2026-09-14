@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit.buildlogic
 
 import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.TestExtension
 import org.gradle.kotlin.dsl.invoke
 
 /**
@@ -68,6 +69,33 @@ internal fun ApplicationExtension.configureWearManagedDevices() {
                     // Wear OS 5. There is no ATD image for Wear, so this is a full one.
                     apiLevel = WEAR_API_LEVEL
                     systemImageSource = "android-wear"
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The same devices again, for a `com.android.test` module.
+ *
+ * Declaring them twice is not redundancy: a managed device belongs to the module whose tasks run it,
+ * and `:baselineprofile` runs its own. The baseline-profile plugin checks the name against *this*
+ * module's devices and fails configuration if it is missing.
+ */
+internal fun TestExtension.configureManagedDevices() {
+    testOptions {
+        managedDevices {
+            localDevices {
+                create(ATD_DEVICE) {
+                    device = "Pixel 6"
+                    apiLevel = TEST_API_LEVEL
+                    systemImageSource = "aosp-atd"
+                }
+                // What the profile is generated on: ART on an ATD image will not emit one.
+                create(FULL_DEVICE) {
+                    device = "Pixel 6"
+                    apiLevel = TEST_API_LEVEL
+                    systemImageSource = "aosp"
                 }
             }
         }

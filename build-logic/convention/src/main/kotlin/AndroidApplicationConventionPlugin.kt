@@ -1,10 +1,12 @@
 import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import com.google.firebase.perf.plugin.FirebasePerfExtension
 import com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPluginConfig
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import com.gmail.volkovskiyda.abit.buildlogic.AbitVersioning
 import com.gmail.volkovskiyda.abit.buildlogic.configureAbitLint
+import com.gmail.volkovskiyda.abit.buildlogic.configureBenchmarkVariants
 import com.gmail.volkovskiyda.abit.buildlogic.configureConnectedTestGuard
 import com.gmail.volkovskiyda.abit.buildlogic.configureManagedDevices
 import com.gmail.volkovskiyda.abit.buildlogic.configureWearManagedDevices
@@ -42,6 +44,14 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
 
             configureConnectedTestGuard()
             configureFirebase()
+
+            // The baseline-profile plugin creates its build types after this block runs, so the
+            // fix-ups have to wait for finalizeDsl. Only the app that applies that plugin gets any.
+            pluginManager.withPlugin("androidx.baselineprofile") {
+                extensions.configure<ApplicationAndroidComponentsExtension> {
+                    finalizeDsl { android -> configureBenchmarkVariants(android) }
+                }
+            }
         }
     }
 }
