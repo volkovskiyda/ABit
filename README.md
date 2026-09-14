@@ -12,9 +12,11 @@ written per platform. The full README, release runbook and baseline-profile runb
 Requires JDK 21 (auto-provisioned by Gradle) and the Android SDK.
 
 ```sh
-./gradlew :androidApp:assembleDebug     # Android phone app
-./gradlew :desktopApp:run               # macOS desktop app
-./gradlew :sharedLogic:allTests         # shared logic tests on every target
+./gradlew :app:android:assembleDebug              # Android phone app
+./gradlew :app:wear:assembleDebug                 # Wear OS app
+./gradlew :app:desktop:run                        # macOS menu-bar app
+./gradlew :app:web:wasmJsBrowserDevelopmentRun    # web app, served on localhost
+./gradlew desktopTest testAndroidHostTest         # shared logic tests on both JVM hosts
 ```
 
 A fresh clone builds with no secrets: release signing, Kotzilla monitoring and Firebase are each
