@@ -54,4 +54,11 @@ dependencies {
     implementation(libs.compose.ui.toolingPreview)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.wear.compose.uiTooling)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    debugImplementation(platform(libs.androidx.compose.bom))
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

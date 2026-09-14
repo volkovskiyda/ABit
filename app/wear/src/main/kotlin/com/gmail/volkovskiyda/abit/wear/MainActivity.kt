@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun PomodoroWearScreen(viewModel: PomodoroViewModel) {
+internal fun PomodoroWearScreen(viewModel: PomodoroViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     PomodoroWearContent(state, onSignInAnonymously = viewModel::signInAnonymously)
 }

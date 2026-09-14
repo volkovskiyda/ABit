@@ -6,6 +6,8 @@ import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesS
 import com.gmail.volkovskiyda.abit.buildlogic.AbitVersioning
 import com.gmail.volkovskiyda.abit.buildlogic.configureAbitLint
 import com.gmail.volkovskiyda.abit.buildlogic.configureConnectedTestGuard
+import com.gmail.volkovskiyda.abit.buildlogic.configureManagedDevices
+import com.gmail.volkovskiyda.abit.buildlogic.configureWearManagedDevices
 import com.gmail.volkovskiyda.abit.buildlogic.libs
 import com.gmail.volkovskiyda.abit.buildlogic.version
 import org.gradle.api.JavaVersion
@@ -154,4 +156,7 @@ private fun ApplicationExtension.configureApplication(project: Project, versioni
     }
 
     lint { configureAbitLint(this) }
+
+    // The Wear app needs a round Wear image; every other Android app gets the phone devices.
+    if (project.path == ":app:wear") configureWearManagedDevices() else configureManagedDevices()
 }

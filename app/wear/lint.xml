@@ -36,4 +36,17 @@
     <issue id="ConvertToWebp">
         <ignore regexp="mipmap-[^/]+/ic_launcher.*\.png"/>
     </issue>
+    <!--
+      gRPC, which Firestore pulls in, references javax.naming from a JNDI-based DNS resolver that
+      never runs on Android — the class is only reachable on a JVM where JNDI exists. There is no
+      way to exclude the code and no newer gRPC without it.
+
+      Scoped to the one artifact rather than baselined: a baseline pins the finding to the jar's
+      cache path, which embeds the version and its hash, so every Firebase bump would unmatch the
+      entry and fail the build twice over. Matching on the artifact name survives version bumps, and
+      InvalidPackage stays live for every other dependency.
+    -->
+    <issue id="InvalidPackage">
+        <ignore regexp="grpc-core"/>
+    </issue>
 </lint>

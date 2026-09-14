@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.composeScreenshot)
     // Before the convention plugin: Kotzilla adjusts Kotlin compiler options and the Kotlin
     // extension the convention plugin configures finalises them. It is applied here rather than at
     // the root project — see the comment on the root plugins block — and in this module rather than
@@ -19,6 +20,9 @@ kotzilla {
 
 android {
     namespace = "com.gmail.volkovskiyda.abit"
+
+    // Paired with the same flag in gradle.properties; the plugin is still alpha and gated on both.
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     defaultConfig {
         applicationId = "com.gmail.volkovskiyda.abit"
@@ -60,4 +64,20 @@ dependencies {
 
     implementation(libs.compose.ui.toolingPreview)
     debugImplementation(libs.compose.ui.tooling)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // Runs an accessibility audit as part of an ordinary assertion, so a contrast or touch-target
+    // regression fails the same suite that catches a layout one.
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    // Declared only to lift the version Compose ui-test asks for — see the catalog comment.
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    debugImplementation(platform(libs.androidx.compose.bom))
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Renders @Preview composables through LayoutLib and diffs them against committed PNGs, so a
+    // layout regression shows up as an image diff rather than as nobody noticing.
+    screenshotTestImplementation(libs.compose.ui.tooling)
+    screenshotTestImplementation(libs.screenshot.validation.api)
 }
