@@ -82,9 +82,10 @@ include(":feature:pomodoro:api")
 include(":feature:pomodoro:impl")
 
 include(":app:shared")
-
-include(":androidApp")
-include(":desktopApp")
+include(":app:android")
+include(":app:wear")
+include(":app:desktop")
+include(":app:web")
 
 check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
     """
