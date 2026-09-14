@@ -4,6 +4,7 @@ import com.gmail.volkovskiyda.abit.core.observability.CrashReporter
 import com.gmail.volkovskiyda.abit.core.observability.NoopCrashReporter
 import com.gmail.volkovskiyda.abit.core.observability.NoopTracer
 import com.gmail.volkovskiyda.abit.core.observability.Tracer
+import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
@@ -16,3 +17,6 @@ val observabilityModule =
         single<CrashReporter> { NoopCrashReporter }
         single<Tracer> { NoopTracer }
     }
+
+/** Android replaces both no-ops with Crashlytics and the platform tracer; nothing else does. */
+expect val platformObservabilityModule: Module

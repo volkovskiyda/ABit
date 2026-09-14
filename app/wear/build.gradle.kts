@@ -6,6 +6,9 @@ plugins {
     // is what records screen views.
     alias(libs.plugins.kotzilla)
     alias(libs.plugins.abit.android.application)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.firebasePerf)
 }
 
 // The key file lives with the composition root that calls monitoring(). Absent, the plugin disables
@@ -32,6 +35,13 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Crashlytics and Performance are Android-only by decision: the desktop and web builds bind the
+    // no-op reporters in core:observability rather than take on a second vendor. The BoM pins both.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
+    implementation(libs.androidx.tracing)
 
     // Wear has its own Material 3, sized and shaped for a round screen — the phone's material3 is
     // the wrong component set here, not merely a different theme.

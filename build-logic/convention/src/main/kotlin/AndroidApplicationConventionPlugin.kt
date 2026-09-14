@@ -1,4 +1,8 @@
 import com.android.build.api.dsl.ApplicationExtension
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import com.google.firebase.perf.plugin.FirebasePerfExtension
+import com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPluginConfig
+import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import com.gmail.volkovskiyda.abit.buildlogic.AbitVersioning
 import com.gmail.volkovskiyda.abit.buildlogic.configureAbitLint
 import com.gmail.volkovskiyda.abit.buildlogic.configureConnectedTestGuard
@@ -35,6 +39,54 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             }
 
             configureConnectedTestGuard()
+            configureFirebase()
+        }
+    }
+}
+
+/**
+ * Firebase, configured once for both Android apps and only when they actually apply the plugins —
+ * `withPlugin` rather than an unconditional block, so a module that has no Firebase (the baseline
+ * profile module, say) is unaffected.
+ *
+ * The keyless-build rule applies here too, and this is the line that implements it: the Google
+ * Services plugin's default is to fail the build outright when `google-services.json` is missing,
+ * which every fresh clone and every fork's pull request is. WARN downgrades that to a message. The
+ * app then starts with no `FirebaseApp` — `firebaseAvailable()` in core:common reports false and the
+ * UI says sync is unavailable — rather than crashing.
+ */
+private fun Project.configureFirebase() {
+    pluginManager.withPlugin("com.google.gms.google-services") {
+        extensions.configure<GoogleServicesPluginConfig> {
+            missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN
+        }
+    }
+
+    pluginManager.withPlugin("com.google.firebase.crashlytics") {
+        extensions.configure<ApplicationExtension> {
+            buildTypes {
+                debug {
+                    // Debug is not minified, so there is no mapping worth uploading — the task would
+                    // only cost build time and demand credentials on every assembleDebug, CI's too.
+                    configure<CrashlyticsExtension> { mappingFileUploadEnabled = false }
+                }
+                release {
+                    // Ship the R8 mapping so release stack traces arrive deobfuscated.
+                    configure<CrashlyticsExtension> { mappingFileUploadEnabled = true }
+                }
+            }
+        }
+    }
+
+    pluginManager.withPlugin("com.google.firebase.firebase-perf") {
+        extensions.configure<ApplicationExtension> {
+            buildTypes {
+                debug {
+                    // Debug never reports performance data (the Application gates collection to
+                    // release), so the plugin's bytecode weaving would only slow every debug build.
+                    configure<FirebasePerfExtension> { setInstrumentationEnabled(false) }
+                }
+            }
         }
     }
 }

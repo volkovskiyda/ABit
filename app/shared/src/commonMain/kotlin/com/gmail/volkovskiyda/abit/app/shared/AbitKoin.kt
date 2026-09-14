@@ -8,6 +8,7 @@ import com.gmail.volkovskiyda.abit.core.database.di.platformDatabaseModule
 import com.gmail.volkovskiyda.abit.core.datastore.di.datastoreModule
 import com.gmail.volkovskiyda.abit.core.datastore.di.platformDatastoreModule
 import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
+import com.gmail.volkovskiyda.abit.core.observability.di.platformObservabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.di.pomodoroModule
 import io.kotzilla.generated.monitoring
@@ -25,6 +26,7 @@ val abitModules: List<Module> =
     listOf(
         commonModule,
         observabilityModule,
+        platformObservabilityModule,
         platformDatabaseModule,
         databaseModule,
         platformDatastoreModule,

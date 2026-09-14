@@ -25,6 +25,9 @@ dependencies {
     compileOnly(libs.composeCompiler.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
     compileOnly(libs.room.gradlePlugin)
+    compileOnly(libs.googleServices.gradlePlugin)
+    compileOnly(libs.firebaseCrashlytics.gradlePlugin)
+    compileOnly(libs.firebasePerf.gradlePlugin)
 }
 
 gradlePlugin {
