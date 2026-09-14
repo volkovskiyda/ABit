@@ -1,31 +1,31 @@
 package com.gmail.volkovskiyda.abit.core.data
 
+import com.gmail.volkovskiyda.abit.core.database.dao.PomodoroSessionDao
+import com.gmail.volkovskiyda.abit.core.database.model.toEntity
+import com.gmail.volkovskiyda.abit.core.database.model.toModel
 import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
 import com.gmail.volkovskiyda.abit.core.model.PomodoroSession
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 
 /**
- * Offline-first by construction: reads come from local storage and never wait on the network.
+ * Offline-first by construction: every read comes from the local database and none waits on the
+ * network, so a screen renders the moment it is composed whether or not the device is online.
  *
- * Backed by an in-memory list until the Room DAO lands (plan item 07) and the Firestore sync engine
- * after it (item 09). The interface and the call sites are already right, so those items replace
- * the storage behind this class rather than changing anything above it.
+ * Writes go to the database too. Getting them to Firestore, and other devices' writes back here, is
+ * the sync engine's job (plan item 09) — this class stays the single place the app reads and writes
+ * sessions either way.
  */
-class OfflineFirstPomodoroSessionRepository : PomodoroSessionRepository {
-    private val sessions = MutableStateFlow<List<PomodoroSession>>(emptyList())
-
-    override fun observeSessions(): Flow<List<PomodoroSession>> = sessions.asStateFlow()
+class OfflineFirstPomodoroSessionRepository(
+    private val dao: PomodoroSessionDao,
+) : PomodoroSessionRepository {
+    override fun observeSessions(): Flow<List<PomodoroSession>> = dao.observeAll().map { entities -> entities.map { it.toModel() } }
 
     override suspend fun upsert(session: PomodoroSession) {
-        sessions.update { current ->
-            current.filterNot { it.id == session.id } + session
-        }
+        dao.upsert(session.toEntity())
     }
 
     override suspend fun delete(id: String) {
-        sessions.update { current -> current.filterNot { it.id == id } }
+        dao.deleteById(id)
     }
 }

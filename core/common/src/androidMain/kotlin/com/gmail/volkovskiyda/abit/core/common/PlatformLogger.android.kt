@@ -2,7 +2,9 @@ package com.gmail.volkovskiyda.abit.core.common
 
 import android.util.Log
 
-actual class PlatformLogger actual constructor() : Logger {
+actual fun platformLogger(): Logger = AndroidLogger
+
+private object AndroidLogger : Logger {
     override fun debug(
         tag: String,
         message: String,

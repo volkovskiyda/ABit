@@ -6,5 +6,5 @@ import org.koin.dsl.module
 
 val dataModule =
     module {
-        single<PomodoroSessionRepository> { OfflineFirstPomodoroSessionRepository() }
+        single<PomodoroSessionRepository> { OfflineFirstPomodoroSessionRepository(dao = get()) }
     }

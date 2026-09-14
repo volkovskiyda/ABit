@@ -32,6 +32,21 @@ naming:
   FunctionNaming:
     # @Composable functions are PascalCase by convention.
     ignoreAnnotated: ['Composable']
+    # Backtick function names are how a Kotlin test states what it asserts, and detekt's built-in
+    # "this is a test" path list predates Kotlin Multiplatform: it knows `commonTest` and `jvmTest`
+    # but none of the target-named source sets this build actually uses. Listed in full because
+    # setting `excludes` replaces the default list rather than adding to it.
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/androidHostTest/**'
+      - '**/androidDeviceTest/**'
+      - '**/commonTest/**'
+      - '**/nonAndroidTest/**'
+      - '**/desktopTest/**'
+      - '**/jvmTest/**'
+      - '**/wasmJsTest/**'
+      - '**/screenshotTest/**'
   TopLevelPropertyNaming:
     # Koin modules are top-level vals named in camelCase by the framework's own convention
     # (`val commonModule = module { }`), and Compose sample/fixture properties read better that way

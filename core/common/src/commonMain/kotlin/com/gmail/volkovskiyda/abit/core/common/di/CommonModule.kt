@@ -3,9 +3,9 @@ package com.gmail.volkovskiyda.abit.core.common.di
 import com.gmail.volkovskiyda.abit.core.common.DefaultDispatcherProvider
 import com.gmail.volkovskiyda.abit.core.common.DispatcherProvider
 import com.gmail.volkovskiyda.abit.core.common.Logger
-import com.gmail.volkovskiyda.abit.core.common.PlatformLogger
 import com.gmail.volkovskiyda.abit.core.common.SystemTimeProvider
 import com.gmail.volkovskiyda.abit.core.common.TimeProvider
+import com.gmail.volkovskiyda.abit.core.common.platformLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.qualifier.named
@@ -18,7 +18,7 @@ val commonModule =
     module {
         single<DispatcherProvider> { DefaultDispatcherProvider() }
         single<TimeProvider> { SystemTimeProvider() }
-        single<Logger> { PlatformLogger() }
+        single<Logger> { platformLogger() }
         // SupervisorJob so one failed background job does not cancel every other one for the process.
         single(ApplicationScope) {
             CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)

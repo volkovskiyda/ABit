@@ -1,33 +1,36 @@
 package com.gmail.volkovskiyda.abit.core.common
 
-actual class PlatformLogger actual constructor() : Logger {
+actual fun platformLogger(): Logger = WasmLogger
+
+private object WasmLogger : Logger {
     override fun debug(
         tag: String,
         message: String,
-    ) {
-        println("D/$tag: $message")
-    }
+    ) = write("D", tag, message, null)
 
     override fun info(
         tag: String,
         message: String,
-    ) {
-        println("I/$tag: $message")
-    }
+    ) = write("I", tag, message, null)
 
     override fun warn(
         tag: String,
         message: String,
         throwable: Throwable?,
-    ) {
-        println("W/$tag: $message${throwable?.let { " — $it" }.orEmpty()}")
-    }
+    ) = write("W", tag, message, throwable)
 
     override fun error(
         tag: String,
         message: String,
         throwable: Throwable?,
+    ) = write("E", tag, message, throwable)
+
+    private fun write(
+        level: String,
+        tag: String,
+        message: String,
+        throwable: Throwable?,
     ) {
-        println("E/$tag: $message${throwable?.let { " — $it" }.orEmpty()}")
+        println("$level/$tag: $message${throwable?.let { " \u2014 $it" }.orEmpty()}")
     }
 }
