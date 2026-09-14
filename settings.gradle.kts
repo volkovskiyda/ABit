@@ -87,6 +87,8 @@ include(":app:wear")
 include(":app:desktop")
 include(":app:web")
 
+include(":baselineprofile")
+
 check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
     """
     ABit requires JDK 17+ but it is currently using JDK ${JavaVersion.current()}.

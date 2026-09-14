@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.TestExtension
+import com.gmail.volkovskiyda.abit.buildlogic.configureManagedDevices
 import com.gmail.volkovskiyda.abit.buildlogic.libs
 import com.gmail.volkovskiyda.abit.buildlogic.version
 import org.gradle.api.JavaVersion
@@ -30,6 +31,8 @@ class AndroidTestConventionPlugin : Plugin<Project> {
                     sourceCompatibility = JavaVersion.VERSION_17
                     targetCompatibility = JavaVersion.VERSION_17
                 }
+
+                configureManagedDevices()
             }
 
             extensions.configure<KotlinAndroidProjectExtension> {
