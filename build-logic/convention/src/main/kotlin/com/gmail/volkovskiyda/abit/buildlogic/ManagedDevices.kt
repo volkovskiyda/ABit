@@ -43,7 +43,23 @@ internal fun ApplicationExtension.configureManagedDevices() {
     }
 }
 
-/** The Wear app needs a round screen and a Wear system image; a phone device would not even boot. */
+/**
+ * The Wear app needs a round screen and a Wear system image; a phone device would not even boot.
+ *
+ * Deliberately **not** in the `ci` group. A GitHub runner cannot install
+ * `system-images;android-34;android-wear;x86_64` — the setup task fails with
+ * `InstallFailedException: Failed to install the following SDK components` (measured 2026-09-14),
+ * because Wear images are not among those AGP can fetch unattended. So CI runs the phone app's
+ * instrumented suite, which shares the entire object graph with the watch, and the Wear device stays
+ * available locally:
+ *
+ * ```sh
+ * ./gradlew :app:wear:wearLargeRoundApi34DebugAndroidTest
+ * ```
+ *
+ * Getting it into CI needs the image installed explicitly before Gradle runs — a backlog item, not a
+ * thing to leave silently failing.
+ */
 internal fun ApplicationExtension.configureWearManagedDevices() {
     testOptions {
         managedDevices {
@@ -53,11 +69,6 @@ internal fun ApplicationExtension.configureWearManagedDevices() {
                     // Wear OS 5. There is no ATD image for Wear, so this is a full one.
                     apiLevel = WEAR_API_LEVEL
                     systemImageSource = "android-wear"
-                }
-            }
-            groups {
-                create("ci") {
-                    targetDevices.add(localDevices.getByName(WEAR_DEVICE))
                 }
             }
         }
