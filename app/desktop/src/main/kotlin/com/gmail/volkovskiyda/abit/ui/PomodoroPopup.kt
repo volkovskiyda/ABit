@@ -2,8 +2,11 @@ package com.gmail.volkovskiyda.abit.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,7 +37,11 @@ fun AbitTheme(
 @Composable
 fun PomodoroPopup(viewModel: PomodoroViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PomodoroPopupContent(state)
+    PomodoroPopupContent(
+        state = state,
+        onSignInAnonymously = viewModel::signInAnonymously,
+        onSignOut = viewModel::signOut,
+    )
 }
 
 /** Stateless, so the desktop Compose UI test can render it without a graph. */
@@ -42,6 +49,8 @@ fun PomodoroPopup(viewModel: PomodoroViewModel) {
 fun PomodoroPopupContent(
     state: PomodoroUiState,
     modifier: Modifier = Modifier,
+    onSignInAnonymously: () -> Unit = {},
+    onSignOut: () -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
         Column(
@@ -61,6 +70,24 @@ fun PomodoroPopupContent(
                         is SyncState.Failed -> "Sync failed"
                     },
             )
+
+            Spacer(Modifier.height(24.dp))
+
+            val user = state.user
+            if (user == null) {
+                Button(onClick = onSignInAnonymously) { Text("Use without an account") }
+            } else {
+                Text(if (user.isAnonymous) "Using ABit without an account" else "Signed in")
+                Button(onClick = onSignOut) { Text("Sign out") }
+            }
+            // Google sign-in on this platform needs its own OAuth flow (a loopback redirect on the
+            // desktop, a popup in the browser). That is a follow-up plan, not an oversight.
+            Text("Google sign-in is coming to this platform", style = MaterialTheme.typography.bodySmall)
+
+            state.authError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(text = error, color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

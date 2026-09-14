@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
@@ -39,11 +40,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun PomodoroWearScreen(viewModel: PomodoroViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PomodoroWearContent(state)
+    PomodoroWearContent(state, onSignInAnonymously = viewModel::signInAnonymously)
 }
 
 @Composable
-private fun PomodoroWearContent(state: PomodoroUiState) {
+private fun PomodoroWearContent(
+    state: PomodoroUiState,
+    onSignInAnonymously: () -> Unit = {},
+) {
     ScreenScaffold {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -62,6 +66,12 @@ private fun PomodoroWearContent(state: PomodoroUiState) {
                         is SyncState.Failed -> "Sync failed"
                     },
             )
+            // Anonymous only on the watch: signing in with Google means typing, and the watch syncs
+            // through the cloud rather than through a paired phone, so it needs an account of its
+            // own rather than the phone's.
+            if (state.user == null) {
+                Button(onClick = onSignInAnonymously) { Text("Start") }
+            }
         }
     }
 }

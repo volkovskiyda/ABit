@@ -3,6 +3,7 @@ package com.gmail.volkovskiyda.abit.feature.pomodoro.impl
 import app.cash.turbine.test
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.core.model.PomodoroSession
+import com.gmail.volkovskiyda.abit.core.testing.FakeAuthRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakePomodoroSessionRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakeSyncStatusRepository
 import com.gmail.volkovskiyda.abit.core.testing.MainDispatcherRule
@@ -37,6 +38,7 @@ class PomodoroViewModelTest {
                 PomodoroViewModel(
                     sessionRepository = FakePomodoroSessionRepository(listOf(session)),
                     syncStatusRepository = FakeSyncStatusRepository(),
+                    authRepository = FakeAuthRepository(),
                 )
 
             viewModel.state.test {

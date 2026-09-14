@@ -37,6 +37,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
+    // Google sign-in. Credential Manager is the only supported path on Android 14+; the googleid
+    // artifact is what turns its response into an id token Firebase can exchange.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.playServicesAuth)
+    implementation(libs.googleid)
+
     // Crashlytics and Performance are Android-only by decision: the desktop and web builds bind the
     // no-op reporters in core:observability rather than take on a second vendor. The BoM pins both.
     implementation(platform(libs.firebase.bom))
