@@ -1,0 +1,34 @@
+{
+    "_comment": [
+        "Template for app/shared/kotzilla.json, which is git-ignored because these are ingestion",
+        "credentials and this repository is public. Two keys, one per build type, so debug sessions",
+        "never land in the production app's data: the debug key belongs to the 'ABit Debug' app and",
+        "the release key to 'ABit'. The desktop and web builds have no build types of their own and",
+        "report under the isDefault key.",
+        "",
+        "Get the real values from https://console.kotzilla.io, or regenerate them from the Kotzilla",
+        "MCP server with generate_app_config(appId) — adding a key leaves existing ones working.",
+        "CI restores the real file from the KOTZILLA_JSON_BASE64 secret; without it the Gradle plugin",
+        "disables itself and the build still works, reporting no sessions.",
+        "",
+        "Never set displayLogs in a committed file: it turns on runtime logging that prints bearer",
+        "tokens."
+    ],
+    "keys": [
+        {
+            "appId": "<debug app id from console.kotzilla.io>",
+            "applicationPackageName": "com.gmail.volkovskiyda.abit.debug",
+            "keyId": "<debug key id>",
+            "apiKey": "ktz-sdk-<debug ingestion key>",
+            "flavor": "debug",
+            "isDefault": true
+        },
+        {
+            "appId": "<release app id from console.kotzilla.io>",
+            "applicationPackageName": "com.gmail.volkovskiyda.abit",
+            "keyId": "<release key id>",
+            "apiKey": "ktz-sdk-<release ingestion key>",
+            "flavor": "release"
+        }
+    ]
+}
