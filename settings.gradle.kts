@@ -64,9 +64,27 @@ plugins {
 
 rootProject.name = "ABit"
 
+include(":core:common")
+include(":core:model")
+include(":core:domain")
+include(":core:database")
+include(":core:datastore")
+include(":core:auth")
+include(":core:sync")
+include(":core:observability")
+include(":core:data")
+include(":core:testing")
+
+// The api/impl split, from the first feature onwards: `:api` holds a feature's navigation key and
+// the types a host needs, so features can navigate to each other without depending on each other's
+// implementation. `:impl` holds the presentation logic and is depended on only by `:app:shared`.
+include(":feature:pomodoro:api")
+include(":feature:pomodoro:impl")
+
+include(":app:shared")
+
 include(":androidApp")
 include(":desktopApp")
-include(":sharedLogic")
 
 check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
     """

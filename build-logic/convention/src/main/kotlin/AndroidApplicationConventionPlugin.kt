@@ -73,6 +73,10 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
 
                 buildFeatures {
                     compose = true
+                    // Off by default since AGP 8. The apps read BuildConfig.DEBUG to keep Koin's
+                    // resolution logging, Crashlytics collection and Performance instrumentation
+                    // out of debug builds.
+                    buildConfig = true
                 }
 
                 packaging {

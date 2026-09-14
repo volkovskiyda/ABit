@@ -11,9 +11,13 @@ android {
 }
 
 dependencies {
-    implementation(projects.sharedLogic)
+    implementation(projects.app.shared)
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Declared here rather than inherited from a shared UI module: UI is written per platform, so
     // each app names the Compose artifacts it actually uses. These are the Compose Multiplatform
