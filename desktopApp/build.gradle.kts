@@ -17,7 +17,11 @@ kotlin {
 }
 
 dependencies {
-    implementation(projects.sharedLogic)
+    implementation(projects.app.shared)
+
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
