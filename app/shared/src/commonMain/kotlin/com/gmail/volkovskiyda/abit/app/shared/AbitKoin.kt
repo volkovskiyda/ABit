@@ -8,6 +8,7 @@ import com.gmail.volkovskiyda.abit.core.datastore.di.datastoreModule
 import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.di.pomodoroModule
+import io.kotzilla.generated.monitoring
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -35,6 +36,11 @@ val abitModules: List<Module> =
  * `Application.onCreate` on Android and Wear, `main()` on desktop and the web — passing whatever
  * only that platform can provide (a `Context`, a file path, a window).
  *
+ * `monitoring()` is Kotzilla's, and the call is deliberately unconditional and last: last because
+ * it inspects the modules already registered, unconditional because a checkout without
+ * `app/shared/kotzilla.json` compiles a no-op of the same name from `src/kotzillaDisabled`. Nothing
+ * here has to know whether the keys are present.
+ *
  * @param platformModules bindings that exist on one platform only, applied after [abitModules] so
  *   they override the common defaults.
  * @param config extra Koin configuration, e.g. `androidContext(this@AbitApplication)`.
@@ -46,4 +52,5 @@ fun initKoin(
     startKoin {
         config?.invoke(this)
         modules(abitModules + platformModules)
+        monitoring()
     }

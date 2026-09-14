@@ -16,6 +16,16 @@ plugins {
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.ksp) apply false
+    // `apply false`, not applied here, and this is a measured constraint rather than a preference.
+    // Applying Kotzilla at the root project fails configuration outright with "The value for
+    // property 'languageVersion' is final and cannot be changed any further": it adjusts Kotlin
+    // compiler options across the build, and the Kotlin extension the KMP convention plugin
+    // configures has already finalised them by then (measured 2026-09-14, Kotzilla 2.3.6 with AGP
+    // 9.4.0 and Kotlin 2.4.10). The vendor's own SDK guide documents per-module application as the
+    // supported alternative, so the plugin is applied in app:shared, app:android and app:wear —
+    // the shared module plus every module that owns screens, which is the coverage the root
+    // application would have given. Re-test on a Kotzilla bump.
+    alias(libs.plugins.kotzilla) apply false
     alias(libs.plugins.detekt)
     // Applied to every project below rather than here, so `apply false`.
     alias(libs.plugins.ktlint) apply false
@@ -86,5 +96,16 @@ allprojects {
             // Compose resource accessors — and none of it is ours to format.
             exclude { it.file.path.contains("${File.separator}build${File.separator}") }
         }
+    }
+}
+
+// The Kotzilla plugin generates sources into a source set that other tasks then read as input, and
+// Gradle 9 fails the build on an undeclared edge rather than warning. Two consumers need it:
+// ktlint, which walks every Kotlin source directory a module has (it does not *lint* the generated
+// file — the filter in the ktlint block above drops anything under build/ — but the directory is
+// still an input), and KSP, which arrives with Room in a later plan item.
+subprojects {
+    tasks.matching { it.name.startsWith("ksp") || it.name.startsWith("runKtlint") }.configureEach {
+        dependsOn(tasks.matching { it.name.startsWith("generateKotzilla") })
     }
 }
