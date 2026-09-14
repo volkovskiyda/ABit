@@ -94,6 +94,9 @@ compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin",
 composeCompiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 ksp-gradlePlugin = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
 room-gradlePlugin = { module = "androidx.room3:room3-gradle-plugin", version.ref = "androidxRoom" }
+googleServices-gradlePlugin = { module = "com.google.gms:google-services", version.ref = "googleServices" }
+firebaseCrashlytics-gradlePlugin = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "firebaseCrashlyticsPlugin" }
+firebasePerf-gradlePlugin = { module = "com.google.firebase:perf-plugin", version.ref = "firebasePerfPlugin" }
 
 # ---- Compose Multiplatform ---------------------------------------------------------------------
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
@@ -150,6 +153,7 @@ kotzilla-sdk = { module = "io.kotzilla:kotzilla-sdk", version.ref = "kotzilla" }
 
 # ---- Firebase ----------------------------------------------------------------------------------
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-common = { module = "com.google.firebase:firebase-common" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-perf = { module = "com.google.firebase:firebase-perf" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }

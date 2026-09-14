@@ -17,6 +17,9 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.room) apply false
+    alias(libs.plugins.googleServices) apply false
+    alias(libs.plugins.firebaseCrashlytics) apply false
+    alias(libs.plugins.firebasePerf) apply false
     // `apply false`, not applied here, and this is a measured constraint rather than a preference.
     // Applying Kotzilla at the root project fails configuration outright with "The value for
     // property 'languageVersion' is final and cannot be changed any further": it adjusts Kotlin

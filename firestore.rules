@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Every document this app writes lives under the user it belongs to, and only that user may
+    // read or write it. Anonymous accounts get a uid too, so an anonymous user's sessions are as
+    // protected as a signed-in one's.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Anything outside /users is denied. A new collection has to add its own rule deliberately
+    // rather than inherit access from a catch-all.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
