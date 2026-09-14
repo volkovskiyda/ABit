@@ -161,13 +161,18 @@ jobs:
       # yet. With no certificate the DMG is built unsigned and macOS shows the Gatekeeper warning; the
       # release notes say so. When the certificate exists, adding these three secrets is the whole
       # change — no code moves.
+      # The condition is on env rather than on `secrets` directly: GitHub does not allow the
+      # secrets context inside an `if`, so the value has to be carried through the environment.
       - name: Import the Apple signing certificate
-        if: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
         env:
           APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -z "${APPLE_CERT_P12_BASE64:-}" ]; then
+            echo "No Apple signing certificate configured — the DMG will be unsigned."
+            exit 0
+          fi
           KEYCHAIN="$RUNNER_TEMP/build.keychain"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
