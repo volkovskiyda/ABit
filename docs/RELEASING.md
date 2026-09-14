@@ -123,7 +123,14 @@ confined to one throwaway project. Editor also covers App Distribution and Hosti
 serves every delivery job.
 
 `toolresults.googleapis.com` is easy to miss: Test Lab stores every run's results through it, so the
-job fails without it even though `testing.googleapis.com` is on.
+job fails without it even though `testing.googleapis.com` is on. `firestore.googleapis.com` is the
+other one — if it is not already enabled, the CLI enables it mid-deploy, then concludes the database
+must be missing and tries to create one, which the service account cannot do and should not be able
+to do.
+
+For the same reason `firebase.json`'s `firestore` block carries only `rules` and `indexes`. Adding
+`database` or `location` back tells the CLI it owns the database's lifecycle, and a deploy then
+checks for it. The database is provisioned once, by a human, not by CI.
 
 Finally, the tester group the distribute job uploads to:
 
