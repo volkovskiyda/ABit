@@ -1,0 +1,62 @@
+# Project overrides only — `buildUponDefaultConfig = true` supplies everything else, so a detekt
+# upgrade brings its new rules along instead of freezing a copy of the full default config here.
+
+build:
+  # No baseline: every finding fails the build, so suppressed debt cannot accumulate unseen.
+  # Anything deliberate is an annotated @Suppress at the declaration, or an exemption below.
+  maxIssues: 0
+
+complexity:
+  CyclomaticComplexMethod:
+    # Screen-content composables hold a whole screen's conditional layout by design.
+    ignoreAnnotated: ['Composable']
+  LongMethod:
+    # One content composable per screen is deliberate — its length *is* the screen's layout.
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    # Stateless Compose content composables legitimately take a long parameter list — that *is*
+    # the hoisted state and its callbacks.
+    ignoreAnnotated: ['Composable']
+    # Defaulted parameters are API ergonomics, not call-site burden.
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    # One file per screen holds the screen, its content and its private sub-composables.
+    ignoreAnnotatedFunctions: ['Composable']
+
+naming:
+  MatchingDeclarationName:
+    # Kotlin Multiplatform names an actual declaration's file `<Name>.<platform>.kt`, which is the
+    # convention the IDE and the compiler both expect and which this rule cannot parse. Excluded by
+    # path rather than switched off, so a genuinely mismatched file is still caught in common code.
+    excludes: ['**/*.android.kt', '**/*.desktop.kt', '**/*.wasmJs.kt']
+  FunctionNaming:
+    # @Composable functions are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    # Koin modules are top-level vals named in camelCase by the framework's own convention
+    # (`val commonModule = module { }`), and Compose sample/fixture properties read better that way
+    # too. The pattern still rejects the shouting-snake-case a real constant would use wrongly.
+    constantPattern: '[A-Z][_A-Z0-9]*|[a-z][A-Za-z0-9]*'
+
+style:
+  MagicNumber:
+    # dp/sp sizes, tick maths and colour components are clearer inline than as named constants.
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  MaxLineLength:
+    # Matches ktlint_official's default, which .editorconfig states for ktlint. Both have to be
+    # told; there is no shared source for the number.
+    maxLineLength: 140
+  ReturnCount:
+    # Guard-clause early returns are idiomatic here; 5 covers the deliberate cases while still
+    # catching pathological flow.
+    max: 5
+  UnusedPrivateMember:
+    # Previews are invoked reflectively by the tooling, never called from Kotlin.
+    ignoreAnnotated: ['Preview', 'PreviewTest']
+
+# No `formatting:` block, and no detekt-formatting plugin behind one. That rule set is ktlint's,
+# wrapped: it is run by ktlint itself (see build.gradle.kts), configured from .editorconfig, and
+# having both would report every layout finding twice under two rule ids from two engines free to
+# disagree. MaxLineLength above is detekt's own rule and stays.

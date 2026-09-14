@@ -53,13 +53,14 @@ private fun PomodoroWearContent(state: PomodoroUiState) {
             Text(text = "ABit")
             Text(text = "Sessions: ${state.sessions.size}")
             Text(
-                text = when (state.syncState) {
-                    SyncState.Unavailable -> "No sync"
-                    SyncState.SignedOut -> "Signed out"
-                    SyncState.Syncing -> "Syncing…"
-                    is SyncState.Idle -> "Synced"
-                    is SyncState.Failed -> "Sync failed"
-                },
+                text =
+                    when (state.syncState) {
+                        SyncState.Unavailable -> "No sync"
+                        SyncState.SignedOut -> "Signed out"
+                        SyncState.Syncing -> "Syncing…"
+                        is SyncState.Idle -> "Synced"
+                        is SyncState.Failed -> "Sync failed"
+                    },
             )
         }
     }

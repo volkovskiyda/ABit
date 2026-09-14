@@ -46,15 +46,20 @@ fun PomodoroContent(
     }
 }
 
-private fun syncLabel(syncState: SyncState): String = when (syncState) {
-    // Not an error: this is what a build without Firebase credentials reports, and the app is
-    // fully usable — everything simply stays on the device.
-    SyncState.Unavailable -> "Sync unavailable in this build"
-    SyncState.SignedOut -> "Signed out"
-    SyncState.Syncing -> "Syncing…"
-    is SyncState.Idle -> "Synced"
-    is SyncState.Failed -> "Sync failed: ${syncState.reason}"
-}
+private fun syncLabel(syncState: SyncState): String =
+    when (syncState) {
+        // Not an error: this is what a build without Firebase credentials reports, and the app is
+        // fully usable — everything simply stays on the device.
+        SyncState.Unavailable -> "Sync unavailable in this build"
+
+        SyncState.SignedOut -> "Signed out"
+
+        SyncState.Syncing -> "Syncing…"
+
+        is SyncState.Idle -> "Synced"
+
+        is SyncState.Failed -> "Sync failed: ${syncState.reason}"
+    }
 
 @Preview(showBackground = true)
 @Composable

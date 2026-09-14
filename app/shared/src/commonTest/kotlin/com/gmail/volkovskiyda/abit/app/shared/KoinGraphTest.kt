@@ -19,7 +19,6 @@ import kotlin.test.assertNotNull
  * injection rather than a compile error. These run on both JVM hosts in CI.
  */
 class KoinGraphTest {
-
     @AfterTest
     fun tearDown() = stopKoin()
 

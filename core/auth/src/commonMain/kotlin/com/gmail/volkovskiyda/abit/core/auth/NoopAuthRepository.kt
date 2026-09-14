@@ -19,6 +19,5 @@ object NoopAuthRepository : AuthRepository {
 
     override suspend fun signOut() = Unit
 
-    private fun failure(): Result<AuthUser> =
-        Result.failure(IllegalStateException("Firebase is not configured in this build."))
+    private fun failure(): Result<AuthUser> = Result.failure(IllegalStateException("Firebase is not configured in this build."))
 }

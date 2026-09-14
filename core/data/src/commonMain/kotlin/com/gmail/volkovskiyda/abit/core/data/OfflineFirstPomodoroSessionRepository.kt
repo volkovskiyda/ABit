@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.update
  * the storage behind this class rather than changing anything above it.
  */
 class OfflineFirstPomodoroSessionRepository : PomodoroSessionRepository {
-
     private val sessions = MutableStateFlow<List<PomodoroSession>>(emptyList())
 
     override fun observeSessions(): Flow<List<PomodoroSession>> = sessions.asStateFlow()

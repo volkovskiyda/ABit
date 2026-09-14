@@ -18,16 +18,17 @@ import org.koin.dsl.KoinAppDeclaration
  * overrides: a platform module passed to [initKoin] comes after these, so Android can replace the
  * no-op crash reporter with Crashlytics without this list knowing about it.
  */
-val abitModules: List<Module> = listOf(
-    commonModule,
-    observabilityModule,
-    databaseModule,
-    datastoreModule,
-    authModule,
-    syncModule,
-    dataModule,
-    pomodoroModule,
-)
+val abitModules: List<Module> =
+    listOf(
+        commonModule,
+        observabilityModule,
+        databaseModule,
+        datastoreModule,
+        authModule,
+        syncModule,
+        dataModule,
+        pomodoroModule,
+    )
 
 /**
  * The one composition root, shared by all four apps. Each platform's entry point calls it once —
@@ -41,7 +42,8 @@ val abitModules: List<Module> = listOf(
 fun initKoin(
     platformModules: List<Module> = emptyList(),
     config: KoinAppDeclaration? = null,
-): KoinApplication = startKoin {
-    config?.invoke(this)
-    modules(abitModules + platformModules)
-}
+): KoinApplication =
+    startKoin {
+        config?.invoke(this)
+        modules(abitModules + platformModules)
+    }

@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.painter.Painter
  * that a designed icon would replace anyway.
  */
 object TrayIcon : Painter() {
-
     override val intrinsicSize: Size = Size(TRAY_ICON_SIZE_PX, TRAY_ICON_SIZE_PX)
 
     override fun DrawScope.onDraw() {
