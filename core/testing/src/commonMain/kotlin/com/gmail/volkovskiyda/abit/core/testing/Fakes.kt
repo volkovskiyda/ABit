@@ -14,9 +14,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.time.Instant
 
-/** A clock a test moves by hand. Starts at an arbitrary fixed point, never "now". */
+/**
+ * A fixed instant every test starts from, so a failure reads the same on every machine and on every
+ * run. 2023-11-14T22:13:20Z — an arbitrary point, chosen only for being round and in the past.
+ */
+val TEST_EPOCH: Instant = Instant.fromEpochSeconds(1_700_000_000)
+
+/** A clock a test moves by hand. Starts at [TEST_EPOCH], never "now". */
 class FakeTimeProvider(
-    private var current: Instant = Instant.fromEpochSeconds(1_700_000_000),
+    private var current: Instant = TEST_EPOCH,
 ) : TimeProvider {
     override fun now(): Instant = current
 
@@ -28,7 +34,6 @@ class FakeTimeProvider(
 class FakePomodoroSessionRepository(
     initial: List<PomodoroSession> = emptyList(),
 ) : PomodoroSessionRepository {
-
     private val sessions = MutableStateFlow(initial)
 
     override fun observeSessions(): Flow<List<PomodoroSession>> = sessions.asStateFlow()
@@ -42,8 +47,9 @@ class FakePomodoroSessionRepository(
     }
 }
 
-class FakeAuthRepository(initial: AuthUser? = null) : AuthRepository {
-
+class FakeAuthRepository(
+    initial: AuthUser? = null,
+) : AuthRepository {
     private val user = MutableStateFlow(initial)
 
     override val currentUser: Flow<AuthUser?> = user.asStateFlow()
@@ -66,7 +72,6 @@ class FakeAuthRepository(initial: AuthUser? = null) : AuthRepository {
 class FakeSyncStatusRepository(
     initial: SyncState = SyncState.Unavailable,
 ) : SyncStatusRepository {
-
     private val state = MutableStateFlow(initial)
 
     override val syncState: Flow<SyncState> = state.asStateFlow()

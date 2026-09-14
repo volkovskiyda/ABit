@@ -35,13 +35,14 @@ class MainActivity : ComponentActivity() {
  * key here rather than by hand-wrapping each composable.
  */
 @Composable
-private fun AbitNavDisplay() {
+internal fun AbitNavDisplay() {
     val backStack = rememberNavBackStack(PomodoroNavKey)
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
-        entryProvider = entryProvider<NavKey> {
-            entry<PomodoroNavKey> { PomodoroScreen(viewModel = koinViewModel()) }
-        },
+        entryProvider =
+            entryProvider<NavKey> {
+                entry<PomodoroNavKey> { PomodoroScreen(viewModel = koinViewModel()) }
+            },
     )
 }

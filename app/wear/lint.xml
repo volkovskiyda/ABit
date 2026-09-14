@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!--
+      Both entries are scoped exemptions, not a baseline. A baseline lets suppressed debt accumulate
+      unseen and pins each finding to a path that carries a version, so it needs regenerating on
+      every dependency bump; a scoped ignore keeps the check live for everything else and survives
+      bumps. See build-logic's AndroidLint.kt for the policy.
+    -->
+
+    <!--
+      False positive. Every class it names IS declared in AndroidManifest.xml, the apps install and
+      launch, and the check still reports each one a dozen times over. Measured 2026-09-14: writing
+      the manifest names fully qualified instead of relative changes nothing, so this is not the
+      debug build type's applicationIdSuffix resolving `.MainActivity` against the wrong package.
+      What is left is the source layout — these modules keep Kotlin in src/main/kotlin rather than
+      the src/main/java this check still assumes — but that was not proven, so the reason stays
+      open. Worth re-testing on an AGP bump: delete this block and see whether it comes back.
+
+      Scoped to the two classes rather than the check disabled, so a genuinely unregistered Activity
+      or Service is still caught.
+    -->
+    <issue id="Registered">
+        <ignore regexp="Abit(Wear)?Application"/>
+        <ignore regexp="MainActivity"/>
+    </issue>
+
+    <!--
+      The launcher rasters are PNG on purpose, and lint is right that WebP would be smaller. They
+      are not there for the launcher, which takes the adaptive icon in mipmap-anydpi and never reads
+      them. They exist for Firebase App Distribution, which does not parse adaptive-icon XML and
+      falls back to a generated monogram when it cannot find a flat raster it understands.
+
+      Scoped to these files, so ConvertToWebp keeps flagging every other image in the project, where
+      the size argument does apply.
+    -->
+    <issue id="ConvertToWebp">
+        <ignore regexp="mipmap-[^/]+/ic_launcher.*\.png"/>
+    </issue>
+</lint>

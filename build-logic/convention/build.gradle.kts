@@ -1,5 +1,9 @@
 plugins {
     `kotlin-dsl`
+    // ktlint walks a project's own source sets, and an included build is not a subproject of the
+    // main one — the root build's `allprojects { }` never reaches here. Applied with a literal id
+    // and version because build-logic's settings has no plugin marker resolution of its own.
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 group = "com.gmail.volkovskiyda.abit.buildlogic"

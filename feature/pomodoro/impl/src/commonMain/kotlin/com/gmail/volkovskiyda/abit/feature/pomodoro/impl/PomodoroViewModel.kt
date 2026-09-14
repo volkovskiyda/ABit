@@ -29,7 +29,6 @@ class PomodoroViewModel(
     sessionRepository: PomodoroSessionRepository,
     syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
-
     val state: StateFlow<PomodoroUiState> =
         combine(
             sessionRepository.observeSessions(),

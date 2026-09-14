@@ -4,6 +4,7 @@ import com.gmail.volkovskiyda.abit.core.data.OfflineFirstPomodoroSessionReposito
 import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
 import org.koin.dsl.module
 
-val dataModule = module {
-    single<PomodoroSessionRepository> { OfflineFirstPomodoroSessionRepository() }
-}
+val dataModule =
+    module {
+        single<PomodoroSessionRepository> { OfflineFirstPomodoroSessionRepository() }
+    }

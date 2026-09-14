@@ -11,7 +11,8 @@ import org.koin.dsl.module
  * Perfetto implementations through a platform module, which is why these are plain `single`s and
  * not `singleOf` — a later `module` in the list wins.
  */
-val observabilityModule = module {
-    single<CrashReporter> { NoopCrashReporter }
-    single<Tracer> { NoopTracer }
-}
+val observabilityModule =
+    module {
+        single<CrashReporter> { NoopCrashReporter }
+        single<Tracer> { NoopTracer }
+    }

@@ -15,9 +15,13 @@ sealed interface SyncState {
 
     data object Syncing : SyncState
 
-    data class Idle(val lastSyncedAt: Instant?) : SyncState
+    data class Idle(
+        val lastSyncedAt: Instant?,
+    ) : SyncState
 
-    data class Failed(val reason: String) : SyncState
+    data class Failed(
+        val reason: String,
+    ) : SyncState
 }
 
 interface SyncStatusRepository {

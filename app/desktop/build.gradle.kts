@@ -13,7 +13,11 @@ plugins {
 val abitVersioning = the<AbitVersioning>()
 
 kotlin {
-    jvmToolchain(libs.versions.jvmToolchain.get().toInt())
+    jvmToolchain(
+        libs.versions.jvmToolchain
+            .get()
+            .toInt(),
+    )
 }
 
 dependencies {
@@ -27,7 +31,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
+    implementation(libs.compose.material3)
     implementation(libs.kotlinx.coroutines.swing)
 
     implementation(libs.compose.ui.toolingPreview)
