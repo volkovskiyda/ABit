@@ -8,7 +8,7 @@ kotlin {
             api(projects.core.domain)
             api(projects.core.database)
             implementation(projects.core.datastore)
-            implementation(projects.core.sync)
+            api(projects.core.sync)
             implementation(projects.core.auth)
         }
     }

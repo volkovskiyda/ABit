@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.app.shared
 
 import com.gmail.volkovskiyda.abit.core.auth.di.authModule
 import com.gmail.volkovskiyda.abit.core.common.di.commonModule
+import com.gmail.volkovskiyda.abit.core.data.SyncEngine
 import com.gmail.volkovskiyda.abit.core.data.di.dataModule
 import com.gmail.volkovskiyda.abit.core.database.di.databaseModule
 import com.gmail.volkovskiyda.abit.core.database.di.platformDatabaseModule
@@ -54,9 +55,24 @@ val abitModules: List<Module> =
 fun initKoin(
     platformModules: List<Module> = emptyList(),
     config: KoinAppDeclaration? = null,
-): KoinApplication =
-    startKoin {
+): KoinApplication {
+    // Before the graph: the auth and observability bindings ask whether Firebase initialised, and a
+    // binding cannot answer that for itself.
+    initFirebase()
+
+    return startKoin {
         config?.invoke(this)
         modules(abitModules + platformModules)
         monitoring()
     }
+}
+
+/**
+ * Starts the background sync loop. Separate from [initKoin] on purpose: building the object graph
+ * and starting long-lived work are different decisions, and a test that wants the first without the
+ * second should not have to unpick the second. Each app's entry point calls it once, after
+ * [initKoin]; it is a no-op in a build with no Firebase.
+ */
+fun KoinApplication.startSync() {
+    koin.get<SyncEngine>().start()
+}

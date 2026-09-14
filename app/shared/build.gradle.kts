@@ -39,6 +39,10 @@ kotlin {
         val seam = if (kotzillaConfig.exists()) "kotzillaEnabled" else "kotzillaDisabled"
         commonMain.get().kotlin.srcDir("src/$seam/kotlin")
 
+        desktopMain.dependencies {
+            implementation(libs.gitlive.firebase.java.sdk)
+        }
+
         commonMain.dependencies {
             api(projects.core.common)
             api(projects.core.model)
@@ -48,6 +52,7 @@ kotlin {
             api(projects.feature.pomodoro.impl)
 
             implementation(projects.core.auth)
+            implementation(libs.gitlive.firebase.app)
             implementation(projects.core.database)
             implementation(projects.core.datastore)
             implementation(projects.core.sync)

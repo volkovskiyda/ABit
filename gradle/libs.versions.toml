@@ -54,6 +54,7 @@ firebaseBom = "34.19.0"
 # The multiplatform bindings. 3.0.0-alpha02 (2026-09-03) is the first release with a wasmJs target,
 # which is why an alpha is accepted here: the stable 2.7.0 line cannot build the web app at all.
 gitliveFirebase = "3.0.0-alpha02"
+gitliveFirebaseJavaSdk = "0.6.3"
 googleServices = "4.5.0"
 firebaseCrashlyticsPlugin = "3.0.8"
 firebasePerfPlugin = "2.0.2"
@@ -158,6 +159,9 @@ firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-perf = { module = "com.google.firebase:firebase-perf" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 gitlive-firebase-app = { module = "dev.gitlive:firebase-app", version.ref = "gitliveFirebase" }
+# The JVM half of GitLive: a port of the Firebase Android SDK, versioned independently of the
+# bindings above. Only the desktop target needs it.
+gitlive-firebase-java-sdk = { module = "dev.gitlive:firebase-java-sdk", version.ref = "gitliveFirebaseJavaSdk" }
 gitlive-firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "gitliveFirebase" }
 gitlive-firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "gitliveFirebase" }
 

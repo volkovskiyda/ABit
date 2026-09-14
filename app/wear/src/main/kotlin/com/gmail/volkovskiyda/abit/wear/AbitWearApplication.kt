@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.wear
 
 import android.app.Application
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
+import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.core.common.firebaseAvailable
 import com.gmail.volkovskiyda.abit.core.common.initFirebaseAvailability
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -20,7 +21,7 @@ class AbitWearApplication : Application() {
         initKoin {
             androidContext(this@AbitWearApplication)
             if (BuildConfig.DEBUG) androidLogger(Level.INFO)
-        }
+        }.startSync()
     }
 
     /**
