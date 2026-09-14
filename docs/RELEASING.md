@@ -125,7 +125,15 @@ serves every delivery job.
 `toolresults.googleapis.com` is easy to miss: Test Lab stores every run's results through it, so the
 job fails without it even though `testing.googleapis.com` is on.
 
-Finally, in the Firebase console open **App Distribution** and create a tester group named `testers`.
+Finally, the tester group the distribute job uploads to:
+
+```sh
+firebase appdistribution:group:create "Testers" testers --project abit-kmp
+firebase appdistribution:testers:add you@example.com --group-alias testers --project abit-kmp
+```
+
+The alias — `testers` — is what both workflows pass to `--groups`, not the display name. Without the
+group the upload fails, and it fails at the end of a long job.
 
 ## Test Lab quota
 
