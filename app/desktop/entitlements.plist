@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      What a JVM app needs to survive Apple's hardened runtime. The first three are not optional for
+      anything running bytecode: the JIT writes executable memory at runtime, which the hardened
+      runtime blocks outright unless told otherwise.
+    -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+
+    <!-- Firestore and Firebase Auth both talk to the network. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>

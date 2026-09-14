@@ -12,6 +12,10 @@ plugins {
 // extension-aware themselves, so a `the<AbitVersioning>()` in there looks up the wrong container.
 val abitVersioning = the<AbitVersioning>()
 
+// Read once, outside the compose.desktop block: the nested blocks are extension-aware themselves,
+// so a provider looked up in there resolves against the wrong container.
+val appleSigningIdentity = providers.environmentVariable("APPLE_SIGNING_IDENTITY")
+
 kotlin {
     jvmToolchain(
         libs.versions.jvmToolchain
@@ -66,6 +70,26 @@ compose.desktop {
             macOS {
                 bundleID = "com.gmail.volkovskiyda.abit"
                 dockName = "ABit"
+
+                // Signing and notarization are gated on the environment rather than on a flag,
+                // because the Apple Developer Program is not paid for yet. With no APPLE_SIGNING_
+                // IDENTITY the DMG is built unsigned and macOS shows the Gatekeeper warning; a
+                // tester opens it with right-click → Open once. When the certificates exist, the
+                // same command produces a signed and notarized DMG with nothing else changed.
+                signing {
+                    sign.set(appleSigningIdentity.isPresent)
+                    identity.set(appleSigningIdentity)
+                }
+                notarization {
+                    appleID.set(providers.environmentVariable("NOTARIZATION_APPLE_ID"))
+                    // An app-specific password from appleid.apple.com, never the account password.
+                    password.set(providers.environmentVariable("NOTARIZATION_PASSWORD"))
+                    teamID.set(providers.environmentVariable("NOTARIZATION_TEAM_ID"))
+                }
+                // The hardened runtime blocks a JIT outright without these; see the file itself.
+                entitlementsFile.set(project.file("entitlements.plist"))
+                runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
+
                 infoPlist {
                     // What makes this a menu-bar app: no Dock icon, no app menu bar, nothing in
                     // the app switcher. The tray icon is the only entry point.

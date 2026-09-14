@@ -1,4 +1,4 @@
-# App-specific R8 rules for the phone app.
+# App-specific R8 rules for the Wear app.
 #
 # Deliberately near-empty: every library this app uses ships its own consumer rules, and a keep rule
 # written here without evidence only makes the APK bigger. Add one when a release build actually
