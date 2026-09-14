@@ -35,6 +35,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
 
     implementation(libs.compose.ui.toolingPreview)
+
+    // Compose Multiplatform's own UI test, which renders through Skiko in-process — no emulator and
+    // no display server, so it runs on any CI machine.
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.kotlin.test)
 }
 
 compose.desktop {

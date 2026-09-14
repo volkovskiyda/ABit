@@ -1,0 +1,17 @@
+# Screenshot-test reference images ("goldens") are binary blobs that get re-baked whenever the UI
+# they cover changes, so every approval would otherwise add a full copy to the pack forever. Tracked
+# in LFS from the first golden onwards — converting later would mean rewriting history. Requires
+# `git lfs install` once per clone, and git-lfs on PATH.
+#
+# The path is chosen by the com.android.compose.screenshot plugin: src/screenshotTest<Variant>/,
+# not the src/<variant>/screenshotTest/ its own documentation implies. Verify with
+# `git check-attr filter -- <path>` after a plugin upgrade.
+app/android/src/screenshotTest*/reference/**/*.png filter=lfs diff=lfs merge=lfs -text
+
+# The generated baseline profile, for the same reason and with the same caveat: it is regenerated
+# wholesale rather than edited. The trade-off differs slightly — this is plain text, which git would
+# delta well and LFS stores whole — but it is tracked from the first commit anyway, because
+# converting later means rewriting history.
+#
+# The path is chosen by the androidx.baselineprofile plugin.
+app/android/src/release/generated/baselineProfiles/*.txt filter=lfs diff=lfs merge=lfs -text

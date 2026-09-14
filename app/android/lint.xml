@@ -36,4 +36,29 @@
     <issue id="ConvertToWebp">
         <ignore regexp="mipmap-[^/]+/ic_launcher.*\.png"/>
     </issue>
+    <!--
+      gRPC, which Firestore pulls in, references javax.naming from a JNDI-based DNS resolver that
+      never runs on Android — the class is only reachable on a JVM where JNDI exists. There is no
+      way to exclude the code and no newer gRPC without it.
+
+      Scoped to the one artifact rather than baselined: a baseline pins the finding to the jar's
+      cache path, which embeds the version and its hash, so every Firebase bump would unmatch the
+      entry and fail the build twice over. Matching on the artifact name survives version bumps, and
+      InvalidPackage stays live for every other dependency.
+    -->
+    <issue id="InvalidPackage">
+        <ignore regexp="grpc-core"/>
+    </issue>
+
+    <!--
+      GoogleSignIn resolves default_web_client_id by name rather than through R, and lint is right
+      that reflection defeats build-time verification. It is deliberate here: that resource only
+      exists once a web OAuth client does, so referencing it through R would stop a checkout without
+      one from compiling at all — which is every fresh clone of this repository.
+
+      Scoped to the one file, so DiscouragedApi keeps flagging reflection anywhere else.
+    -->
+    <issue id="DiscouragedApi">
+        <ignore regexp="GoogleSignIn.kt"/>
+    </issue>
 </lint>
