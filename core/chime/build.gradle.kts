@@ -15,6 +15,10 @@ kotlin {
             // androidContext(): the scheduler needs a Context, which only this target has.
             implementation(libs.koin.android)
         }
+        wasmJsMain.dependencies {
+            // document.addEventListener("visibilitychange"), and the Notification API.
+            implementation(libs.kotlinx.browser)
+        }
         commonTest.dependencies {
             // The fakes and the frozen clock. No cycle: core:testing stops at core:domain.
             implementation(projects.core.testing)

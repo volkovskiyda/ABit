@@ -50,4 +50,7 @@ class LocalClock(
 
     /** The raw instant, for the things that really are instants — `updatedAt`, a retention cutoff. */
     fun instant(): Instant = time.now()
+
+    /** For the callers that have to turn a wall-clock boundary back into an instant to sleep until. */
+    fun zone(): TimeZone = zone.current()
 }
