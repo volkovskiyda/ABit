@@ -16,12 +16,18 @@ import org.w3c.dom.WorkerType
 /**
  * The script the SQLite WASM build runs in. Served from the web app's static resources rather than
  * bundled by Kotlin, because a `Worker` is constructed from a URL the page can fetch.
+ *
+ * That script stores the database in OPFS through the `opfs-sahpool` VFS, so a reload keeps the
+ * user's schedules. It falls back to an in-memory database, with a console warning, where OPFS is
+ * unavailable — a private window, blocked third-party storage, some embedded webviews.
  */
 private const val SQLITE_WORKER_SCRIPT = "sqlite-worker.js"
 
 actual val platformDatabaseModule: Module =
     module {
         single<RoomDatabase.Builder<AbitDatabase>> {
+            // The same name the worker gives the pool's internal file, so the two agree on which
+            // database is being opened.
             Room.databaseBuilder<AbitDatabase>(name = ABIT_DATABASE_NAME)
         }
         // Single instance because it owns a `Worker`: every connection is a message round trip to

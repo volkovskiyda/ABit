@@ -36,14 +36,30 @@ const TEXT = 3;
 const BLOB = 4;
 const NULL = 5;
 
+// Matches ABIT_DATABASE_NAME in core:database. The pool uses it as the pool-internal filename.
+const DEFAULT_DATABASE_NAME = "abit.db";
+
 let sqlite3 = null;
+// The OPFS sync-access-handle pool, or null when this browser has no OPFS to give us.
+let sahPool = null;
 const databases = new Map();
 const statements = new Map();
 let nextDatabaseId = 1;
 let nextStatementId = 1;
 
-const ready = sqlite3InitModule().then((module) => {
+const ready = sqlite3InitModule().then(async (module) => {
     sqlite3 = module;
+    // opfs-sahpool, not OpfsDb: the sync-access-handle pool needs no SharedArrayBuffer, so the page
+    // does not have to be cross-origin isolated. COOP/COEP would break the Firebase auth popup and
+    // every cross-origin fetch, which is why the first cut of this file stayed in memory.
+    try {
+        sahPool = await sqlite3.installOpfsSAHPoolVfs({ name: "abit", initialCapacity: 6 });
+    } catch (failure) {
+        // Private windows, third-party-storage blocking and some embedded webviews have no OPFS. The
+        // app still runs; it simply forgets on reload, which is what it did before this change.
+        console.warn("[ABit] OPFS unavailable, falling back to an in-memory database:", failure);
+        sahPool = null;
+    }
 });
 
 self.onmessage = async (event) => {
@@ -83,14 +99,13 @@ function handle(request) {
 }
 
 function open(request) {
-    // In memory rather than OPFS. OPFS needs the page to be cross-origin isolated (COOP and COEP
-    // headers), which interferes with the Firebase auth popup, and Firestore keeps its own offline
-    // cache for the data that actually has to survive a reload. Revisit together with web Google
-    // sign-in — it is a backlog item on the infrastructure plan, not an oversight.
-    const db = new sqlite3.oo1.DB(":memory:", "c");
+    const name = request.name ?? DEFAULT_DATABASE_NAME;
+    const db = sahPool ? new sahPool.OpfsSAHPoolDb(name) : new sqlite3.oo1.DB(":memory:", "c");
     const databaseId = nextDatabaseId++;
     databases.set(databaseId, db);
-    return { databaseId };
+    // `persistent` is informational: the driver reads `databaseId` and ignores the rest. It is here
+    // so a console inspection of the envelope answers "did OPFS work" without reading this file.
+    return { databaseId, persistent: sahPool !== null };
 }
 
 function prepare(request) {
