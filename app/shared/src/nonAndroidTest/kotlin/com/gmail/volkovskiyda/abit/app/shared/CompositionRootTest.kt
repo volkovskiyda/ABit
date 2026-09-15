@@ -1,9 +1,12 @@
 package com.gmail.volkovskiyda.abit.app.shared
 
+import com.gmail.volkovskiyda.abit.core.chime.ChimeCoordinator
+import com.gmail.volkovskiyda.abit.core.chime.ChimeScheduler
 import com.gmail.volkovskiyda.abit.core.common.DispatcherProvider
-import com.gmail.volkovskiyda.abit.core.database.dao.PomodoroSessionDao
+import com.gmail.volkovskiyda.abit.core.database.dao.ScheduleDao
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
-import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
+import com.gmail.volkovskiyda.abit.core.domain.DayOverrideRepository
+import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
 import com.gmail.volkovskiyda.abit.core.domain.SyncStatusRepository
 import com.gmail.volkovskiyda.abit.core.observability.CrashReporter
 import org.koin.core.context.stopKoin
@@ -30,10 +33,15 @@ class CompositionRootTest {
         val koin = initKoin().koin
 
         assertNotNull(koin.get<DispatcherProvider>())
-        assertNotNull(koin.get<PomodoroSessionDao>())
-        assertNotNull(koin.get<PomodoroSessionRepository>())
+        assertNotNull(koin.get<ScheduleDao>())
+        assertNotNull(koin.get<ScheduleRepository>())
+        assertNotNull(koin.get<DayOverrideRepository>())
         assertNotNull(koin.get<UserPreferencesRepository>())
         assertNotNull(koin.get<SyncStatusRepository>())
         assertNotNull(koin.get<CrashReporter>())
+        // The chime engine is the product: if these two do not resolve, the app is silent and every
+        // screen still looks right.
+        assertNotNull(koin.get<ChimeScheduler>())
+        assertNotNull(koin.get<ChimeCoordinator>())
     }
 }

@@ -1,10 +1,32 @@
 # ABit
 
-**Change a bit.** A pomodoro timer that follows you from your phone to your watch to your Mac's menu
-bar to a browser tab, with the same sessions in all four.
+**Change a bit.** A schedule-driven focus chime that follows you from your phone to your watch to
+your Mac's menu bar to a browser tab, and sounds on all four at the same moment.
 
-The timer itself is not built yet. What is built is everything under it: the shared logic, the
-storage, the sync, the tests and the pipeline that ships it.
+It is not a pomodoro. Nothing is started or stopped by hand: you write a schedule once and the app is
+ambient after that.
+
+## How it works
+
+A **schedule** is a name, some weekdays, a start and an end time, a focus length and a break length —
+`Workdays, Mon–Fri, 09:00–18:00, 45 min focus, 15 min break`. Times are **local wall clock plus
+weekday, never instants**, so 09:45 stays 09:45 when you travel.
+
+The **blocks are derived, never stored**: focus from the start time, then alternating focus and break
+until the end time. The last focus is cut at the end and gets no break after it. A **session** is one
+focus block plus the break that follows it — that is what the ring counts down and what "Session 3 of
+9" numbers.
+
+Every signed-in device chimes at every boundary, unless that device is told not to (a per-device
+setting that deliberately does not sync). The only interventions are **Pause today**, **Skip next**
+— which silences one boundary without changing the plan — and the per-schedule switches.
+
+**One schedule runs a day.** Schedules may overlap; when two enabled ones do, the app marks the
+conflict and asks which stays on. Until you answer, the most recently updated schedule plans the day,
+so a schedule arriving from another device never makes the day go silent.
+
+Schedules and today's overrides sync through Firestore when you are signed in with Google. Without an
+account everything still works and stays on the device.
 
 ## What runs where
 
@@ -28,7 +50,7 @@ first choice.
 ```
 core/common          dispatchers, clock, logging, app scope
 core/model           the types every layer speaks
-core/domain          repository interfaces and sync state — no implementations
+core/domain          the planner, the conflict rules, repository interfaces — no implementations
 core/database        Room 3; bundled SQLite on JVM targets, a Web Worker in the browser
 core/datastore       preferences on Okio; localStorage in the browser
 core/auth            Firebase Auth through GitLive
@@ -36,9 +58,13 @@ core/sync            Firestore document layout and the remote source
 core/data            repositories, and the sync engine that reconciles local with remote
 core/observability   crash reporting and tracing, as interfaces
 core/testing         fakes, dispatchers, and the Firebase emulator harness
+core/designsystem    the palette, bundled Inter, the session ring and the shared components
+core/chime           the boundary maths and each platform's alarm
 
-feature/pomodoro/api    navigation keys and types another feature may depend on
-feature/pomodoro/impl   use cases and the multiplatform ViewModel
+feature/today/api        navigation keys and types another feature may depend on
+feature/today/impl       what the ring, the countdown and the two interventions render from
+feature/schedules/{api,impl}   the list, the editor and the conflict resolution
+feature/settings/{api,impl}    per-device chime settings, permissions, theme
 
 app/shared     the composition root every app calls
 app/android    app/wear    app/desktop    app/web

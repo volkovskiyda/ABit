@@ -1,7 +1,6 @@
 package com.gmail.volkovskiyda.abit.core.sync.di
 
 import com.gmail.volkovskiyda.abit.core.sync.FirestoreScheduleRemoteSource
-import com.gmail.volkovskiyda.abit.core.sync.FirestoreSessionRemoteSource
 import com.gmail.volkovskiyda.abit.core.sync.ScheduleRemoteSource
 import org.koin.dsl.module
 
@@ -12,5 +11,4 @@ import org.koin.dsl.module
 val syncModule =
     module {
         single<ScheduleRemoteSource> { FirestoreScheduleRemoteSource() }
-        single { FirestoreSessionRemoteSource() }
     }

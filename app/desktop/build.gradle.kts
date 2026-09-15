@@ -59,7 +59,7 @@ compose.desktop {
             packageName = "ABit"
             // Never edited per release — the same git-derived numbers the Android apps report.
             packageVersion = abitVersioning.packageVersion
-            description = "Change a bit — a multiplatform pomodoro"
+            description = "Change a bit — a focus chime that follows you"
             vendor = "Dmitriy Volkovskiy"
 
             // Modules the bundled JRE must keep: jlink strips everything the analysis does not see,

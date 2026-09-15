@@ -1,7 +1,6 @@
 package com.gmail.volkovskiyda.abit.core.sync
 
 import com.gmail.volkovskiyda.abit.core.model.DayOverride
-import com.gmail.volkovskiyda.abit.core.model.PomodoroSession
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.core.model.decodeBoundaries
@@ -101,35 +100,6 @@ fun DayOverride.toDocument(deviceId: String): DayOverrideDocument =
 /** The document id of an override: `2026-09-15`, so a document is greppable in the console. */
 fun DayOverride.documentId(): String = date.toString()
 
-@Serializable
-data class SessionDocument(
-    val id: String = "",
-    val startedAtMillis: Long = 0,
-    val durationMinutes: Int = 0,
-    val completed: Boolean = false,
-    val updatedAtMillis: Long = 0,
-    val deviceId: String = "",
-)
-
-fun SessionDocument.toModel(): PomodoroSession =
-    PomodoroSession(
-        id = id,
-        startedAt = Instant.fromEpochMilliseconds(startedAtMillis),
-        durationMinutes = durationMinutes,
-        completed = completed,
-        updatedAt = Instant.fromEpochMilliseconds(updatedAtMillis),
-    )
-
-fun PomodoroSession.toDocument(deviceId: String): SessionDocument =
-    SessionDocument(
-        id = id,
-        startedAtMillis = startedAt.toEpochMilliseconds(),
-        durationMinutes = durationMinutes,
-        completed = completed,
-        updatedAtMillis = updatedAt.toEpochMilliseconds(),
-        deviceId = deviceId,
-    )
-
 /**
  * Every document this app writes lives under the user that owns it, which is what makes the security
  * rule a single line. `firestore.rules` denies everything outside this prefix.
@@ -138,7 +108,4 @@ internal object FirestorePaths {
     const val USERS = "users"
     const val SCHEDULES = "schedules"
     const val DAY_OVERRIDES = "dayOverrides"
-
-    /** The placeholder collection. Goes with `PomodoroSession` in plan item 18. */
-    const val SESSIONS = "sessions"
 }

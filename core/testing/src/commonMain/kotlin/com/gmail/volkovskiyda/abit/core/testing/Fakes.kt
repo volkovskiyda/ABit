@@ -5,12 +5,10 @@ import com.gmail.volkovskiyda.abit.core.common.TimeZoneProvider
 import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.DayOverrideRepository
-import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
 import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.core.domain.SyncStatusRepository
 import com.gmail.volkovskiyda.abit.core.model.DayOverride
-import com.gmail.volkovskiyda.abit.core.model.PomodoroSession
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.core.model.UserId
@@ -51,22 +49,6 @@ class FakeTimeZoneProvider(
 
     fun moveTo(next: TimeZone) {
         zone = next
-    }
-}
-
-class FakePomodoroSessionRepository(
-    initial: List<PomodoroSession> = emptyList(),
-) : PomodoroSessionRepository {
-    private val sessions = MutableStateFlow(initial)
-
-    override fun observeSessions(): Flow<List<PomodoroSession>> = sessions.asStateFlow()
-
-    override suspend fun upsert(session: PomodoroSession) {
-        sessions.update { current -> current.filterNot { it.id == session.id } + session }
-    }
-
-    override suspend fun delete(id: String) {
-        sessions.update { current -> current.filterNot { it.id == id } }
     }
 }
 

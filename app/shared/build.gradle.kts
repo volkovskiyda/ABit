@@ -52,7 +52,6 @@ kotlin {
             // coordinator and post the notifications.
             api(projects.core.chime)
             api(projects.core.observability)
-            api(projects.feature.pomodoro.impl)
             api(projects.feature.today.impl)
             api(projects.feature.schedules.impl)
             api(projects.feature.settings.impl)

@@ -5,7 +5,6 @@ import androidx.sqlite.SQLiteDriver
 import com.gmail.volkovskiyda.abit.core.common.DispatcherProvider
 import com.gmail.volkovskiyda.abit.core.database.AbitDatabase
 import com.gmail.volkovskiyda.abit.core.database.dao.DayOverrideDao
-import com.gmail.volkovskiyda.abit.core.database.dao.PomodoroSessionDao
 import com.gmail.volkovskiyda.abit.core.database.dao.ScheduleDao
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -23,14 +22,13 @@ val databaseModule: Module =
                 // Dispatchers.Default, because the browser has a single thread and the real offloading
                 // happens in the Web Worker the driver talks to.
                 .setQueryCoroutineContext(get<DispatcherProvider>().io)
-                // No build has ever shipped user data in this database — version 1 held a placeholder
-                // table that no screen ever wrote. A hand-written migration would be ceremony with no
-                // beneficiary, so a version bump drops and recreates. Revisit the moment a real
-                // user's schedules live here.
+                // Version 3 drops the placeholder table, and this is the **last** bump for which a
+                // destructive fallback is free: versions 1 and 2 held only a table no screen ever
+                // wrote, while 3 is the first schema a real user's schedules live in. The next bump
+                // is a hand-written migration, not another drop.
                 .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
-        single<PomodoroSessionDao> { get<AbitDatabase>().pomodoroSessionDao() }
         single<ScheduleDao> { get<AbitDatabase>().scheduleDao() }
         single<DayOverrideDao> { get<AbitDatabase>().dayOverrideDao() }
     }

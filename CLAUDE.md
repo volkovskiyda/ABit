@@ -45,6 +45,10 @@ you do.
 - **No analysis baselines.** Not detekt, not lint, not ktlint. A finding gets fixed. A genuine
   third-party false positive gets a scoped `<ignore regexp="artifact-name">` in that module's
   `lint.xml`, which survives version bumps.
+- **Schedules are wall-clock plus weekday, never instants.** A schedule says "09:00 on Mondays", not
+  "this epoch second". Someone reaching for `Instant` out of habit would make the chimes shift by the
+  time-zone offset the moment the user travels, which is the one thing the model exists to prevent.
+  `LocalClock` in `core:common` is how a caller gets today's local date and time.
 - **Sync is last-write-wins on `updatedAt`, and *hard* deletions do not propagate.** Both are
   deliberate; the reasoning is in `SyncEngine`'s KDoc. A schedule is not hard-deleted: it is deleted
   by stamping `deletedAt`, which syncs like any other edit and is filtered out of every read.
@@ -52,9 +56,10 @@ you do.
 
 ## Layout
 
-`core/*` holds shared logic — including `core:designsystem`, the one Compose-enabled library —
-`feature/*/{api,impl}` holds features, `app/{shared,android,wear,desktop,web}`
-holds the four apps plus their composition root, `build-logic` holds the convention plugins.
+`core/*` holds shared logic — including `core:designsystem`, the one Compose-enabled library, and
+`core:chime`, which owns the boundary maths and each platform's alarm. `feature/{today,schedules,
+settings}/{api,impl}` holds the three destinations, `app/{shared,android,wear,desktop,web}` holds the
+four apps plus their composition root, and `build-logic` holds the convention plugins.
 
 Dependency direction: `app:*` → `app:shared` → `feature:*:impl` → `core:*`. A `core` module never
 depends on a feature, and `core:domain` never depends on an implementation.

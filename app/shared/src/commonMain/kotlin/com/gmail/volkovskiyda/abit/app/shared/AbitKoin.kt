@@ -14,7 +14,6 @@ import com.gmail.volkovskiyda.abit.core.datastore.di.platformDatastoreModule
 import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
 import com.gmail.volkovskiyda.abit.core.observability.di.platformObservabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
-import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.di.pomodoroModule
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.di.schedulesModule
 import com.gmail.volkovskiyda.abit.feature.settings.impl.di.settingsModule
 import com.gmail.volkovskiyda.abit.feature.today.impl.di.todayModule
@@ -43,7 +42,6 @@ val abitModules: List<Module> =
         dataModule,
         platformChimeModule,
         chimeModule,
-        pomodoroModule,
         todayModule,
         schedulesModule,
         settingsModule,

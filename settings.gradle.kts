@@ -77,12 +77,9 @@ include(":core:observability")
 include(":core:data")
 include(":core:testing")
 
-// The api/impl split, from the first feature onwards: `:api` holds a feature's navigation key and
-// the types a host needs, so features can navigate to each other without depending on each other's
-// implementation. `:impl` holds the presentation logic and is depended on only by `:app:shared`.
-include(":feature:pomodoro:api")
-include(":feature:pomodoro:impl")
-
+// The api/impl split: `:api` holds a feature's navigation key and the types a host needs, so
+// features can navigate to each other without depending on each other's implementation. `:impl`
+// holds the presentation logic and is depended on only by `:app:shared`.
 include(":feature:today:api")
 include(":feature:today:impl")
 include(":feature:schedules:api")
