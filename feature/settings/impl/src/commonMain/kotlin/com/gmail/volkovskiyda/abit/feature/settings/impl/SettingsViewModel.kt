@@ -1,0 +1,101 @@
+package com.gmail.volkovskiyda.abit.feature.settings.impl
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
+import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
+import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
+import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
+import com.gmail.volkovskiyda.abit.core.domain.AuthUser
+import com.gmail.volkovskiyda.abit.core.domain.SyncState
+import com.gmail.volkovskiyda.abit.core.domain.SyncStatusRepository
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+private const val STOP_TIMEOUT_MILLIS = 5_000L
+
+data class SettingsUiState(
+    val preferences: UserPreferences = UserPreferences(),
+    val user: AuthUser? = null,
+    val syncState: SyncState = SyncState.Unavailable,
+    /**
+     * Filled by the platform, because which permissions are real depends on it and because the
+     * answers change while the app is backgrounded — a screen re-reads them on resume.
+     */
+    val permissions: List<PermissionState> = emptyList(),
+    val authError: String? = null,
+)
+
+class SettingsViewModel(
+    private val preferencesRepository: UserPreferencesRepository,
+    private val authRepository: AuthRepository,
+    syncStatusRepository: SyncStatusRepository,
+) : ViewModel() {
+    private val permissions = MutableStateFlow<List<PermissionState>>(emptyList())
+    private val authError = MutableStateFlow<String?>(null)
+
+    val state: StateFlow<SettingsUiState> =
+        combine(
+            preferencesRepository.preferences,
+            authRepository.currentUser,
+            syncStatusRepository.syncState,
+            permissions,
+            authError,
+        ) { preferences, user, syncState, permissionStates, error ->
+            SettingsUiState(
+                preferences = preferences,
+                user = user,
+                syncState = syncState,
+                permissions = permissionStates,
+                authError = error,
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = SettingsUiState(),
+        )
+
+    /** Called by the screen on every resume: a permission can be granted or revoked outside the app. */
+    fun onPermissionsChanged(states: List<PermissionState>) {
+        permissions.value = states
+    }
+
+    fun setThemeMode(mode: ThemeMode) = update { it.copy(themeMode = mode) }
+
+    /** Per device: this silences the machine in front of the user, not the account. */
+    fun setChimeOnThisDevice(enabled: Boolean) = update { it.copy(chimeOnThisDevice = enabled) }
+
+    fun setChimeSound(sound: ChimeSound) = update { it.copy(chimeSound = sound) }
+
+    fun setVibrate(enabled: Boolean) = update { it.copy(vibrate = enabled) }
+
+    fun setShowCountdownNotification(enabled: Boolean) = update { it.copy(showCountdownNotification = enabled) }
+
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            authError.value = null
+            authRepository.signInWithGoogle(idToken).onFailure { authError.value = it.message ?: "Sign-in failed" }
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            authError.value = null
+            authRepository.signOut()
+        }
+    }
+
+    fun onAuthError(message: String) {
+        authError.value = message
+    }
+
+    private fun update(transform: (UserPreferences) -> UserPreferences) {
+        viewModelScope.launch { preferencesRepository.update(transform) }
+    }
+}

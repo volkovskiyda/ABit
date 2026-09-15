@@ -15,6 +15,9 @@ import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
 import com.gmail.volkovskiyda.abit.core.observability.di.platformObservabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.di.pomodoroModule
+import com.gmail.volkovskiyda.abit.feature.schedules.impl.di.schedulesModule
+import com.gmail.volkovskiyda.abit.feature.settings.impl.di.settingsModule
+import com.gmail.volkovskiyda.abit.feature.today.impl.di.todayModule
 import io.kotzilla.generated.monitoring
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
@@ -41,6 +44,9 @@ val abitModules: List<Module> =
         platformChimeModule,
         chimeModule,
         pomodoroModule,
+        todayModule,
+        schedulesModule,
+        settingsModule,
     )
 
 /**

@@ -53,6 +53,9 @@ kotlin {
             api(projects.core.chime)
             api(projects.core.observability)
             api(projects.feature.pomodoro.impl)
+            api(projects.feature.today.impl)
+            api(projects.feature.schedules.impl)
+            api(projects.feature.settings.impl)
 
             implementation(projects.core.auth)
             implementation(libs.gitlive.firebase.app)

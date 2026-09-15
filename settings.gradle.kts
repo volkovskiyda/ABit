@@ -83,6 +83,13 @@ include(":core:testing")
 include(":feature:pomodoro:api")
 include(":feature:pomodoro:impl")
 
+include(":feature:today:api")
+include(":feature:today:impl")
+include(":feature:schedules:api")
+include(":feature:schedules:impl")
+include(":feature:settings:api")
+include(":feature:settings:impl")
+
 include(":app:shared")
 include(":app:android")
 include(":app:wear")
