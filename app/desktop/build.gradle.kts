@@ -25,6 +25,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(projects.core.designsystem)
     implementation(projects.app.shared)
 
     // Same reason as app:web: a plain JVM module gets no Koin BoM from the convention plugins, and
