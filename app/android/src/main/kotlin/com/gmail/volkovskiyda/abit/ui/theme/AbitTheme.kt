@@ -1,39 +1,27 @@
 package com.gmail.volkovskiyda.abit.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.designsystem.AbitTheme as SharedAbitTheme
 
 /**
- * Material 3 with the wallpaper palette where the platform offers one (Android 12+), and a plain
- * baseline scheme otherwise. A designed palette replaces this when the app has a visual identity.
+ * A delegate to `core:designsystem`, which owns the palette, the bundled Inter and the shapes.
+ *
+ * **No dynamic colour any more.** The palette carries meaning — tangerine is Focus, mint is Break —
+ * and a wallpaper-tinted scheme would repaint that meaning at random. The [themeMode] parameter is
+ * the user's own choice from Settings, which outranks the system's.
  */
 @Composable
 fun AbitTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.System,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme =
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                val context = LocalContext.current
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-
-            darkTheme -> {
-                darkColorScheme()
-            }
-
-            else -> {
-                lightColorScheme()
-            }
+    val dark =
+        when (themeMode) {
+            ThemeMode.System -> isSystemInDarkTheme()
+            ThemeMode.Light -> false
+            ThemeMode.Dark -> true
         }
-
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    SharedAbitTheme(darkTheme = dark, content = content)
 }

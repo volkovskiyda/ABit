@@ -37,6 +37,8 @@ fun ScheduleCard(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     overlapLabel: String? = null,
+    /** Tapping the overlap chip opens the conflict sheet; the rest of the card opens the editor. */
+    onOverlapClick: (() -> Unit)? = null,
     conflictingDays: Set<DayOfWeek> = emptySet(),
 ) {
     Column(
@@ -97,6 +99,7 @@ fun ScheduleCard(
         if (overlapLabel != null) {
             AbitChip(
                 text = overlapLabel,
+                modifier = if (onOverlapClick == null) Modifier else Modifier.clickable(onClick = onOverlapClick),
                 container = MaterialTheme.colorScheme.errorContainer,
                 content = MaterialTheme.colorScheme.onErrorContainer,
             )

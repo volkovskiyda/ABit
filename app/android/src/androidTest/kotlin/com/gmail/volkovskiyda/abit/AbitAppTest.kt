@@ -3,8 +3,9 @@ package com.gmail.volkovskiyda.abit
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -18,7 +19,7 @@ import org.junit.runner.RunWith
  * by hand and behaves the same on a laptop and on CI.
  */
 @RunWith(AndroidJUnit4::class)
-class PomodoroScreenTest {
+class AbitAppTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -28,14 +29,16 @@ class PomodoroScreenTest {
         // touch-target regression then fails this suite rather than reaching a user.
         composeRule.enableAccessibilityChecks()
 
-        composeRule.onNodeWithText("ABit").assertIsDisplayed()
-        composeRule.onNodeWithText("Sessions: 0").assertIsDisplayed()
+        // "Today" is both the screen's title and its navigation label, so this asks for the first.
+        composeRule.onAllNodesWithText("Today").onFirst().assertIsDisplayed()
+        composeRule.onNodeWithText("Schedules").assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
     }
 
     @Test
-    fun offersAnAccountFreeStart() {
-        // Anonymous sign-in is the product's front door: someone must be able to use ABit without
-        // an account at all.
-        composeRule.onNodeWithText("Use without an account").assertIsDisplayed().performClick()
+    fun hasNoStartControlAnywhere() {
+        // ABit is a schedule, not a stopwatch. A "Start" button appearing here would mean the
+        // reframing the whole product rests on has been undone by accident.
+        composeRule.onNodeWithText("Start").assertDoesNotExist()
     }
 }

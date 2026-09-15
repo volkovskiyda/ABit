@@ -40,6 +40,7 @@ baselineProfile {
 
 dependencies {
     implementation(projects.app.shared)
+    implementation(projects.core.designsystem)
     // Installs the packaged profile on first run for devices that do not do it themselves.
     implementation(libs.androidx.profileinstaller)
     baselineProfile(projects.baselineprofile)

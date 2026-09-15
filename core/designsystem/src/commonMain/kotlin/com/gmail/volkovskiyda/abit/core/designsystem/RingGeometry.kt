@@ -2,6 +2,8 @@ package com.gmail.volkovskiyda.abit.core.designsystem
 
 import com.gmail.volkovskiyda.abit.core.domain.Session
 import kotlinx.datetime.LocalTime
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 private const val FULL_TURN_DEG = 360f
 private const val SECONDS_IN_MINUTE = 60
@@ -21,6 +23,11 @@ data class RingArcs(
     val gapDegrees: Float = if (breakSweep > 0f && focusSweep > 0f) RING_GAP_DEGREES else 0f,
 ) {
     val totalSweep: Float get() = breakSweep + focusSweep
+
+    companion object {
+        /** Nothing is running: the track is drawn and no arc is. */
+        val Empty = RingArcs(breakSweep = 0f, focusSweep = 0f)
+    }
 }
 
 /**
@@ -35,16 +42,25 @@ data class RingArcs(
 fun ringArcs(
     session: Session,
     now: LocalTime,
+): RingArcs = ringArcs(session, (session.end.toSecondOfDay() - now.toSecondOfDay()).seconds)
+
+/**
+ * The same ring from the countdown a surface already holds, so a screen rendering
+ * `TodayState.Running` does not have to reconstruct "now" by subtracting.
+ */
+fun ringArcs(
+    session: Session,
+    remaining: Duration,
 ): RingArcs {
     val sessionSeconds = session.end.toSecondOfDay() - session.start.toSecondOfDay()
-    if (sessionSeconds <= 0) return RingArcs(breakSweep = 0f, focusSweep = 0f)
+    if (sessionSeconds <= 0) return RingArcs.Empty
 
-    val remaining = (session.end.toSecondOfDay() - now.toSecondOfDay()).coerceIn(0, sessionSeconds)
+    val remainingSeconds = remaining.inWholeSeconds.toInt().coerceIn(0, sessionSeconds)
     val breakSeconds = session.rest?.let { it.end.toSecondOfDay() - it.start.toSecondOfDay() } ?: 0
 
     val perSecond = FULL_TURN_DEG / sessionSeconds
-    val breakSweep = minOf(remaining, breakSeconds) * perSecond
-    val focusSweep = (remaining - minOf(remaining, breakSeconds)) * perSecond
+    val breakSweep = minOf(remainingSeconds, breakSeconds) * perSecond
+    val focusSweep = (remainingSeconds - minOf(remainingSeconds, breakSeconds)) * perSecond
     return RingArcs(breakSweep = breakSweep, focusSweep = focusSweep)
 }
 

@@ -4,16 +4,45 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import com.gmail.volkovskiyda.abit.feature.pomodoro.api.PomodoroNavKey
-import com.gmail.volkovskiyda.abit.ui.PomodoroScreen
+import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
+import com.gmail.volkovskiyda.abit.core.designsystem.components.DialMark
+import com.gmail.volkovskiyda.abit.feature.schedules.api.ScheduleConflictNavKey
+import com.gmail.volkovskiyda.abit.feature.schedules.api.ScheduleEditorNavKey
+import com.gmail.volkovskiyda.abit.feature.schedules.api.SchedulesNavKey
+import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesViewModel
+import com.gmail.volkovskiyda.abit.feature.settings.api.SettingsNavKey
+import com.gmail.volkovskiyda.abit.feature.settings.api.SignInNavKey
+import com.gmail.volkovskiyda.abit.feature.today.api.TodayNavKey
+import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
+import com.gmail.volkovskiyda.abit.ui.auth.SignInSheet
+import com.gmail.volkovskiyda.abit.ui.schedules.ConflictSheet
+import com.gmail.volkovskiyda.abit.ui.schedules.ScheduleEditorScreen
+import com.gmail.volkovskiyda.abit.ui.schedules.SchedulesScreen
+import com.gmail.volkovskiyda.abit.ui.settings.SettingsScreen
 import com.gmail.volkovskiyda.abit.ui.theme.AbitTheme
+import com.gmail.volkovskiyda.abit.ui.today.TodayScreen
+import kotlinx.coroutines.flow.map
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,27 +51,143 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            AbitTheme {
+            // The user's own choice outranks the system's, which is why the theme is read from
+            // preferences here rather than from `isSystemInDarkTheme()` inside AbitTheme.
+            val preferences: UserPreferencesRepository = koinInject()
+            // Remembered: a Flow operator called straight in composition would build a new flow on
+            // every recomposition and reset the collection.
+            val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
+            val themeMode by themeFlow.collectAsStateWithLifecycle(initialValue = ThemeMode.System)
+            AbitTheme(themeMode = themeMode) {
                 AbitNavDisplay()
             }
         }
     }
 }
 
+/** The three destinations in the bottom bar, in the order the design draws them. */
+private enum class Destination(
+    val key: NavKey,
+    val label: String,
+) {
+    Today(TodayNavKey, "Today"),
+    Schedules(SchedulesNavKey, "Schedules"),
+    Settings(SettingsNavKey, "Settings"),
+}
+
 /**
- * One entry today. The `entryProvider { entry<K> { } }` DSL is deliberate: it is the shape the
- * Kotzilla compiler plugin rewrites to record screen views, so a screen is registered by adding a
- * key here rather than by hand-wrapping each composable.
+ * The `entryProvider { entry<K> { } }` DSL is deliberate: it is the shape the Kotzilla compiler
+ * plugin rewrites to record screen views, so a screen is registered by adding a key here rather than
+ * by hand-wrapping each composable.
  */
 @Composable
 internal fun AbitNavDisplay() {
-    val backStack = rememberNavBackStack(PomodoroNavKey)
-    NavDisplay(
-        backStack = backStack,
-        onBack = { backStack.removeLastOrNull() },
-        entryProvider =
-            entryProvider<NavKey> {
-                entry<PomodoroNavKey> { PomodoroScreen(viewModel = koinViewModel()) }
-            },
+    val backStack = rememberNavBackStack(TodayNavKey)
+    val current = backStack.lastOrNull()
+    val showBottomBar = Destination.entries.any { it.key == current }
+
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                NavigationBar {
+                    Destination.entries.forEach { destination ->
+                        NavigationBarItem(
+                            selected = destination.key == current,
+                            onClick = {
+                                // One entry per destination: tapping the bar switches rather than stacks.
+                                backStack.removeAll { it in Destination.entries.map(Destination::key) }
+                                backStack.add(destination.key)
+                            },
+                            icon = { DestinationIcon(destination) },
+                            label = { Text(destination.label) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        NavDisplay(
+            modifier = Modifier.padding(padding),
+            backStack = backStack,
+            onBack = { backStack.removeLastOrNull() },
+            entryProvider =
+                entryProvider<NavKey> {
+                    entry<TodayNavKey> {
+                        TodayScreen(
+                            viewModel = koinViewModel<TodayViewModel>(),
+                            onOpenSignIn = { backStack.add(SignInNavKey) },
+                            onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
+                        )
+                    }
+                    entry<SchedulesNavKey> {
+                        SchedulesScreen(
+                            viewModel = koinViewModel<SchedulesViewModel>(),
+                            onOpenEditor = { id -> backStack.add(ScheduleEditorNavKey(id)) },
+                            onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
+                        )
+                    }
+                    entry<ScheduleEditorNavKey> { key ->
+                        ScheduleEditorScreen(
+                            viewModel = koinViewModel { parametersOf(key.id) },
+                            onDone = { backStack.removeLastOrNull() },
+                        )
+                    }
+                    entry<ScheduleConflictNavKey> { key ->
+                        ConflictScreen(key = key, onDismiss = { backStack.removeLastOrNull() }) { id ->
+                            backStack.removeLastOrNull()
+                            backStack.add(ScheduleEditorNavKey(id))
+                        }
+                    }
+                    entry<SettingsNavKey> {
+                        SettingsScreen(
+                            viewModel = koinViewModel(),
+                            onOpenSignIn = { backStack.add(SignInNavKey) },
+                        )
+                    }
+                    entry<SignInNavKey> {
+                        SignInSheet(
+                            // Item 16 replaces this with the real Credential Manager flow.
+                            onSignIn = { backStack.removeLastOrNull() },
+                            onDismiss = { backStack.removeLastOrNull() },
+                        )
+                    }
+                },
+        )
+    }
+}
+
+/** The Today destination wears the app's own dial, not a generic clock. */
+@Composable
+private fun DestinationIcon(destination: Destination) {
+    when (destination) {
+        Destination.Today -> DialMark(size = 24.dp)
+        Destination.Schedules -> Text("▤", style = MaterialTheme.typography.titleMedium)
+        Destination.Settings -> Text("⚙", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun ConflictScreen(
+    key: ScheduleConflictNavKey,
+    onDismiss: () -> Unit,
+    onEditHours: (String) -> Unit,
+) {
+    val viewModel = koinViewModel<SchedulesViewModel>()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val conflict = state.conflicts.firstOrNull { it.first.value == key.first && it.second.value == key.second }
+    if (conflict == null) {
+        // Someone resolved it on another device while this sheet was opening.
+        onDismiss()
+        return
+    }
+    ConflictSheet(
+        conflict = conflict,
+        schedules = state.schedules,
+        onKeep = { keep, disable ->
+            viewModel.resolveConflict(keep, disable)
+            onDismiss()
+        },
+        onEditHours = onEditHours,
+        onDismiss = onDismiss,
     )
 }

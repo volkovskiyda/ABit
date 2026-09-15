@@ -3,6 +3,7 @@ package com.gmail.volkovskiyda.abit.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroUiState
 import com.gmail.volkovskiyda.abit.ui.theme.AbitTheme
@@ -19,7 +20,7 @@ import com.gmail.volkovskiyda.abit.ui.theme.AbitTheme
 @Preview(showBackground = true)
 @Composable
 private fun PomodoroSignedOutLight() {
-    AbitTheme(darkTheme = false) {
+    AbitTheme(themeMode = ThemeMode.Light) {
         PomodoroContent(PomodoroUiState())
     }
 }
@@ -28,7 +29,7 @@ private fun PomodoroSignedOutLight() {
 @Preview(showBackground = true)
 @Composable
 private fun PomodoroSignedOutDark() {
-    AbitTheme(darkTheme = true) {
+    AbitTheme(themeMode = ThemeMode.Dark) {
         PomodoroContent(PomodoroUiState())
     }
 }
@@ -38,7 +39,7 @@ private fun PomodoroSignedOutDark() {
 @Preview(showBackground = true, fontScale = 2.0f)
 @Composable
 private fun PomodoroLargestFont() {
-    AbitTheme(darkTheme = false) {
+    AbitTheme(themeMode = ThemeMode.Light) {
         PomodoroContent(PomodoroUiState(syncState = SyncState.Syncing))
     }
 }
