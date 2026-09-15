@@ -42,8 +42,9 @@ you do.
 - **No analysis baselines.** Not detekt, not lint, not ktlint. A finding gets fixed. A genuine
   third-party false positive gets a scoped `<ignore regexp="artifact-name">` in that module's
   `lint.xml`, which survives version bumps.
-- **Sync is last-write-wins on `updatedAt`, and deletions do not propagate.** Both are deliberate;
-  the reasoning is in `SyncEngine`'s KDoc.
+- **Sync is last-write-wins on `updatedAt`, and *hard* deletions do not propagate.** Both are
+  deliberate; the reasoning is in `SyncEngine`'s KDoc. A schedule is not hard-deleted: it is deleted
+  by stamping `deletedAt`, which syncs like any other edit and is filtered out of every read.
 - **Crashlytics and Performance collect in release builds only.**
 
 ## Layout

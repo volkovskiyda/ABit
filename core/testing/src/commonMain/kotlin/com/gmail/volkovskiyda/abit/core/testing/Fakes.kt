@@ -4,15 +4,22 @@ import com.gmail.volkovskiyda.abit.core.common.TimeProvider
 import com.gmail.volkovskiyda.abit.core.common.TimeZoneProvider
 import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
+import com.gmail.volkovskiyda.abit.core.domain.DayOverrideRepository
 import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
+import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.core.domain.SyncStatusRepository
+import com.gmail.volkovskiyda.abit.core.model.DayOverride
 import com.gmail.volkovskiyda.abit.core.model.PomodoroSession
+import com.gmail.volkovskiyda.abit.core.model.Schedule
+import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.core.model.UserId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
@@ -60,6 +67,58 @@ class FakePomodoroSessionRepository(
 
     override suspend fun delete(id: String) {
         sessions.update { current -> current.filterNot { it.id == id } }
+    }
+}
+
+class FakeScheduleRepository(
+    initial: List<Schedule> = emptyList(),
+    private val timeProvider: TimeProvider = FakeTimeProvider(),
+) : ScheduleRepository {
+    private val schedules = MutableStateFlow(initial)
+
+    override fun observeSchedules(): Flow<List<Schedule>> = schedules.asStateFlow()
+
+    override suspend fun findById(id: ScheduleId): Schedule? = schedules.value.firstOrNull { it.id == id }
+
+    override suspend fun save(schedule: Schedule) {
+        val stamped = schedule.copy(updatedAt = timeProvider.now())
+        schedules.update { current -> current.filterNot { it.id == stamped.id } + stamped }
+    }
+
+    override suspend fun delete(id: ScheduleId) {
+        val now = timeProvider.now()
+        schedules.update { current ->
+            current.map { if (it.id == id) it.copy(updatedAt = now, deletedAt = now) else it }
+        }
+    }
+}
+
+class FakeDayOverrideRepository(
+    initial: Map<LocalDate, DayOverride> = emptyMap(),
+    private val timeProvider: TimeProvider = FakeTimeProvider(),
+) : DayOverrideRepository {
+    private val overrides = MutableStateFlow(initial)
+
+    override fun observeFrom(date: LocalDate): Flow<Map<LocalDate, DayOverride>> = overrides.asStateFlow()
+
+    override suspend fun setPaused(
+        date: LocalDate,
+        paused: Boolean,
+    ) = update(date) { it.copy(paused = paused) }
+
+    override suspend fun skipBoundary(
+        date: LocalDate,
+        boundary: LocalTime,
+    ) = update(date) { it.copy(skippedBoundaries = it.skippedBoundaries + boundary) }
+
+    private fun update(
+        date: LocalDate,
+        edit: (DayOverride) -> DayOverride,
+    ) {
+        overrides.update { current ->
+            val base = current[date] ?: DayOverride(date = date, updatedAt = timeProvider.now())
+            current + (date to edit(base).copy(updatedAt = timeProvider.now()))
+        }
     }
 }
 
