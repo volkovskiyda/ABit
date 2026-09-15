@@ -7,6 +7,13 @@
          installs and works on its own. The Wearable Data Layer is deliberately not used. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- The watch chimes from its own scheduler, not from a bridged phone notification (the phone
+         manifest declares NO_BRIDGING). Same four permissions as the phone, for the same reasons. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
     <application
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
@@ -19,6 +26,26 @@
         <meta-data
                 android:name="com.google.android.wearable.standalone"
                 android:value="true"/>
+
+        <!-- The filter is what lets the scheduler resolve this class by name from a library module
+             that cannot import it. Not exported: the action is package-qualified and the intent is
+             made explicit before it is armed. -->
+        <receiver
+                android:exported="false"
+                android:name=".chime.ChimeReceiver">
+            <intent-filter>
+                <action android:name="com.gmail.volkovskiyda.abit.action.CHIME"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+                android:exported="false"
+                android:name=".chime.BootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
 
         <activity
                 android:exported="true"

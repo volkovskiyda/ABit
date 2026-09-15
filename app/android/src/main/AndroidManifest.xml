@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The app is ambient: it has to wake itself at a boundary and say so. POST_NOTIFICATIONS is a
+         runtime permission from Android 13; SCHEDULE_EXACT_ALARM is the prompted one rather than
+         USE_EXACT_ALARM, which needs no prompt but declares the app an alarm clock under Play
+         policy, which ABit is not. RECEIVE_BOOT_COMPLETED because a reboot clears every alarm. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
     <application
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
@@ -9,6 +18,37 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- The watch app shares this application id, which is the Wear convention and which makes
+             Wear OS bridge this app's notifications to the wrist by default. The watch runs its own
+             scheduler, so without this every boundary would chime twice on the wrist. Google
+             documents this meta-data in the *handheld* manifest, which is why it is here rather than
+             in app/wear's. -->
+        <meta-data
+                android:name="com.google.android.wearable.notificationBridgeMode"
+                android:value="NO_BRIDGING"/>
+
+        <!-- The filter is what lets the scheduler resolve this class by name from a library module
+             that cannot import it. Not exported: the action is package-qualified and the intent is
+             made explicit before it is armed. -->
+        <receiver
+                android:exported="false"
+                android:name=".chime.ChimeReceiver">
+            <intent-filter>
+                <action android:name="com.gmail.volkovskiyda.abit.action.CHIME"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- MY_PACKAGE_REPLACED as well as BOOT_COMPLETED: an app update clears alarms too. -->
+        <receiver
+                android:exported="false"
+                android:name=".chime.BootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
+
         <activity
                 android:exported="true"
                 android:name=".MainActivity">

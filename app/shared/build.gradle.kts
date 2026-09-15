@@ -48,11 +48,13 @@ kotlin {
             api(projects.core.model)
             api(projects.core.domain)
             api(projects.core.data)
+            // api rather than implementation: both Android apps declare receivers that resolve the
+            // coordinator and post the notifications.
+            api(projects.core.chime)
             api(projects.core.observability)
             api(projects.feature.pomodoro.impl)
 
             implementation(projects.core.auth)
-            implementation(projects.core.chime)
             implementation(libs.gitlive.firebase.app)
             implementation(projects.core.database)
             implementation(projects.core.datastore)
