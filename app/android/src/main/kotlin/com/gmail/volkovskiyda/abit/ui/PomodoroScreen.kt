@@ -121,6 +121,9 @@ private fun syncLabel(syncState: SyncState): String =
 
         SyncState.SignedOut -> "Signed out"
 
+        // Signed in anonymously: usable and private, but nothing leaves the device.
+        SyncState.LocalOnly -> "On this device only"
+
         SyncState.Syncing -> "Syncing…"
 
         is SyncState.Idle -> "Synced"

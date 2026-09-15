@@ -65,6 +65,7 @@ fun PomodoroPopupContent(
                     when (state.syncState) {
                         SyncState.Unavailable -> "Sync unavailable in this build"
                         SyncState.SignedOut -> "Signed out"
+                        SyncState.LocalOnly -> "On this device only"
                         SyncState.Syncing -> "Syncing…"
                         is SyncState.Idle -> "Synced"
                         is SyncState.Failed -> "Sync failed"

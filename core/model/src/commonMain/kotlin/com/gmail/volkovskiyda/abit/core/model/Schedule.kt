@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.core.model
 
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.isoDayNumber
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 import kotlin.time.Instant
@@ -42,3 +43,20 @@ val FOCUS_MINUTES_RANGE = 5..120
 val BREAK_MINUTES_RANGE = 5..120
 
 const val LENGTH_STEP_MINUTES = 5
+
+/**
+ * The one encoding of a weekday set and a wall-clock time that both stores use — SQLite columns and
+ * the Firestore wire format. Keeping it here rather than in either of them is what stops the two
+ * drifting into disagreeing about which bit is Monday.
+ *
+ * Mon = bit 0 … Sun = bit 6.
+ */
+fun Set<DayOfWeek>.toDaysMask(): Int = fold(0) { mask, day -> mask or (1 shl (day.isoDayNumber - 1)) }
+
+fun Int.toDayOfWeekSet(): Set<DayOfWeek> = DayOfWeek.entries.filterTo(mutableSetOf()) { this and (1 shl (it.isoDayNumber - 1)) != 0 }
+
+fun LocalTime.toMinuteOfDay(): Int = toSecondOfDay() / SECONDS_IN_MINUTE
+
+fun localTimeOfMinute(minuteOfDay: Int): LocalTime = LocalTime.fromSecondOfDay(minuteOfDay * SECONDS_IN_MINUTE)
+
+internal const val SECONDS_IN_MINUTE = 60

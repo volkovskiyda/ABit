@@ -23,7 +23,7 @@ class AbitApplication : Application() {
             // Koin's own resolution logging, debug builds only: it names every definition it
             // creates, which is noise in a release build and costs time on every injection.
             if (BuildConfig.DEBUG) androidLogger(Level.INFO)
-        }
+        }.startSync()
     }
 
     /**

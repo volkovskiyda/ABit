@@ -61,6 +61,7 @@ private fun PomodoroWearContent(
                     when (state.syncState) {
                         SyncState.Unavailable -> "No sync"
                         SyncState.SignedOut -> "Signed out"
+                        SyncState.LocalOnly -> "This watch only"
                         SyncState.Syncing -> "Syncing…"
                         is SyncState.Idle -> "Synced"
                         is SyncState.Failed -> "Sync failed"

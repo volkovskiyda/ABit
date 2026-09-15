@@ -13,6 +13,12 @@ sealed interface SyncState {
 
     data object SignedOut : SyncState
 
+    /**
+     * Signed in anonymously. Everything works and nothing leaves the device, which is why this is
+     * not [Unavailable]: they look alike on screen, but only this one is fixable by signing in.
+     */
+    data object LocalOnly : SyncState
+
     data object Syncing : SyncState
 
     data class Idle(

@@ -4,12 +4,11 @@ import androidx.room3.Entity
 import androidx.room3.PrimaryKey
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.isoDayNumber
+import com.gmail.volkovskiyda.abit.core.model.localTimeOfMinute
+import com.gmail.volkovskiyda.abit.core.model.toDayOfWeekSet
+import com.gmail.volkovskiyda.abit.core.model.toDaysMask
+import com.gmail.volkovskiyda.abit.core.model.toMinuteOfDay
 import kotlin.time.Instant
-
-private const val SECONDS_IN_MINUTE = 60
 
 /**
  * The stored shape of a schedule. Separate from `core:model`'s [Schedule] on purpose: the database's
@@ -38,9 +37,9 @@ fun ScheduleEntity.toModel(): Schedule =
         id = ScheduleId(id),
         name = name,
         enabled = enabled,
-        days = daysMask.toDays(),
-        start = LocalTime.fromSecondOfDay(startMinuteOfDay * SECONDS_IN_MINUTE),
-        end = LocalTime.fromSecondOfDay(endMinuteOfDay * SECONDS_IN_MINUTE),
+        days = daysMask.toDayOfWeekSet(),
+        start = localTimeOfMinute(startMinuteOfDay),
+        end = localTimeOfMinute(endMinuteOfDay),
         focusMinutes = focusMinutes,
         breakMinutes = breakMinutes,
         updatedAt = Instant.fromEpochMilliseconds(updatedAtMillis),
@@ -52,15 +51,11 @@ fun Schedule.toEntity(): ScheduleEntity =
         id = id.value,
         name = name,
         enabled = enabled,
-        daysMask = days.toMask(),
-        startMinuteOfDay = start.toSecondOfDay() / SECONDS_IN_MINUTE,
-        endMinuteOfDay = end.toSecondOfDay() / SECONDS_IN_MINUTE,
+        daysMask = days.toDaysMask(),
+        startMinuteOfDay = start.toMinuteOfDay(),
+        endMinuteOfDay = end.toMinuteOfDay(),
         focusMinutes = focusMinutes,
         breakMinutes = breakMinutes,
         updatedAtMillis = updatedAt.toEpochMilliseconds(),
         deletedAtMillis = deletedAt?.toEpochMilliseconds(),
     )
-
-internal fun Set<DayOfWeek>.toMask(): Int = fold(0) { mask, day -> mask or (1 shl (day.isoDayNumber - 1)) }
-
-internal fun Int.toDays(): Set<DayOfWeek> = DayOfWeek.entries.filterTo(mutableSetOf()) { this and (1 shl (it.isoDayNumber - 1)) != 0 }

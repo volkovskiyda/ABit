@@ -21,10 +21,12 @@ val dataModule =
 
         single {
             SyncEngine(
-                dao = get(),
+                scheduleDao = get(),
+                dayOverrideDao = get(),
                 remote = get(),
                 authRepository = get(),
                 timeProvider = get(),
+                timeZoneProvider = get(),
                 scope = get<CoroutineScope>(ApplicationScope),
                 deviceId = deviceId(),
             )

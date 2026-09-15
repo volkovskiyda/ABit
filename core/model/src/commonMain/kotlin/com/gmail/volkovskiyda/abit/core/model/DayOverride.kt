@@ -19,3 +19,14 @@ data class DayOverride(
     /** Last local modification, and the field last-write-wins reconciliation compares on. */
     val updatedAt: Instant,
 )
+
+/**
+ * Comma-separated minutes of day, empty for none — the encoding both the `skippedBoundaries` column
+ * and the Firestore field use. A set of times has no useful index in either store.
+ */
+fun Set<LocalTime>.encodeBoundaries(): String = map { it.toMinuteOfDay() }.sorted().joinToString(",")
+
+fun String.decodeBoundaries(): Set<LocalTime> =
+    split(",")
+        .filter { it.isNotBlank() }
+        .mapTo(mutableSetOf()) { localTimeOfMinute(it.trim().toInt()) }

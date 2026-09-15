@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * What `firestore.rules` actually allows, attempted rather than reviewed.
  *
  * These rules are the only thing separating two users' data, and getting them wrong fails silently:
- * nothing crashes, a stranger can simply read your sessions. So each case here performs the access
+ * nothing crashes, a stranger can simply read your schedules. So each case here performs the access
  * for real against the emulator and asserts on the status code.
  *
  * Does nothing when the emulators are not running. Run it with `scripts/emulator-tests.sh`.
@@ -20,28 +20,28 @@ class FirestoreRulesEmulatorTest {
     private val bob = "bob-uid"
 
     @Test
-    fun `a user may write and read their own session`() {
+    fun `a user may write and read their own schedule`() {
         if (!Emulator.isRunning) return
         val firestore = FirestoreEmulatorRest()
         assertEquals(
             OK,
-            firestore.create("users/$alice/sessions", documentId = "own", uid = alice, field = "id", value = "own"),
+            firestore.create("users/$alice/schedules", documentId = "own", uid = alice, field = "id", value = "own"),
         )
-        assertEquals(OK, firestore.get("users/$alice/sessions/own", uid = alice))
+        assertEquals(OK, firestore.get("users/$alice/schedules/own", uid = alice))
     }
 
     @Test
-    fun `a user may not read another user's session`() {
+    fun `a user may not read another user's schedule`() {
         if (!Emulator.isRunning) return
         val firestore = FirestoreEmulatorRest()
         assertEquals(
             OK,
-            firestore.create("users/$alice/sessions", documentId = "private", uid = alice, field = "id", value = "p"),
+            firestore.create("users/$alice/schedules", documentId = "private", uid = alice, field = "id", value = "p"),
         )
 
-        val status = firestore.get("users/$alice/sessions/private", uid = bob)
+        val status = firestore.get("users/$alice/schedules/private", uid = bob)
 
-        assertTrue(status == FORBIDDEN || status == NOT_FOUND, "Bob read Alice's session: HTTP $status")
+        assertTrue(status == FORBIDDEN || status == NOT_FOUND, "Bob read Alice's schedule: HTTP $status")
     }
 
     @Test
@@ -50,9 +50,23 @@ class FirestoreRulesEmulatorTest {
         val firestore = FirestoreEmulatorRest()
 
         val status =
-            firestore.create("users/$alice/sessions", documentId = "injected", uid = bob, field = "id", value = "x")
+            firestore.create("users/$alice/schedules", documentId = "injected", uid = bob, field = "id", value = "x")
 
         assertEquals(FORBIDDEN, status, "Bob wrote into Alice's collection")
+    }
+
+    @Test
+    fun `the same denial covers the day overrides collection`() {
+        if (!Emulator.isRunning) return
+        val firestore = FirestoreEmulatorRest()
+        assertEquals(
+            OK,
+            firestore.create("users/$alice/dayOverrides", documentId = "2026-09-15", uid = alice, field = "id", value = "d"),
+        )
+
+        val status = firestore.get("users/$alice/dayOverrides/2026-09-15", uid = bob)
+
+        assertTrue(status == FORBIDDEN || status == NOT_FOUND, "Bob read Alice's day override: HTTP $status")
     }
 
     @Test
