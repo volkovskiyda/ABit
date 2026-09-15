@@ -7,9 +7,21 @@ import kotlinx.serialization.Serializable
 enum class ThemeMode { System, Light, Dark }
 
 /**
+ * What a boundary sounds like on this device. [Platform] is the system's own notification sound,
+ * which is what Android and Wear use; [SoftBell] is the tone the desktop and the browser synthesize
+ * for themselves, having no notification sound to borrow.
+ */
+@Serializable
+enum class ChimeSound { SoftBell, Platform, Silent }
+
+/**
  * Everything the app remembers about this device, as opposed to about this user — the per-user data
- * that syncs lives in Firestore. Placeholder fields: the pomodoro feature decides what else belongs
- * here, and the serializer's default-on-failure behaviour means adding a field is not a migration.
+ * that syncs lives in Firestore. The serializer's default-on-failure behaviour means adding a field
+ * here is not a migration.
+ *
+ * The chime settings live here rather than in Firestore on purpose: every signed-in device is meant
+ * to chime at 09:45, and "not this one" is a statement about the laptop in the meeting room, not
+ * about the person. Syncing it would silence the phone in their pocket too.
  */
 @Serializable
 data class UserPreferences(
@@ -17,4 +29,9 @@ data class UserPreferences(
     val hasSeenOnboarding: Boolean = false,
     /** Epoch milliseconds of the last successful sync, or null if it has never run. */
     val lastSyncedAtMillis: Long? = null,
+    /** Per device, never synced: every device chimes unless this one is told not to. */
+    val chimeOnThisDevice: Boolean = true,
+    val chimeSound: ChimeSound = ChimeSound.Platform,
+    val vibrate: Boolean = true,
+    val showCountdownNotification: Boolean = true,
 )

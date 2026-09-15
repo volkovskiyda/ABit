@@ -14,6 +14,10 @@ class UserPreferencesSerializerTest {
                     themeMode = ThemeMode.Dark,
                     hasSeenOnboarding = true,
                     lastSyncedAtMillis = 1_700_000_000_000,
+                    chimeOnThisDevice = false,
+                    chimeSound = ChimeSound.SoftBell,
+                    vibrate = false,
+                    showCountdownNotification = false,
                 )
 
             val buffer = Buffer()
@@ -34,5 +38,20 @@ class UserPreferencesSerializerTest {
             assertEquals(ThemeMode.Light, read.themeMode)
             assertEquals(false, read.hasSeenOnboarding)
             assertEquals(null, read.lastSyncedAtMillis)
+        }
+
+    @Test
+    fun `reads a file written before the chime settings existed, and every device chimes`() =
+        runTest {
+            // What a build from before item 07 would have left behind. The defaults matter: a device
+            // that has been running since then must start chiming, not stay silent.
+            val buffer = Buffer().writeUtf8("""{"themeMode":"Dark","hasSeenOnboarding":true}""")
+
+            val read = UserPreferencesSerializer.readFrom(buffer)
+
+            assertEquals(true, read.chimeOnThisDevice)
+            assertEquals(ChimeSound.Platform, read.chimeSound)
+            assertEquals(true, read.vibrate)
+            assertEquals(true, read.showCountdownNotification)
         }
 }

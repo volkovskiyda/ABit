@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.core.common.di
 
 import com.gmail.volkovskiyda.abit.core.common.DefaultDispatcherProvider
 import com.gmail.volkovskiyda.abit.core.common.DispatcherProvider
+import com.gmail.volkovskiyda.abit.core.common.LocalClock
 import com.gmail.volkovskiyda.abit.core.common.Logger
 import com.gmail.volkovskiyda.abit.core.common.SystemTimeProvider
 import com.gmail.volkovskiyda.abit.core.common.SystemTimeZoneProvider
@@ -21,6 +22,7 @@ val commonModule =
         single<DispatcherProvider> { DefaultDispatcherProvider() }
         single<TimeProvider> { SystemTimeProvider() }
         single<TimeZoneProvider> { SystemTimeZoneProvider() }
+        single { LocalClock(time = get(), zone = get()) }
         single<Logger> { platformLogger() }
         // SupervisorJob so one failed background job does not cancel every other one for the process.
         single(ApplicationScope) {

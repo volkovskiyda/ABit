@@ -52,6 +52,7 @@ kotlin {
             api(projects.feature.pomodoro.impl)
 
             implementation(projects.core.auth)
+            implementation(projects.core.chime)
             implementation(libs.gitlive.firebase.app)
             implementation(projects.core.database)
             implementation(projects.core.datastore)

@@ -1,6 +1,9 @@
 package com.gmail.volkovskiyda.abit.app.shared
 
 import com.gmail.volkovskiyda.abit.core.auth.di.authModule
+import com.gmail.volkovskiyda.abit.core.chime.ChimeCoordinator
+import com.gmail.volkovskiyda.abit.core.chime.di.chimeModule
+import com.gmail.volkovskiyda.abit.core.chime.di.platformChimeModule
 import com.gmail.volkovskiyda.abit.core.common.di.commonModule
 import com.gmail.volkovskiyda.abit.core.data.SyncEngine
 import com.gmail.volkovskiyda.abit.core.data.di.dataModule
@@ -35,6 +38,8 @@ val abitModules: List<Module> =
         authModule,
         syncModule,
         dataModule,
+        platformChimeModule,
+        chimeModule,
         pomodoroModule,
     )
 
@@ -71,8 +76,14 @@ fun initKoin(
  * Starts the background sync loop. Separate from [initKoin] on purpose: building the object graph
  * and starting long-lived work are different decisions, and a test that wants the first without the
  * second should not have to unpick the second. Each app's entry point calls it once, after
- * [initKoin]; it is a no-op in a build with no Firebase.
+ * [initKoin]; it is a no-op in a build with no Firebase. Returns the application so it can be
+ * chained with [startChimes].
  */
-fun KoinApplication.startSync() {
-    koin.get<SyncEngine>().start()
-}
+fun KoinApplication.startSync(): KoinApplication = apply { koin.get<SyncEngine>().start() }
+
+/**
+ * Starts the chime engine: what to sound next, and what the ongoing countdown says. Separate from
+ * [startSync] because the app chimes whether or not it has an account — sync is optional, the chime
+ * is the product.
+ */
+fun KoinApplication.startChimes(): KoinApplication = apply { koin.get<ChimeCoordinator>().start() }

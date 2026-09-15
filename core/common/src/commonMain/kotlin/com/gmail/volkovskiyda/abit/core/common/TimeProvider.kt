@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.core.common
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -34,3 +35,19 @@ class SystemTimeZoneProvider : TimeZoneProvider {
 
 /** The one place the two are combined, so no caller repeats the conversion. */
 fun TimeProvider.localNow(zone: TimeZoneProvider): LocalDateTime = now().toLocalDateTime(zone.current())
+
+/**
+ * The two providers as one dependency, because almost every caller wants the local wall clock rather
+ * than an instant, and injecting them separately makes each of those callers restate the pairing.
+ */
+class LocalClock(
+    private val time: TimeProvider,
+    private val zone: TimeZoneProvider,
+) {
+    fun now(): LocalDateTime = time.localNow(zone)
+
+    fun today(): LocalDate = now().date
+
+    /** The raw instant, for the things that really are instants — `updatedAt`, a retention cutoff. */
+    fun instant(): Instant = time.now()
+}

@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit
 
 import android.app.Application
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
+import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.core.common.firebaseAvailable
 import com.gmail.volkovskiyda.abit.core.common.initFirebaseAvailability
@@ -23,7 +24,7 @@ class AbitApplication : Application() {
             // Koin's own resolution logging, debug builds only: it names every definition it
             // creates, which is noise in a release build and costs time on every injection.
             if (BuildConfig.DEBUG) androidLogger(Level.INFO)
-        }.startSync()
+        }.startSync().startChimes()
     }
 
     /**

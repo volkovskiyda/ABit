@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
+import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroUiState
@@ -27,7 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    initKoin().startSync()
+    initKoin().startSync().startChimes()
 
     ComposeViewport(document.body!!) {
         MaterialTheme {

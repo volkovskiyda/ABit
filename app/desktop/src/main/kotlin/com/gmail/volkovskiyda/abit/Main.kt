@@ -13,6 +13,7 @@ import androidx.compose.ui.window.isTraySupported
 import androidx.compose.ui.window.rememberTrayState
 import androidx.compose.ui.window.rememberWindowState
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
+import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.ui.AbitTheme
 import com.gmail.volkovskiyda.abit.ui.PomodoroPopup
@@ -27,7 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun main() {
     // Before `application`, not inside it: the composition can be recreated, and starting Koin
     // twice throws.
-    initKoin().startSync()
+    initKoin().startSync().startChimes()
 
     application {
         var popupVisible by remember { mutableStateOf(!isTraySupported) }
