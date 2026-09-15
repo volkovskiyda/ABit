@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit.core.testing
 
 import com.gmail.volkovskiyda.abit.core.common.TimeProvider
+import com.gmail.volkovskiyda.abit.core.common.TimeZoneProvider
 import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.PomodoroSessionRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /**
@@ -28,6 +30,20 @@ class FakeTimeProvider(
 
     fun advanceBy(seconds: Long) {
         current = Instant.fromEpochSeconds(current.epochSeconds + seconds)
+    }
+}
+
+/**
+ * A zone a test states rather than inherits. Defaults to UTC so a schedule test reads the same on a
+ * CI runner in UTC and on a laptop in Europe/Kyiv.
+ */
+class FakeTimeZoneProvider(
+    private var zone: TimeZone = TimeZone.UTC,
+) : TimeZoneProvider {
+    override fun current(): TimeZone = zone
+
+    fun moveTo(next: TimeZone) {
+        zone = next
     }
 }
 

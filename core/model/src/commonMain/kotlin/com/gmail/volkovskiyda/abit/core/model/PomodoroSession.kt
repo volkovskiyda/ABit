@@ -1,15 +1,7 @@
 package com.gmail.volkovskiyda.abit.core.model
 
 import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmInline
 import kotlin.time.Instant
-
-/** The signed-in user, or the anonymous one. Firestore documents live under `users/{id}`. */
-@JvmInline
-@Serializable
-value class UserId(
-    val value: String,
-)
 
 /**
  * One completed or in-flight focus interval. Placeholder shape: the real pomodoro feature (its own
