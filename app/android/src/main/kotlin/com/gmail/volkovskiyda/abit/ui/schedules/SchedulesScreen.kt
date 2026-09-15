@@ -11,8 +11,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,23 +29,62 @@ import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesUiState
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesViewModel
+import com.gmail.volkovskiyda.abit.ui.isWideWindow
+import kotlinx.coroutines.launch
 
 private const val SHORT_DAY_LENGTH = 3
 
+/**
+ * On a compact window this pushes the editor as its own destination, exactly as item 11 had it. On a
+ * medium or expanded one the editor is the detail pane beside the list.
+ *
+ * `NavigableListDetailPaneScaffold` rather than the plain scaffold on purpose: it is what makes the
+ * system back gesture collapse the detail pane before it pops the destination, which is the part of
+ * a two-pane layout that is easy to get subtly wrong and impossible to notice on a phone.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun SchedulesScreen(
     viewModel: SchedulesViewModel,
     onOpenEditor: (String?) -> Unit,
     onOpenConflict: (String, String) -> Unit,
     modifier: Modifier = Modifier,
+    editorPane: @Composable (String?) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SchedulesContent(
-        state = state,
-        onToggle = viewModel::toggle,
-        onOpenEditor = onOpenEditor,
-        onOpenConflict = onOpenConflict,
+
+    if (!isWideWindow()) {
+        SchedulesContent(
+            state = state,
+            onToggle = viewModel::toggle,
+            onOpenEditor = onOpenEditor,
+            onOpenConflict = onOpenConflict,
+            modifier = modifier,
+        )
+        return
+    }
+
+    val navigator = rememberListDetailPaneScaffoldNavigator<String?>()
+    val scope = rememberCoroutineScope()
+    NavigableListDetailPaneScaffold(
+        navigator = navigator,
         modifier = modifier,
+        listPane = {
+            AnimatedPane {
+                SchedulesContent(
+                    state = state,
+                    onToggle = viewModel::toggle,
+                    onOpenEditor = { id -> scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } },
+                    onOpenConflict = onOpenConflict,
+                )
+            }
+        },
+        detailPane = {
+            AnimatedPane {
+                val selected = navigator.currentDestination?.contentKey
+                editorPane(selected)
+            }
+        },
     )
 }
 

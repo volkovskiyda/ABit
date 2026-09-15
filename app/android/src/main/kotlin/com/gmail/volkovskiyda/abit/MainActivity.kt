@@ -4,12 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -84,30 +81,29 @@ private enum class Destination(
 internal fun AbitNavDisplay() {
     val backStack = rememberNavBackStack(TodayNavKey)
     val current = backStack.lastOrNull()
-    val showBottomBar = Destination.entries.any { it.key == current }
+    val onDestination = Destination.entries.any { it.key == current }
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    Destination.entries.forEach { destination ->
-                        NavigationBarItem(
-                            selected = destination.key == current,
-                            onClick = {
-                                // One entry per destination: tapping the bar switches rather than stacks.
-                                backStack.removeAll { it in Destination.entries.map(Destination::key) }
-                                backStack.add(destination.key)
-                            },
-                            icon = { DestinationIcon(destination) },
-                            label = { Text(destination.label) },
-                        )
-                    }
+    // One declaration for three form factors: a bottom bar on a compact width, a rail on medium and
+    // expanded. The alternative was a second layout file for tablets that could drift from this one.
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            if (onDestination) {
+                Destination.entries.forEach { destination ->
+                    item(
+                        selected = destination.key == current,
+                        onClick = {
+                            // One entry per destination: tapping the bar switches rather than stacks.
+                            backStack.removeAll { it in Destination.entries.map(Destination::key) }
+                            backStack.add(destination.key)
+                        },
+                        icon = { DestinationIcon(destination) },
+                        label = { Text(destination.label) },
+                    )
                 }
             }
         },
-    ) { padding ->
+    ) {
         NavDisplay(
-            modifier = Modifier.padding(padding),
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
             entryProvider =
@@ -124,6 +120,16 @@ internal fun AbitNavDisplay() {
                             viewModel = koinViewModel<SchedulesViewModel>(),
                             onOpenEditor = { id -> backStack.add(ScheduleEditorNavKey(id)) },
                             onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
+                            // Only reached on a wide window, where the editor is the detail pane
+                            // rather than a pushed destination.
+                            editorPane = { id ->
+                                ScheduleEditorScreen(
+                                    // Keyed by the schedule so selecting another card builds a new
+                                    // editor rather than reusing the previous one's draft.
+                                    viewModel = koinViewModel(key = "editor-$id") { parametersOf(id) },
+                                    onDone = {},
+                                )
+                            },
                         )
                     }
                     entry<ScheduleEditorNavKey> { key ->

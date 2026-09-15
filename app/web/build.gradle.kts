@@ -27,6 +27,14 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
+            implementation(projects.core.designsystem)
+
+            // The tablet layout is the web layout: a navigation rail and list-detail panes, degrading
+            // to a bottom bar in a narrow browser window for free.
+            implementation(libs.compose.adaptive)
+            implementation(libs.compose.adaptive.layout)
+            implementation(libs.compose.adaptive.navigation)
+            implementation(libs.compose.material3.adaptive.navigationSuite)
 
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)

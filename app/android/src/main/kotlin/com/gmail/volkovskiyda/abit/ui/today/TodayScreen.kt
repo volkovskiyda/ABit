@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -41,6 +42,10 @@ import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
+import com.gmail.volkovskiyda.abit.ui.isWideWindow
+
+/** The design's content ceiling: 1200 dp, so a desktop-width browser does not stretch a line of text. */
+internal val CONTENT_MAX_WIDTH = 1200.dp
 
 /**
  * The app's home. Three states in one screen — Focus, Break and Off hours — because they answer the
@@ -116,9 +121,28 @@ fun TodayContent(
             }
 
             Spacer(Modifier.height(8.dp))
-            TodayRing(state.today)
-            TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
-            RestOfToday(state.today)
+            if (isWideWindow()) {
+                // The design's tablet layout: ring and actions on the left, the day on the right, at
+                // roughly 2 : 3. Same composables, one row instead of a column.
+                Row(
+                    modifier = Modifier.fillMaxWidth().widthIn(max = CONTENT_MAX_WIDTH),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.weight(2f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        TodayRing(state.today)
+                        TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
+                    }
+                    Column(Modifier.weight(3f)) { RestOfToday(state.today) }
+                }
+            } else {
+                TodayRing(state.today)
+                TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
+                RestOfToday(state.today)
+            }
             Spacer(Modifier.height(24.dp))
         }
     }

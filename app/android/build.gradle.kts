@@ -41,6 +41,10 @@ baselineProfile {
 dependencies {
     implementation(projects.app.shared)
     implementation(projects.core.designsystem)
+    implementation(libs.compose.adaptive)
+    implementation(libs.compose.adaptive.layout)
+    implementation(libs.compose.adaptive.navigation)
+    implementation(libs.compose.material3.adaptive.navigationSuite)
     // Installs the packaged profile on first run for devices that do not do it themselves.
     implementation(libs.androidx.profileinstaller)
     baselineProfile(projects.baselineprofile)

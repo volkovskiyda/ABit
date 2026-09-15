@@ -20,6 +20,10 @@ androidTargetSdk = "37"
 composeMultiplatform = "1.12.0"
 # The stable JetBrains material3 line, deliberately not the alpha that moves with CMP previews.
 composeMaterial3 = "1.9.0"
+# The adaptive line moves on its own schedule and is not pinned to composeMaterial3. Verified
+# 2026-09-15 that 1.2.0 publishes a `wasm:js` variant — a missing wasm variant fails only at link
+# time, long after the dependency resolves.
+composeAdaptive = "1.2.0"
 
 # ---- AndroidX, multiplatform builds ------------------------------------------------------------
 androidxLifecycle = "2.11.0"
@@ -112,6 +116,15 @@ compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "
 compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 compose-ui-toolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+
+# Adaptive layout. `adaptive` carries the window-size classes, `adaptive-layout` the pane scaffolds
+# (ListDetailPaneScaffold) and `adaptive-navigation` the navigator that makes the system back gesture
+# collapse a detail pane before it pops a destination. The navigation suite is what renders a bottom
+# bar on a phone and a rail on a tablet from one declaration, and it ships in the material3 line.
+compose-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "composeAdaptive" }
+compose-adaptive-layout = { module = "org.jetbrains.compose.material3.adaptive:adaptive-layout", version.ref = "composeAdaptive" }
+compose-adaptive-navigation = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation", version.ref = "composeAdaptive" }
+compose-material3-adaptive-navigationSuite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "composeMaterial3" }
 
 # ---- AndroidX, multiplatform -------------------------------------------------------------------
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidxLifecycle" }

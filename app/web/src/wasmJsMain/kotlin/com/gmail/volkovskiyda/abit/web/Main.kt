@@ -1,95 +1,94 @@
 package com.gmail.volkovskiyda.abit.web
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
-import com.gmail.volkovskiyda.abit.core.domain.SyncState
-import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroUiState
-import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroViewModel
+import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
+import com.gmail.volkovskiyda.abit.core.designsystem.AbitTheme
+import com.gmail.volkovskiyda.abit.core.designsystem.components.DialMark
+import com.gmail.volkovskiyda.abit.web.ui.WebSchedulesScreen
+import com.gmail.volkovskiyda.abit.web.ui.WebSettingsScreen
+import com.gmail.volkovskiyda.abit.web.ui.WebTodayScreen
 import kotlinx.browser.document
-import org.koin.compose.viewmodel.koinViewModel
+import kotlinx.coroutines.flow.map
+import org.koin.compose.koinInject
+
+/** The three destinations, the same three the phone and the tablet have. */
+private enum class WebDestination(
+    val label: String,
+) {
+    Today("Today"),
+    Schedules("Schedules"),
+    Settings("Settings"),
+}
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     initKoin().startSync().startChimes()
 
     ComposeViewport(document.body!!) {
-        MaterialTheme {
-            PomodoroScreen(viewModel = koinViewModel())
-        }
-    }
-}
-
-@Composable
-private fun PomodoroScreen(viewModel: PomodoroViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    PomodoroContent(
-        state = state,
-        onSignInAnonymously = viewModel::signInAnonymously,
-        onSignOut = viewModel::signOut,
-    )
-}
-
-@Composable
-private fun PomodoroContent(
-    state: PomodoroUiState,
-    onSignInAnonymously: () -> Unit = {},
-    onSignOut: () -> Unit = {},
-) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        val preferences: UserPreferencesRepository = koinInject()
+        val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
+        val themeMode by themeFlow.collectAsStateWithLifecycle(initialValue = ThemeMode.System)
+        AbitTheme(
+            darkTheme =
+                when (themeMode) {
+                    ThemeMode.System -> androidx.compose.foundation.isSystemInDarkTheme()
+                    ThemeMode.Light -> false
+                    ThemeMode.Dark -> true
+                },
         ) {
-            Text(text = "ABit", style = MaterialTheme.typography.headlineMedium)
-            Text(text = "Sessions: ${state.sessions.size}")
-            Text(
-                text =
-                    when (state.syncState) {
-                        SyncState.Unavailable -> "Sync unavailable in this build"
-                        SyncState.SignedOut -> "Signed out"
-                        SyncState.LocalOnly -> "In this browser only"
-                        SyncState.Syncing -> "Syncing…"
-                        is SyncState.Idle -> "Synced"
-                        is SyncState.Failed -> "Sync failed"
-                    },
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            val user = state.user
-            if (user == null) {
-                Button(onClick = onSignInAnonymously) { Text("Use without an account") }
-            } else {
-                Text(if (user.isAnonymous) "Using ABit without an account" else "Signed in")
-                Button(onClick = onSignOut) { Text("Sign out") }
-            }
-            // Google sign-in on this platform needs its own OAuth flow (a loopback redirect on the
-            // desktop, a popup in the browser). That is a follow-up plan, not an oversight.
-            Text("Google sign-in is coming to this platform", style = MaterialTheme.typography.bodySmall)
-
-            state.authError?.let { error ->
-                Spacer(Modifier.height(8.dp))
-                Text(text = error, color = MaterialTheme.colorScheme.error)
-            }
+            AbitWebApp()
         }
     }
 }
+
+/**
+ * The tablet layout is the web layout — the design says so explicitly — so this is one
+ * `NavigationSuiteScaffold` that shows a rail in a wide window and a bottom bar in a narrow one.
+ *
+ * There is no `NavDisplay` here: Navigation 3's back stack is tied to a platform back gesture the
+ * browser does not have, and three destinations plus an editor pane do not need one.
+ */
+@Composable
+private fun AbitWebApp() {
+    var destination by remember { mutableStateOf(WebDestination.Today) }
+
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            WebDestination.entries.forEach { entry ->
+                item(
+                    selected = entry == destination,
+                    onClick = { destination = entry },
+                    icon = { if (entry == WebDestination.Today) DialMark(size = 24.dp) else Text(entry.glyph()) },
+                    label = { Text(entry.label) },
+                )
+            }
+        },
+    ) {
+        when (destination) {
+            WebDestination.Today -> WebTodayScreen()
+            WebDestination.Schedules -> WebSchedulesScreen()
+            WebDestination.Settings -> WebSettingsScreen()
+        }
+    }
+}
+
+private fun WebDestination.glyph(): String =
+    when (this) {
+        WebDestination.Today -> "◷"
+        WebDestination.Schedules -> "▤"
+        WebDestination.Settings -> "⚙"
+    }
