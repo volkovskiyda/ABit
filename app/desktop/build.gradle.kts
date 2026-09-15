@@ -90,6 +90,10 @@ compose.desktop {
                 entitlementsFile.set(project.file("entitlements.plist"))
                 runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
 
+                // The dial, from internal/design/icon. LSUIElement hides the Dock icon, but the DMG,
+                // the installer and Finder still show this one.
+                iconFile.set(project.file("icons/abit.icns"))
+
                 infoPlist {
                     // What makes this a menu-bar app: no Dock icon, no app menu bar, nothing in
                     // the app switcher. The tray icon is the only entry point.
