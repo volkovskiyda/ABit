@@ -53,4 +53,17 @@
     <issue id="InvalidPackage">
         <ignore regexp="grpc-core"/>
     </issue>
+
+    <!--
+      GoogleSignIn resolves default_web_client_id by name rather than through R, and lint is right
+      that reflection defeats build-time verification. It is deliberate here: that resource only
+      exists once a web OAuth client does, so referencing it through R would stop a checkout without
+      one from compiling at all — which is every fresh clone of this repository. The phone's lint.xml
+      carries the identical exemption for the identical reason.
+
+      Scoped to the one file, so DiscouragedApi keeps flagging reflection anywhere else.
+    -->
+    <issue id="DiscouragedApi">
+        <ignore regexp="GoogleSignIn.kt"/>
+    </issue>
 </lint>

@@ -35,7 +35,17 @@ class BaselineProfileGenerator {
             startActivityAndWait()
             // Waiting on real content rather than on the window: without this the profile stops at the
             // splash screen and misses everything Compose, Koin and Room do to render the first frame.
-            device.wait(Until.hasObject(By.text("ABit")), CONTENT_TIMEOUT_MILLIS)
+            // "Today" is the first screen's title and its navigation label, and it is on the first
+            // frame — "ABit" used to be here and no longer appears anywhere in the app.
+            device.wait(Until.hasObject(By.text("Today")), CONTENT_TIMEOUT_MILLIS)
+
+            // Past startup: the screens a user actually reaches. Without this the profile covers the
+            // first frame and nothing else, and the Schedules list is where Room and the planner do
+            // their real work.
+            device.findObject(By.text("Schedules"))?.click()
+            device.wait(Until.hasObject(By.text("New schedule")), CONTENT_TIMEOUT_MILLIS)
+            device.findObject(By.text("Settings"))?.click()
+            device.wait(Until.hasObject(By.text("APPEARANCE")), CONTENT_TIMEOUT_MILLIS)
         }
 
     private companion object {

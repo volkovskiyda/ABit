@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit.ui.schedules
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -99,14 +100,16 @@ fun SchedulesContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // Zero content insets: the NavigationSuiteScaffold outside this one already owns the bottom
+        // edge, and a second Scaffold applying the same inset pushes its own content — the FAB most
+        // visibly — under the navigation bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = { TopAppBar(title = { Text("Schedules", style = MaterialTheme.typography.headlineMedium) }) },
         floatingActionButton = {
-            // The one elevated component in the whole design.
-            ExtendedFloatingActionButton(
-                onClick = { onOpenEditor(null) },
-                text = { Text("New schedule") },
-                icon = {},
-            )
+            // The one elevated component in the whole design. The single-content overload rather
+            // than the text/icon pair: with an empty icon slot the pair renders a button whose label
+            // never reaches the semantics tree, which is invisible to a screen reader and to a test.
+            ExtendedFloatingActionButton(onClick = { onOpenEditor(null) }) { Text("New schedule") }
         },
     ) { padding ->
         LazyColumn(

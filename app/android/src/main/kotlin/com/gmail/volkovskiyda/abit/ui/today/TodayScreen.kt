@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -86,6 +87,10 @@ fun TodayContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // Zero content insets: the NavigationSuiteScaffold outside this one already owns the bottom
+        // edge, and a second Scaffold applying the same inset pushes its own content — the FAB most
+        // visibly — under the navigation bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {

@@ -30,6 +30,33 @@ android {
     }
 }
 
+// LayoutLib does not round antialiasing identically on every host. The goldens are baked on an
+// arm64 Mac and validated on an x86_64 Linux runner, and two pixels on the Schedules screen come out
+// one 255th apart there — 2 pixels in 2,592,000. At the differ's default of exact equality that is a
+// red build for a difference no eye can find, on the two screens that happen to carry the element
+// whose antialiased edge lands on the unlucky pixel.
+//
+// The value is a *fraction* of differing pixels, not a percentage: PixelPerfect compares
+// `differing / (width * height)` against it and fails on strictly greater. 0.00001 is 25 of this
+// image's pixels: twelve times the rounding actually observed, and still an order of magnitude below
+// the smallest regression worth catching — one changed digit in a time label is a couple of hundred
+// pixels, and a moved row or a wrong palette is thousands.
+//
+// Picking a rounder 0.0001 would allow 259, which is the same size as that single changed digit. The
+// number has to sit in the gap between the two, not merely above the noise.
+//
+// This is a tolerance for a comparison that is genuinely analog, not a baseline: no finding is being
+// recorded and forgiven, and the number has to stay this small for that to remain true.
+//
+// Set on the task because alpha16 of the plugin exposes no DSL for it — `testOptions.screenshotTests`
+// carries only the engine version and the target variants.
+// A `val`, not a `const val`: a .gradle.kts file compiles to a class body, where const is illegal.
+val hostAntialiasingTolerance = 0.00001f
+
+tasks.withType<com.android.compose.screenshot.tasks.PreviewScreenshotValidationTask>().configureEach {
+    testEngineInput.threshold.set(hostAntialiasingTolerance)
+}
+
 // A release build must never need a device. Generation is a deliberate step — `./gradlew
 // :app:android:generateReleaseBaselineProfile`, or the baseline-profile workflow — with its output
 // committed, so assembleRelease just packages whatever is checked in. Left at its default `true`,

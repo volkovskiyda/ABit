@@ -45,7 +45,7 @@ class StartupBenchmark {
             setupBlock = { pressHome() },
         ) {
             startActivityAndWait()
-            device.wait(Until.hasObject(By.text("ABit")), CONTENT_TIMEOUT_MILLIS)
+            device.wait(Until.hasObject(By.text("Today")), CONTENT_TIMEOUT_MILLIS)
         }
 
     private companion object {
