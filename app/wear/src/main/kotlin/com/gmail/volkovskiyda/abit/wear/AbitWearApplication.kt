@@ -6,6 +6,7 @@ import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.core.common.firebaseAvailable
 import com.gmail.volkovskiyda.abit.core.common.initFirebaseAvailability
+import com.gmail.volkovskiyda.abit.wear.di.wearModule
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.perf.FirebasePerformance
 import org.koin.android.ext.koin.androidContext
@@ -19,7 +20,7 @@ class AbitWearApplication : Application() {
         // is still being built, and that question needs a Context.
         initFirebaseAvailability(this)
         configureFirebaseCollection()
-        initKoin {
+        initKoin(platformModules = listOf(wearModule)) {
             androidContext(this@AbitWearApplication)
             if (BuildConfig.DEBUG) androidLogger(Level.INFO)
         }.startSync().startChimes()

@@ -51,6 +51,7 @@ class AndroidChimeScheduler(
     private val permissions: ChimePermissions,
     private val preferences: UserPreferencesRepository,
     private val timeZoneProvider: TimeZoneProvider,
+    private val surfaces: ChimeSurfaceUpdater,
 ) : ChimeScheduler {
     private val alarms: AlarmManager?
         get() = context.getSystemService()
@@ -66,6 +67,7 @@ class AndroidChimeScheduler(
             // Doze may delay this by minutes. Better late than never: the alternative is silence.
             manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending)
         }
+        surfaces.onArmedChimeChanged()
     }
 
     override suspend fun disarm() {
@@ -76,6 +78,7 @@ class AndroidChimeScheduler(
         // is what makes "nothing is armed" observably true rather than merely effectively true.
         pending.cancel()
         notifications.clearCountdown()
+        surfaces.onArmedChimeChanged()
     }
 
     override suspend fun showCountdown(state: TodayState) {

@@ -30,6 +30,22 @@
         <!-- The filter is what lets the scheduler resolve this class by name from a library module
              that cannot import it. Not exported: the action is package-qualified and the intent is
              made explicit before it is armed. -->
+        <!-- The point of a watch app like this one: the next chime is one swipe from the watch face
+             rather than an app launch. Exported and permission-guarded is what a tile provider is. -->
+        <service
+                android:exported="true"
+                android:label="@string/tile_label"
+                android:name=".tile.AbitTileService"
+                android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER"/>
+            </intent-filter>
+
+            <meta-data
+                    android:name="androidx.wear.tiles.PREVIEW"
+                    android:resource="@drawable/tile_preview"/>
+        </service>
+
         <receiver
                 android:exported="false"
                 android:name=".chime.ChimeReceiver">

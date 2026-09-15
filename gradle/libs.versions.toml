@@ -46,6 +46,14 @@ androidxProfileinstaller = "1.4.1"
 
 # ---- Wear OS -----------------------------------------------------------------------------------
 wearCompose = "1.6.2"
+# The tile is ProtoLayout, not Compose: a tile is rendered by the system launcher in another process,
+# so it is a serialized layout tree rather than a composition. Nothing from core:designsystem's
+# composables can be reused there — only its Compose-free tokens and formatting.
+wearTiles = "1.6.2"
+wearProtolayout = "1.4.2"
+# CallbackToFutureAdapter: a TileService answers with a ListenableFuture, and this is the smallest
+# way to complete one from a coroutine without pulling in Guava or Horologist.
+androidxConcurrentFutures = "1.3.0"
 wearToolingPreview = "1.0.0"
 
 # ---- DI and observability ----------------------------------------------------------------------
@@ -154,6 +162,13 @@ androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstall
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wearCompose" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wearCompose" }
 wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wearCompose" }
+androidx-concurrent-futures = { module = "androidx.concurrent:concurrent-futures", version.ref = "androidxConcurrentFutures" }
+wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "wearTiles" }
+wear-tiles-tooling = { module = "androidx.wear.tiles:tiles-tooling", version.ref = "wearTiles" }
+wear-tiles-toolingPreview = { module = "androidx.wear.tiles:tiles-tooling-preview", version.ref = "wearTiles" }
+wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "wearProtolayout" }
+wear-protolayout-material3 = { module = "androidx.wear.protolayout:protolayout-material3", version.ref = "wearProtolayout" }
+wear-protolayout-expression = { module = "androidx.wear.protolayout:protolayout-expression", version.ref = "wearProtolayout" }
 wear-compose-uiTooling = { module = "androidx.wear.compose:compose-ui-tooling", version.ref = "wearCompose" }
 wear-toolingPreview = { module = "androidx.wear:wear-tooling-preview", version.ref = "wearToolingPreview" }
 

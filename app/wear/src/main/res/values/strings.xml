@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ABit</string>
+    <string name="tile_label">Next chime</string>
 </resources>

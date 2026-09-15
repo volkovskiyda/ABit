@@ -54,6 +54,15 @@ dependencies {
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui)
 
+    // The tile. ProtoLayout rather than Compose — see the catalog comment.
+    implementation(libs.wear.tiles)
+    implementation(libs.androidx.concurrent.futures)
+    implementation(libs.wear.protolayout)
+    implementation(libs.wear.protolayout.material3)
+    implementation(libs.wear.protolayout.expression)
+    debugImplementation(libs.wear.tiles.tooling)
+    implementation(libs.wear.tiles.toolingPreview)
+
     implementation(libs.wear.toolingPreview)
     implementation(libs.compose.ui.toolingPreview)
     debugImplementation(libs.compose.ui.tooling)
