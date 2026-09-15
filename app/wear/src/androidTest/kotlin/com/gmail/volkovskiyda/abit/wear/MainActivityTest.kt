@@ -20,7 +20,15 @@ class MainActivityTest {
 
     @Test
     fun rendersOnAWatch() {
-        composeRule.onNodeWithText("ABit").assertIsDisplayed()
-        composeRule.onNodeWithText("Sessions: 0").assertIsDisplayed()
+        // Off hours with no schedules is what a fresh install shows, and it is still a real render:
+        // theme, ring and the shared object graph all have to work to get this far.
+        composeRule.onNodeWithText("OFF HOURS").assertIsDisplayed()
+    }
+
+    @Test
+    fun hasNoStartControl() {
+        // The watch used to show a "Start" button that actually signed in anonymously — in an app
+        // whose whole premise is that nothing is started by hand. It must not come back.
+        composeRule.onNodeWithText("Start").assertDoesNotExist()
     }
 }

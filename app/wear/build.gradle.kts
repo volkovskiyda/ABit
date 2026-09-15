@@ -47,6 +47,10 @@ dependencies {
     // the wrong component set here, not merely a different theme.
     implementation(libs.wear.compose.material3)
     implementation(libs.wear.compose.foundation)
+    // SwipeDismissableNavHost: Wear's idiom is swipe-to-dismiss, not a back stack of keys.
+    implementation(libs.wear.compose.navigation)
+    // The tokens, the session ring and the formatting — not the phone's Material 3 theme.
+    implementation(projects.core.designsystem)
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui)
 

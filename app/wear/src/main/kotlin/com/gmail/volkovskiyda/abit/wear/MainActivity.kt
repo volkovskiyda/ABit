@@ -3,88 +3,129 @@ package com.gmail.volkovskiyda.abit.wear
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.wear.compose.material3.AppScaffold
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.MaterialTheme
-import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.Text
+import androidx.wear.compose.navigation.SwipeDismissableNavHost
+import androidx.wear.compose.navigation.composable
+import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
-import com.gmail.volkovskiyda.abit.core.domain.SyncState
-import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroUiState
-import com.gmail.volkovskiyda.abit.feature.pomodoro.impl.PomodoroViewModel
+import com.gmail.volkovskiyda.abit.core.chime.ChimePermissions
+import com.gmail.volkovskiyda.abit.core.domain.BlockKind
+import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesUiState
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
+import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
+import com.gmail.volkovskiyda.abit.wear.ui.OnWearResume
+import com.gmail.volkovskiyda.abit.wear.ui.WearChimeScreen
+import com.gmail.volkovskiyda.abit.wear.ui.WearSchedulesContent
+import com.gmail.volkovskiyda.abit.wear.ui.WearSchedulesScreen
+import com.gmail.volkovskiyda.abit.wear.ui.WearTodayContent
+import com.gmail.volkovskiyda.abit.wear.ui.WearTodayScreen
+import com.gmail.volkovskiyda.abit.wear.ui.theme.AbitWearTheme
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import androidx.compose.ui.tooling.preview.Preview as ComposePreview
+
+private const val ROUTE_TODAY = "today"
+private const val ROUTE_SCHEDULES = "schedules"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme {
+            AbitWearTheme {
                 AppScaffold {
-                    PomodoroWearScreen(viewModel = koinViewModel())
+                    AbitWearApp()
                 }
             }
         }
     }
 }
 
+/**
+ * `SwipeDismissableNavHost` rather than Navigation 3: Wear's idiom is swipe-to-dismiss, and the
+ * watch has two destinations plus a chime screen the notification launches. The feature api's nav
+ * keys still say *which* screens exist; the host is Wear's own.
+ */
 @Composable
-internal fun PomodoroWearScreen(viewModel: PomodoroViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    PomodoroWearContent(state, onSignInAnonymously = viewModel::signInAnonymously)
-}
+private fun AbitWearApp() {
+    val controller = rememberSwipeDismissableNavController()
+    val permissions: ChimePermissions = koinInject()
+    val context = LocalContext.current
+    var permissionStates by remember { mutableStateOf(emptyList<PermissionState>()) }
 
-@Composable
-private fun PomodoroWearContent(
-    state: PomodoroUiState,
-    onSignInAnonymously: () -> Unit = {},
-) {
-    ScreenScaffold {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(text = "ABit")
-            Text(text = "Sessions: ${state.sessions.size}")
-            Text(
-                text =
-                    when (state.syncState) {
-                        SyncState.Unavailable -> "No sync"
-                        SyncState.SignedOut -> "Signed out"
-                        SyncState.LocalOnly -> "This watch only"
-                        SyncState.Syncing -> "Syncing…"
-                        is SyncState.Idle -> "Synced"
-                        is SyncState.Failed -> "Sync failed"
-                    },
+    OnWearResume {
+        permissionStates =
+            listOf(
+                PermissionState(PermissionId.Notifications, permissions.canPostNotifications()),
+                PermissionState(PermissionId.ExactAlarms, permissions.canScheduleExactAlarms()),
             )
-            // Anonymous only on the watch: signing in with Google means typing, and the watch syncs
-            // through the cloud rather than through a paired phone, so it needs an account of its
-            // own rather than the phone's.
-            if (state.user == null) {
-                Button(onClick = onSignInAnonymously) { Text("Start") }
-            }
+    }
+
+    SwipeDismissableNavHost(navController = controller, startDestination = ROUTE_TODAY) {
+        composable(ROUTE_TODAY) {
+            WearTodayScreen(viewModel = koinViewModel())
+        }
+        composable(ROUTE_SCHEDULES) {
+            WearSchedulesScreen(
+                viewModel = koinViewModel(),
+                permissions = permissionStates,
+                onFixPermission = { state ->
+                    val intent =
+                        when (state.id) {
+                            PermissionId.ExactAlarms -> permissions.exactAlarmSettingsIntent()
+                            else -> permissions.notificationSettingsIntent()
+                        }
+                    context.startActivity(intent)
+                },
+            )
         }
     }
 }
 
 @ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
 @Composable
-private fun PomodoroWearContentLargeRoundPreview() {
-    MaterialTheme { AppScaffold { PomodoroWearContent(PomodoroUiState()) } }
+private fun WearTodayLargeRoundPreview() {
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onPauseToday = {}) } }
 }
 
 @ComposePreview(device = WearDevices.SQUARE, showSystemUi = true)
 @Composable
-private fun PomodoroWearContentSquarePreview() {
-    MaterialTheme { AppScaffold { PomodoroWearContent(PomodoroUiState()) } }
+private fun WearTodaySquarePreview() {
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onPauseToday = {}) } }
+}
+
+@ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
+@Composable
+private fun WearSchedulesLargeRoundPreview() {
+    AbitWearTheme {
+        AppScaffold {
+            WearSchedulesContent(
+                state = SchedulesUiState(),
+                missingPermissions = emptyList(),
+                onToggle = { _, _ -> },
+                onFixPermission = {},
+            )
+        }
+    }
+}
+
+@ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
+@Composable
+private fun WearChimeLargeRoundPreview() {
+    AbitWearTheme {
+        WearChimeScreen(
+            stage = BlockKind.Break,
+            untilLabel = "until 10:00",
+            thenLabel = "then focus for 45 min",
+            onDismiss = {},
+            onSkipNext = {},
+        )
+    }
 }

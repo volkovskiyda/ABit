@@ -89,6 +89,28 @@ fun abitDarkColorScheme(): ColorScheme =
         )
     }
 
+/**
+ * The ring's three remaining colours, read from the tokens rather than from a `ColorScheme`.
+ *
+ * On phone, tablet, desktop and web these are exactly what [abitLightColorScheme] and
+ * [abitDarkColorScheme] map the same tokens to, so nothing moves. **On Wear they are the difference
+ * between the ring being right and being wrong**: `core:designsystem`'s components are shared, but
+ * Wear runs its own Material 3, so a composable that reaches for the multiplatform
+ * `MaterialTheme.colorScheme` on a watch is served Material's *baseline* palette — a pale lilac for
+ * `primaryContainer` and a pale pink for `tertiaryContainer` — because nothing on that screen ever
+ * provided the multiplatform theme. That is not a colour a watch could ever have shown on purpose.
+ */
+fun ringTrackColor(darkTheme: Boolean): Color =
+    if (darkTheme) AbitTokens.Dark.SURFACE_CONTAINER_HIGHEST.color() else AbitTokens.Light.SURFACE_CONTAINER_HIGHEST.color()
+
+/** The break arc when the focus is the stage that is running: mint, dimmed to a container tone. */
+fun breakMutedArcColor(darkTheme: Boolean): Color =
+    if (darkTheme) AbitTokens.Dark.TERTIARY_CONTAINER.color() else AbitTokens.Light.TERTIARY_CONTAINER.color()
+
+/** The focus arc once the break is the stage that is running. */
+fun focusMutedArcColor(darkTheme: Boolean): Color =
+    if (darkTheme) AbitTokens.Dark.PRIMARY_CONTAINER.color() else AbitTokens.Light.PRIMARY_CONTAINER.color()
+
 /** The break arc's colour, which is not a Material role: light needs a brighter mint than its text. */
 fun breakArcColor(darkTheme: Boolean): Color =
     if (darkTheme) AbitTokens.Dark.TERTIARY_ARC.color() else AbitTokens.Light.TERTIARY_ARC.color()

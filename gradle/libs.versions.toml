@@ -153,6 +153,7 @@ androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstall
 # ---- Wear OS -----------------------------------------------------------------------------------
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wearCompose" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wearCompose" }
+wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wearCompose" }
 wear-compose-uiTooling = { module = "androidx.wear.compose:compose-ui-tooling", version.ref = "wearCompose" }
 wear-toolingPreview = { module = "androidx.wear:wear-tooling-preview", version.ref = "wearToolingPreview" }
 

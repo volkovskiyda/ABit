@@ -3,7 +3,6 @@ package com.gmail.volkovskiyda.abit.core.designsystem.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,7 +16,10 @@ import androidx.compose.ui.unit.dp
 import com.gmail.volkovskiyda.abit.core.designsystem.LocalAbitDarkTheme
 import com.gmail.volkovskiyda.abit.core.designsystem.RingArcs
 import com.gmail.volkovskiyda.abit.core.designsystem.breakArcColor
+import com.gmail.volkovskiyda.abit.core.designsystem.breakMutedArcColor
 import com.gmail.volkovskiyda.abit.core.designsystem.focusArcColor
+import com.gmail.volkovskiyda.abit.core.designsystem.focusMutedArcColor
+import com.gmail.volkovskiyda.abit.core.designsystem.ringTrackColor
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 
 /** 12 o'clock in Compose's arc coordinates, where 0° is 3 o'clock and angles run clockwise. */
@@ -43,9 +45,11 @@ fun SessionRing(
     val dark = LocalAbitDarkTheme.current
     val focus = focusArcColor(dark)
     val rest = breakArcColor(dark)
-    val focusMuted = MaterialTheme.colorScheme.primaryContainer
-    val restMuted = MaterialTheme.colorScheme.tertiaryContainer
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    // All five from the tokens, never from `MaterialTheme.colorScheme` — this composable is shared
+    // with the watch, which runs Wear's Material 3 and so has no multiplatform scheme to read.
+    val focusMuted = focusMutedArcColor(dark)
+    val restMuted = breakMutedArcColor(dark)
+    val track = ringTrackColor(dark)
 
     Box(modifier = modifier.size(diameter), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(diameter)) {
