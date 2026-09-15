@@ -24,6 +24,10 @@ class BootReceiver :
         context: Context,
         intent: Intent,
     ) {
+        // Both actions are protected broadcasts only the system can send, but a receiver that does
+        // not check the action can still be woken by a spoofed intent with none.
+        if (intent.action !in HANDLED_ACTIONS) return
+
         val pending = goAsync()
         CoroutineScope(Dispatchers.Default).launch {
             try {
@@ -32,5 +36,9 @@ class BootReceiver :
                 pending.finish()
             }
         }
+    }
+
+    private companion object {
+        val HANDLED_ACTIONS = setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED)
     }
 }

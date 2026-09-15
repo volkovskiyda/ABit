@@ -54,9 +54,19 @@ class GoogleSignIn(
                 )
             GoogleIdTokenCredential.createFrom(response.credential.data).idToken
         }.recoverCatching { error ->
-            // Cancellation is a normal outcome — the user dismissed the sheet — and must not read as a
-            // failure the UI shouts about.
-            if (error is GetCredentialException) throw IllegalStateException(error.message ?: "Sign-in cancelled")
-            throw error
+            throw IllegalStateException(error.reason(), error)
+        }
+
+    /**
+     * Every Credential Manager failure the UI has to word differently. `NoCredentialException` is the
+     * one that is not really an error — the device has no Google account to offer — and it is also the
+     * one Android lint insists is handled somewhere in the project.
+     */
+    private fun Throwable.reason(): String =
+        when (this) {
+            is NoCredentialException -> "No Google account on this device"
+            is GetCredentialCancellationException -> "Sign-in cancelled"
+            is GetCredentialException -> message ?: "Sign-in failed"
+            else -> message ?: "Sign-in failed"
         }
 }

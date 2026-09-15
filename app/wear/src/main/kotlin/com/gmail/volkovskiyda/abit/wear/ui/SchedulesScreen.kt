@@ -34,6 +34,7 @@ fun WearSchedulesScreen(
     permissions: List<PermissionState>,
     onFixPermission: (PermissionState) -> Unit,
     modifier: Modifier = Modifier,
+    signIn: WearSignInState = WearSignInState(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     WearSchedulesContent(
@@ -41,9 +42,22 @@ fun WearSchedulesScreen(
         missingPermissions = permissions.filterNot { it.granted },
         onToggle = { id, enabled -> viewModel.toggle(id, enabled) },
         onFixPermission = onFixPermission,
+        signIn = signIn,
         modifier = modifier,
     )
 }
+
+/**
+ * The watch's sign-in, offered as a card at the top of this list — **not a launch wall**, and not a
+ * screen of its own. Since item 03 only a Google-linked account syncs, so a watch left anonymous is a
+ * watch whose schedules never arrive; saying so here is the smallest honest place to say it.
+ */
+data class WearSignInState(
+    val needsSignIn: Boolean = false,
+    val available: Boolean = false,
+    val error: String? = null,
+    val onSignIn: () -> Unit = {},
+)
 
 @Composable
 fun WearSchedulesContent(
@@ -52,6 +66,7 @@ fun WearSchedulesContent(
     onToggle: (ScheduleId, Boolean) -> Unit,
     onFixPermission: (PermissionState) -> Unit,
     modifier: Modifier = Modifier,
+    signIn: WearSignInState = WearSignInState(),
 ) {
     val listState = rememberScalingLazyListState()
     ScreenScaffold(modifier = modifier, scrollState = listState, timeText = { TimeText() }) { padding ->
@@ -62,6 +77,30 @@ fun WearSchedulesContent(
         ) {
             // The watch has no settings screen in the design, so a missing permission surfaces here —
             // otherwise the one device most likely to be silent would never say why.
+            if (signIn.needsSignIn) {
+                items(listOf(signIn)) { state ->
+                    Card(onClick = state.onSignIn, modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            Text(
+                                if (state.available) "Sign in with Google" else "Sign in on your phone",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Text(
+                                text =
+                                    state.error
+                                        ?: if (state.available) {
+                                            "Your schedules sync once you sign in."
+                                        } else {
+                                            "This watch is too old for Google sign-in here."
+                                        },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
             items(missingPermissions) { permission ->
                 Card(onClick = { onFixPermission(permission) }, modifier = Modifier.fillMaxWidth()) {
                     Column {

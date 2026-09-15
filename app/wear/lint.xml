@@ -22,6 +22,10 @@
     <issue id="Registered">
         <ignore regexp="Abit(Wear)?Application"/>
         <ignore regexp="MainActivity"/>
+        <!-- Same false positive, same re-measurement on 2026-09-15 with the tile service: the
+             merged manifest declares com.gmail.volkovskiyda.abit.wear.tile.AbitTileService, and
+             writing that name fully qualified in the source manifest changes nothing. -->
+        <ignore regexp="AbitTileService"/>
     </issue>
 
     <!--

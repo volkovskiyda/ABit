@@ -10,7 +10,9 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -18,6 +20,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.gmail.volkovskiyda.abit.auth.GoogleSignIn
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
 import com.gmail.volkovskiyda.abit.core.designsystem.components.DialMark
@@ -37,6 +40,7 @@ import com.gmail.volkovskiyda.abit.ui.settings.SettingsScreen
 import com.gmail.volkovskiyda.abit.ui.theme.AbitTheme
 import com.gmail.volkovskiyda.abit.ui.today.TodayScreen
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -151,11 +155,7 @@ internal fun AbitNavDisplay() {
                         )
                     }
                     entry<SignInNavKey> {
-                        SignInSheet(
-                            // Item 16 replaces this with the real Credential Manager flow.
-                            onSignIn = { backStack.removeLastOrNull() },
-                            onDismiss = { backStack.removeLastOrNull() },
-                        )
+                        GoogleSignInSheet(onDismiss = { backStack.removeLastOrNull() })
                     }
                 },
         )
@@ -195,5 +195,42 @@ private fun ConflictScreen(
         },
         onEditHours = onEditHours,
         onDismiss = onDismiss,
+    )
+}
+
+/**
+ * The Google sheet. It signs in through Credential Manager and hands the id token to the ViewModel,
+ * which **links** it to the anonymous account rather than replacing it — so the schedules written
+ * before signing in survive and start syncing.
+ *
+ * A build with no web OAuth client has no `serverClientId`, and the sheet says so instead of offering
+ * a button that cannot work. A keyless clone has to keep running.
+ */
+@Composable
+private fun GoogleSignInSheet(onDismiss: () -> Unit) {
+    val viewModel: TodayViewModel = koinViewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val googleSignIn = remember(context) { GoogleSignIn(context) }
+
+    SignInSheet(
+        onSignIn = {
+            val clientId = googleSignIn.serverClientId
+            if (clientId == null) {
+                viewModel.onAuthError("Google sign-in is not configured for this build")
+            } else {
+                scope.launch {
+                    googleSignIn
+                        .requestIdToken(clientId)
+                        .onSuccess {
+                            viewModel.signInWithGoogle(it)
+                            onDismiss()
+                        }.onFailure { viewModel.onAuthError(it.message ?: "Sign-in failed") }
+                }
+            }
+        },
+        onDismiss = onDismiss,
+        error = state.authError,
     )
 }

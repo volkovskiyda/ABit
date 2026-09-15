@@ -55,6 +55,12 @@ dependencies {
     implementation(libs.compose.ui)
 
     // The tile. ProtoLayout rather than Compose — see the catalog comment.
+    // Google sign-in on the watch. Credential Manager is Wear OS 4 and later; older watches fall
+    // back to anonymous, which the card handles rather than crashing.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.playServicesAuth)
+    implementation(libs.googleid)
+
     implementation(libs.wear.tiles)
     implementation(libs.androidx.concurrent.futures)
     implementation(libs.wear.protolayout)
