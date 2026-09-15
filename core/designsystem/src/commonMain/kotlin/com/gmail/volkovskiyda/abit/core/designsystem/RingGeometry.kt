@@ -1,0 +1,55 @@
+package com.gmail.volkovskiyda.abit.core.designsystem
+
+import com.gmail.volkovskiyda.abit.core.domain.Session
+import kotlinx.datetime.LocalTime
+
+private const val FULL_TURN_DEG = 360f
+private const val SECONDS_IN_MINUTE = 60
+
+/** The gap between the two arcs, in degrees. Only drawn when both arcs are present. */
+const val RING_GAP_DEGREES = 4f
+
+/**
+ * The two arcs of the session ring, both measured clockwise from 12 o'clock.
+ *
+ * [breakSweep] starts at 12 o'clock; [focusSweep] continues from where it ends. Either can be zero:
+ * the last session of a day has no break, and once the focus is over only the break share remains.
+ */
+data class RingArcs(
+    val breakSweep: Float,
+    val focusSweep: Float,
+    val gapDegrees: Float = if (breakSweep > 0f && focusSweep > 0f) RING_GAP_DEGREES else 0f,
+) {
+    val totalSweep: Float get() = breakSweep + focusSweep
+}
+
+/**
+ * The ring is a countdown for the **whole session** — focus plus the break that follows it — anchored
+ * at 12 o'clock and drawn clockwise. Its total sweep is proportional to the time left, so the arc
+ * shrinks from its free end as the session runs out. The share nearest 12 o'clock is the break;
+ * beyond it is the focus.
+ *
+ * The design says "the first 90°"; that is the 45/15 instance of `breakMinutes / sessionMinutes ×
+ * 360°`, not a constant. A 50/10 session gives 60°, and a session with no break gives none at all.
+ */
+fun ringArcs(
+    session: Session,
+    now: LocalTime,
+): RingArcs {
+    val sessionSeconds = session.end.toSecondOfDay() - session.start.toSecondOfDay()
+    if (sessionSeconds <= 0) return RingArcs(breakSweep = 0f, focusSweep = 0f)
+
+    val remaining = (session.end.toSecondOfDay() - now.toSecondOfDay()).coerceIn(0, sessionSeconds)
+    val breakSeconds = session.rest?.let { it.end.toSecondOfDay() - it.start.toSecondOfDay() } ?: 0
+
+    val perSecond = FULL_TURN_DEG / sessionSeconds
+    val breakSweep = minOf(remaining, breakSeconds) * perSecond
+    val focusSweep = (remaining - minOf(remaining, breakSeconds)) * perSecond
+    return RingArcs(breakSweep = breakSweep, focusSweep = focusSweep)
+}
+
+/** Minutes remaining in the session, rounded down — what the menu bar and the tile render. */
+fun minutesLeft(
+    session: Session,
+    now: LocalTime,
+): Int = ((session.end.toSecondOfDay() - now.toSecondOfDay()).coerceAtLeast(0)) / SECONDS_IN_MINUTE

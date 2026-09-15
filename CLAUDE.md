@@ -34,7 +34,10 @@ you do.
 - **The Kotzilla plugin is applied per module, never at the root project.** Root application fails
   configuration with "The value for property 'languageVersion' is final". The vendor documents the
   per-module path as the supported alternative.
-- **UI is written per platform.** There is no shared UI module and there should not be one.
+- **UI is written per platform.** There is no shared *screen* and there should not be one.
+  `core:designsystem` holds the tokens, the bundled Inter, the theme and the shared components (the
+  session ring, the timeline row, the schedule card) — four independent copies of one arc calculation
+  is a worse problem than the one the original rule avoided.
 - **Features split `api` / `impl`.** Nothing may depend on an `impl` except `app:shared`.
 - **A checkout with no credentials must build and run.** Signing, Kotzilla and Firebase each degrade
   rather than fail when their git-ignored config file is absent. Every check job in CI proves this on
@@ -49,7 +52,8 @@ you do.
 
 ## Layout
 
-`core/*` holds shared logic, `feature/*/{api,impl}` holds features, `app/{shared,android,wear,desktop,web}`
+`core/*` holds shared logic — including `core:designsystem`, the one Compose-enabled library —
+`feature/*/{api,impl}` holds features, `app/{shared,android,wear,desktop,web}`
 holds the four apps plus their composition root, `build-logic` holds the convention plugins.
 
 Dependency direction: `app:*` → `app:shared` → `feature:*:impl` → `core:*`. A `core` module never
