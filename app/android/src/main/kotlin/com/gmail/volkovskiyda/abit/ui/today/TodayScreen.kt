@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.ui.today
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -23,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +49,7 @@ import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
 import com.gmail.volkovskiyda.abit.ui.isWideWindow
+import kotlinx.datetime.LocalTime
 
 /** The design's content ceiling: 1200 dp, so a desktop-width browser does not stretch a line of text. */
 internal val CONTENT_MAX_WIDTH = 1200.dp
@@ -141,12 +147,12 @@ fun TodayContent(
                         TodayRing(state.today)
                         TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
                     }
-                    Column(Modifier.weight(3f)) { RestOfToday(state.today) }
+                    Column(Modifier.weight(3f)) { RestOfToday(state.today, state.now) }
                 }
             } else {
                 TodayRing(state.today)
                 TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
-                RestOfToday(state.today)
+                RestOfToday(state.today, state.now)
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -230,8 +236,16 @@ private fun TodayActions(
     }
 }
 
+/**
+ * The day's blocks, with the ones already behind [now] folded into a single row. A schedule that
+ * runs 09:00 to 18:00 at a 45/15 rhythm is eighteen blocks, and by the afternoon most of them are
+ * history the user has to scroll past to reach the part they opened the app for.
+ */
 @Composable
-private fun RestOfToday(today: TodayState) {
+private fun RestOfToday(
+    today: TodayState,
+    now: LocalTime,
+) {
     val plan =
         when (today) {
             is TodayState.Running -> today.plan
@@ -240,27 +254,36 @@ private fun RestOfToday(today: TodayState) {
         }
     if (plan.sessions.isEmpty()) return
 
+    val past = plan.blocks.filter { it.end <= now }
+    val ahead = plan.blocks.drop(past.size)
+    // Once the day is over there is no "rest" to collapse *towards*, so the group opens itself
+    // rather than leaving the section looking empty.
+    var expanded by rememberSaveable(ahead.isEmpty()) { mutableStateOf(ahead.isEmpty()) }
+
     Column(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Rest of today", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(
+                text = if (ahead.isEmpty()) "Earlier today" else "Rest of today",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
             if (today is TodayState.Running) {
                 AbitChip(text = "Session ${today.sessionNumber} of ${today.sessionCount}")
             }
         }
-        // "Now" is the end of the current block minus what is left of it, which is the one value
-        // every branch of TodayState can agree on without a second clock reading.
-        val now = (today as? TodayState.Running)?.nextBoundary
-        plan.blocks.forEach { block ->
+        if (past.isNotEmpty()) {
+            EarlierRow(count = past.size, expanded = expanded, onClick = { expanded = !expanded })
+            if (expanded) {
+                past.forEach { block -> TimelineRow(block = block, position = TimelinePosition.Past) }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            }
+        }
+        ahead.forEach { block ->
             val position =
-                when {
-                    now == null -> TimelinePosition.Future
-                    block.end < now -> TimelinePosition.Past
-                    block.end == now -> TimelinePosition.Current
-                    else -> TimelinePosition.Future
-                }
+                if (block.start <= now) TimelinePosition.Current else TimelinePosition.Future
             TimelineRow(block = block, position = position)
         }
         Text(
@@ -268,6 +291,32 @@ private fun RestOfToday(today: TodayState) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
+/** The one row the finished blocks collapse into. */
+@Composable
+private fun EarlierRow(
+    count: Int,
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = if (count == 1) "1 block done" else "$count blocks done",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = if (expanded) "Hide" else "Show",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

@@ -16,12 +16,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.TimePickerDialogDefaults
+import androidx.compose.material3.TimePickerDisplayMode
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +76,7 @@ fun ScheduleEditorContent(
     modifier: Modifier = Modifier,
 ) {
     var confirmingDelete by remember { mutableStateOf(false) }
+    var editingTime by remember { mutableStateOf<TimeField?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -107,8 +116,16 @@ fun ScheduleEditorContent(
             }
 
             Section("HOURS") {
-                TimeRow(label = "Starts", time = state.draft.start, onClick = {})
-                TimeRow(label = "Ends", time = state.draft.end, onClick = {})
+                TimeRow(
+                    label = "Starts",
+                    time = state.draft.start,
+                    onClick = { editingTime = TimeField.Start },
+                )
+                TimeRow(
+                    label = "Ends",
+                    time = state.draft.end,
+                    onClick = { editingTime = TimeField.End },
+                )
                 val conflict = state.conflict
                 if (conflict != null) {
                     Text(
@@ -154,6 +171,22 @@ fun ScheduleEditorContent(
         }
     }
 
+    // Keyed by the field: the two rows share one call site, so without it the picker would open
+    // on the hour the other row was last set to.
+    editingTime?.let { field ->
+        key(field) {
+            TimeFieldDialog(
+                field = field,
+                time = field.of(state.draft),
+                onDismiss = { editingTime = null },
+                onConfirm = { picked ->
+                    editingTime = null
+                    onEdit { field.set(it, picked) }
+                },
+            )
+        }
+    }
+
     if (confirmingDelete) {
         // The error colour appears here and nowhere else — never in a list row.
         AlertDialog(
@@ -171,6 +204,71 @@ fun ScheduleEditorContent(
             },
             dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") } },
         )
+    }
+}
+
+/** Which of the two rows the picker is open on, and how it reads and writes the draft. */
+private enum class TimeField(
+    val title: String,
+) {
+    Start("Starts at") {
+        override fun of(schedule: Schedule): LocalTime = schedule.start
+
+        override fun set(
+            schedule: Schedule,
+            time: LocalTime,
+        ): Schedule = schedule.copy(start = time)
+    },
+    End("Ends at") {
+        override fun of(schedule: Schedule): LocalTime = schedule.end
+
+        override fun set(
+            schedule: Schedule,
+            time: LocalTime,
+        ): Schedule = schedule.copy(end = time)
+    },
+    ;
+
+    abstract fun of(schedule: Schedule): LocalTime
+
+    abstract fun set(
+        schedule: Schedule,
+        time: LocalTime,
+    ): Schedule
+}
+
+/**
+ * The platform's own time picker, forced to 24 hours: [hhmm] is 24-hour on every surface, and a
+ * picker that offered an AM/PM toggle would be the one place in the app that disagreed.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeFieldDialog(
+    field: TimeField,
+    time: LocalTime,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalTime) -> Unit,
+) {
+    val picker = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute, is24Hour = true)
+    // Boolean rather than TimePickerDisplayMode: the mode is an inline value class, which
+    // rememberSaveable has no saver for and would throw on.
+    var typing by rememberSaveable { mutableStateOf(false) }
+
+    TimePickerDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(field.title) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(LocalTime(picker.hour, picker.minute)) }) { Text("Set") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        modeToggleButton = {
+            TimePickerDialogDefaults.DisplayModeToggle(
+                onDisplayModeChange = { typing = !typing },
+                displayMode = if (typing) TimePickerDisplayMode.Input else TimePickerDisplayMode.Picker,
+            )
+        },
+    ) {
+        if (typing) TimeInput(state = picker) else TimePicker(state = picker)
     }
 }
 

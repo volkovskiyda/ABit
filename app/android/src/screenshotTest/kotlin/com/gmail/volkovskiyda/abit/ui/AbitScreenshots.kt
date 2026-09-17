@@ -53,8 +53,14 @@ private const val BREAK_MINUTES = 15
 private const val REMAINING_MINUTES = 37
 private const val REMAINING_SECONDS = 38
 private const val BREAK_REMAINING_MINUTES = 10
+private const val TWENTY_TWO = 22
+private const val FIFTY = 50
 private const val FORTY_FIVE = 45
 private const val LARGEST_FONT_SCALE = 2.0f
+
+/** Inside the first focus block, and inside the break that follows it: the two `running` states. */
+private val FOCUS_NOW = LocalTime(NINE_AM, TWENTY_TWO)
+private val BREAK_NOW = LocalTime(NINE_AM, FIFTY)
 
 private val MONDAY = LocalDate(YEAR, SEPTEMBER, 14)
 private val TUESDAY = LocalDate(YEAR, SEPTEMBER, 15)
@@ -148,17 +154,23 @@ private fun Settings(
 @PreviewTest
 @Preview(showBackground = true)
 @Composable
-private fun TodayFocusLight() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus)))
+private fun TodayFocusLight() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus), now = FOCUS_NOW))
 
 @PreviewTest
 @Preview(showBackground = true)
 @Composable
-private fun TodayFocusDark() = Today(ThemeMode.Dark, TodayUiState(today = running(BlockKind.Focus)))
+private fun TodayFocusDark() = Today(ThemeMode.Dark, TodayUiState(today = running(BlockKind.Focus), now = FOCUS_NOW))
 
 @PreviewTest
 @Preview(showBackground = true)
 @Composable
-private fun TodayBreakLight() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Break)))
+private fun TodayBreakLight() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Break), now = BREAK_NOW))
+
+/** Mid-afternoon, where the morning's blocks are folded into one row rather than scrolled past. */
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+private fun TodayAfternoonLight() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus), now = LocalTime(FIVE_PM, 0)))
 
 @PreviewTest
 @Preview(showBackground = true)
@@ -169,7 +181,8 @@ private fun TodayOffHoursLight() = Today(ThemeMode.Light, TodayUiState(today = o
 @PreviewTest
 @Preview(showBackground = true, fontScale = LARGEST_FONT_SCALE)
 @Composable
-private fun TodayLargestFont() = Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus), syncState = SyncState.Syncing))
+private fun TodayLargestFont() =
+    Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus), now = FOCUS_NOW, syncState = SyncState.Syncing))
 
 @PreviewTest
 @Preview(showBackground = true)

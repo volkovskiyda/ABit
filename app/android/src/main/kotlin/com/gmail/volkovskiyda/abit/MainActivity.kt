@@ -16,9 +16,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.gmail.volkovskiyda.abit.auth.GoogleSignIn
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
@@ -110,6 +112,17 @@ internal fun AbitNavDisplay() {
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
+            // NavDisplay's own default is the saveable-state holder and nothing else, so without
+            // this every `koinViewModel()` below resolves against the *activity's* store: one
+            // ScheduleEditorViewModel, shared by every visit to the editor. Tapping "New schedule"
+            // after saving one returned that same finished view model, whose `saved` flag popped the
+            // destination again before it drew. The store decorator scopes one per destination, and
+            // it needs the saveable-state holder underneath it to hand out SavedStateHandles.
+            entryDecorators =
+                listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
             entryProvider =
                 entryProvider<NavKey> {
                     entry<TodayNavKey> {
@@ -126,11 +139,12 @@ internal fun AbitNavDisplay() {
                             onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
                             // Only reached on a wide window, where the editor is the detail pane
                             // rather than a pushed destination.
-                            editorPane = { id ->
+                            editorPane = { id, paneKey ->
                                 ScheduleEditorScreen(
-                                    // Keyed by the schedule so selecting another card builds a new
-                                    // editor rather than reusing the previous one's draft.
-                                    viewModel = koinViewModel(key = "editor-$id") { parametersOf(id) },
+                                    // Keyed by the pane so selecting another card — or asking for a
+                                    // second blank draft — builds a new editor rather than reusing
+                                    // the previous one's.
+                                    viewModel = koinViewModel(key = "editor-$paneKey") { parametersOf(id) },
                                     onDone = {},
                                 )
                             },

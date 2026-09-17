@@ -19,7 +19,10 @@ import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneSca
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,7 +53,7 @@ fun SchedulesScreen(
     onOpenEditor: (String?) -> Unit,
     onOpenConflict: (String, String) -> Unit,
     modifier: Modifier = Modifier,
-    editorPane: @Composable (String?) -> Unit = {},
+    editorPane: @Composable (id: String?, paneKey: String) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -67,6 +70,10 @@ fun SchedulesScreen(
 
     val navigator = rememberListDetailPaneScaffoldNavigator<String?>()
     val scope = rememberCoroutineScope()
+    // The detail pane has no back stack to throw an editor away with, so a blank draft is told apart
+    // from the last one by this counter. Without it a second "New schedule" would reopen the view
+    // model that already saved the first, which is the same schedule under a different name.
+    var blankDrafts by rememberSaveable { mutableIntStateOf(0) }
     NavigableListDetailPaneScaffold(
         navigator = navigator,
         modifier = modifier,
@@ -75,7 +82,10 @@ fun SchedulesScreen(
                 SchedulesContent(
                     state = state,
                     onToggle = viewModel::toggle,
-                    onOpenEditor = { id -> scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } },
+                    onOpenEditor = { id ->
+                        if (id == null) blankDrafts++
+                        scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) }
+                    },
                     onOpenConflict = onOpenConflict,
                 )
             }
@@ -83,7 +93,7 @@ fun SchedulesScreen(
         detailPane = {
             AnimatedPane {
                 val selected = navigator.currentDestination?.contentKey
-                editorPane(selected)
+                editorPane(selected, selected ?: "blank-$blankDrafts")
             }
         },
     )

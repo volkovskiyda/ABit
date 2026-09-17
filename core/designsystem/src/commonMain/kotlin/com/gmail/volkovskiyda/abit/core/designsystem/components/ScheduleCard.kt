@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.gmail.volkovskiyda.abit.core.designsystem.timeRange
 import com.gmail.volkovskiyda.abit.core.model.Schedule
@@ -25,6 +26,9 @@ import kotlinx.datetime.DayOfWeek
 
 /** A disabled schedule renders at 38 % on-surface, switch off, no strike-through. */
 private const val DISABLED_ALPHA = 0.38f
+private val DAY_DOT = 28.dp
+private val CONFLICT_RING = 2.dp
+private val IDLE_RING = 1.dp
 
 /**
  * One row of the Schedules list. The whole card taps into the editor; only the switch is separately
@@ -62,29 +66,36 @@ fun ScheduleCard(
             Switch(checked = schedule.enabled, onCheckedChange = onToggle)
         }
 
+        // The same on/off pair the editor's WeekdayPicker uses, and for the same reason: a day has to
+        // read as on or off from across the room, which `secondaryContainer` over
+        // `surfaceContainerHigh` does not do in either palette.
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DayOfWeek.entries.forEach { day ->
                 val on = day in schedule.days
+                val conflicting = day in conflictingDays
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier =
                         Modifier
-                            .size(28.dp)
+                            .size(DAY_DOT)
                             .background(
-                                if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 CircleShape,
-                            ).then(
-                                if (day in conflictingDays) {
-                                    Modifier.border(2.dp, MaterialTheme.colorScheme.error, CircleShape)
-                                } else {
-                                    Modifier
-                                },
+                            ).border(
+                                width = if (conflicting) CONFLICT_RING else IDLE_RING,
+                                color =
+                                    when {
+                                        conflicting -> MaterialTheme.colorScheme.error
+                                        on -> Color.Transparent
+                                        else -> MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                shape = CircleShape,
                             ),
                 ) {
                     Text(
                         text = day.name.take(1),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (on) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

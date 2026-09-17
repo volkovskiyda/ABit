@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
 
 private const val STOP_TIMEOUT_MILLIS = 5_000L
@@ -38,6 +39,12 @@ private val EMPTY_PLAN = DayPlan(date = LocalDate(1970, 1, 1), schedule = null, 
 
 data class TodayUiState(
     val today: TodayState = TodayState.OffHours(EMPTY_PLAN, next = null),
+    /**
+     * The wall-clock minute [today] was derived at. A surface that wants to know which blocks are
+     * behind it cannot ask [TodayState] — only `Running` carries a boundary, and a paused or
+     * finished day is exactly when "what is left" matters most.
+     */
+    val now: LocalTime = LocalTime(0, 0),
     val syncState: SyncState = SyncState.Unavailable,
     /** `null` means signed out entirely; an anonymous user is still a user. */
     val user: AuthUser? = null,
@@ -77,6 +84,7 @@ class TodayViewModel(
         ) { schedules, overrides, syncState, user, (error, now) ->
             TodayUiState(
                 today = todayState(schedules, overrides, now),
+                now = now.time,
                 syncState = syncState,
                 user = user,
                 unresolvedConflict = schedules.conflicts().firstOrNull(),
