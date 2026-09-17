@@ -18,8 +18,8 @@ focus block plus the break that follows it — that is what the ring counts down
 9" numbers.
 
 Every signed-in device chimes at every boundary, unless that device is told not to (a per-device
-setting that deliberately does not sync). The only interventions are **Pause today**, **Skip next**
-— which silences one boundary without changing the plan — and the per-schedule switches.
+setting that deliberately does not sync). The only interventions are **Skip today** — which silences
+the rest of the day without changing the plan — and the per-schedule switches.
 
 **One schedule runs a day.** Schedules may overlap; when two enabled ones do, the app marks the
 conflict and asks which stays on. Until you answer, the most recently updated schedule plans the day,

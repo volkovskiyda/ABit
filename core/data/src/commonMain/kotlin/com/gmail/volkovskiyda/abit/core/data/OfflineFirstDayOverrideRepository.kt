@@ -9,10 +9,9 @@ import com.gmail.volkovskiyda.abit.core.model.DayOverride
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 
 /**
- * Offline-first, like every repository here: the pause the user just tapped is in effect before any
+ * Offline-first, like every repository here: the skip the user just tapped is in effect before any
  * network call is attempted, and reaches the other devices when sync next runs.
  */
 class OfflineFirstDayOverrideRepository(
@@ -24,15 +23,10 @@ class OfflineFirstDayOverrideRepository(
             entities.associate { entity -> entity.toModel().let { it.date to it } }
         }
 
-    override suspend fun setPaused(
+    override suspend fun setSkipped(
         date: LocalDate,
-        paused: Boolean,
-    ) = update(date) { it.copy(paused = paused) }
-
-    override suspend fun skipBoundary(
-        date: LocalDate,
-        boundary: LocalTime,
-    ) = update(date) { it.copy(skippedBoundaries = it.skippedBoundaries + boundary) }
+        skipped: Boolean,
+    ) = update(date) { it.copy(skipped = skipped) }
 
     private suspend fun update(
         date: LocalDate,

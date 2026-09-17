@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,7 +40,7 @@ data class TodayUiState(
     val today: TodayState = TodayState.OffHours(EMPTY_PLAN, next = null),
     /**
      * The wall-clock minute [today] was derived at. A surface that wants to know which blocks are
-     * behind it cannot ask [TodayState] — only `Running` carries a boundary, and a paused or
+     * behind it cannot ask [TodayState] — only `Running` carries a boundary, and a skipped or
      * finished day is exactly when "what is left" matters most.
      */
     val now: LocalTime = LocalTime(0, 0),
@@ -97,25 +96,14 @@ class TodayViewModel(
         )
 
     /** Silences the rest of today. The plan is untouched — the timeline still shows every block. */
-    fun pauseToday(paused: Boolean = true) {
-        viewModelScope.launch { dayOverrideRepository.setPaused(clock.today(), paused) }
+    fun skipToday(skipped: Boolean = true) {
+        viewModelScope.launch { dayOverrideRepository.setSkipped(clock.today(), skipped) }
     }
 
     /** Offered in off hours, when "today" no longer means anything the user can act on. */
-    fun pauseTomorrow(paused: Boolean = true) {
+    fun skipTomorrow(skipped: Boolean = true) {
         viewModelScope.launch {
-            dayOverrideRepository.setPaused(clock.today().plus(1, DateTimeUnit.DAY), paused)
-        }
-    }
-
-    /** Suppresses the next boundary's chime only. The block itself stays, chipped as skipped. */
-    fun skipNext() {
-        viewModelScope.launch {
-            val now = clock.now()
-            val schedules = scheduleRepository.observeSchedules().first()
-            val overrides = dayOverrideRepository.observeFrom(now.date).first()
-            val next = todayState(schedules, overrides, now).nextBoundary() ?: return@launch
-            dayOverrideRepository.skipBoundary(now.date, next)
+            dayOverrideRepository.setSkipped(clock.today().plus(1, DateTimeUnit.DAY), skipped)
         }
     }
 
@@ -159,10 +147,3 @@ class TodayViewModel(
             }
         }
 }
-
-private fun TodayState.nextBoundary() =
-    when (this) {
-        is TodayState.Running -> nextBoundary
-        is TodayState.OffHours -> today.boundaries.firstOrNull()
-        is TodayState.Paused -> null
-    }

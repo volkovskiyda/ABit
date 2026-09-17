@@ -43,12 +43,12 @@ class DayOverrideDaoTest {
     @Test
     fun `upsert inserts then replaces the same day`() =
         runTest {
-            dao.upsert(override(epochDay = TODAY, paused = false))
-            assertEquals(false, dao.findByEpochDay(TODAY)?.paused)
+            dao.upsert(override(epochDay = TODAY, skipped = false))
+            assertEquals(false, dao.findByEpochDay(TODAY)?.skipped)
 
-            dao.upsert(override(epochDay = TODAY, paused = true))
+            dao.upsert(override(epochDay = TODAY, skipped = true))
 
-            assertEquals(true, dao.findByEpochDay(TODAY)?.paused)
+            assertEquals(true, dao.findByEpochDay(TODAY)?.skipped)
             assertEquals(1, dao.all().size)
         }
 
@@ -86,10 +86,10 @@ class DayOverrideDaoTest {
 
     private fun override(
         epochDay: Long,
-        paused: Boolean = true,
+        skipped: Boolean = true,
     ) = DayOverrideEntity(
         epochDay = epochDay,
-        paused = paused,
+        skipped = skipped,
         skippedBoundaries = "585,600",
         updatedAtMillis = 1_700_000_000_000,
     )

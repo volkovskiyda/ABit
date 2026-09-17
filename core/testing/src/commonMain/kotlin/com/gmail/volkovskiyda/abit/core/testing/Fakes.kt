@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
@@ -83,15 +82,10 @@ class FakeDayOverrideRepository(
 
     override fun observeFrom(date: LocalDate): Flow<Map<LocalDate, DayOverride>> = overrides.asStateFlow()
 
-    override suspend fun setPaused(
+    override suspend fun setSkipped(
         date: LocalDate,
-        paused: Boolean,
-    ) = update(date) { it.copy(paused = paused) }
-
-    override suspend fun skipBoundary(
-        date: LocalDate,
-        boundary: LocalTime,
-    ) = update(date) { it.copy(skippedBoundaries = it.skippedBoundaries + boundary) }
+        skipped: Boolean,
+    ) = update(date) { it.copy(skipped = skipped) }
 
     private fun update(
         date: LocalDate,

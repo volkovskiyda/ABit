@@ -54,7 +54,7 @@ class TodayViewModelTest {
         }
 
     @Test
-    fun `pausing today flips the state to Paused without changing the plan`() =
+    fun `skipping today flips the state to Skipped without changing the plan`() =
         runTest {
             val overrides = FakeDayOverrideRepository()
             val viewModel = viewModel(at = LocalTime(9, 22), overrides = overrides)
@@ -62,11 +62,11 @@ class TodayViewModelTest {
             viewModel.state.test {
                 assertIs<TodayState.Running>(awaitItem().today)
 
-                viewModel.pauseToday()
+                viewModel.skipToday()
 
-                val paused = awaitItem().today
-                assertIs<TodayState.Paused>(paused)
-                assertEquals(9, paused.plan.sessions.size, "pausing silences the day, it does not rewrite it")
+                val skipped = awaitItem().today
+                assertIs<TodayState.Skipped>(skipped)
+                assertEquals(9, skipped.plan.sessions.size, "skipping silences the day, it does not rewrite it")
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -107,22 +107,6 @@ class TodayViewModelTest {
                 val state = awaitItem()
                 assertIs<TodayState.OffHours>(state.today)
                 assertNull(state.unresolvedConflict)
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
-    fun `skip next suppresses the coming boundary and nothing else`() =
-        runTest {
-            val overrides = FakeDayOverrideRepository()
-            val viewModel = viewModel(at = LocalTime(9, 22), overrides = overrides)
-
-            // Skipping does not change TodayState — the block is still planned and still drawn — so
-            // there is nothing to await on the ViewModel's own state. The override is the evidence.
-            viewModel.skipNext()
-
-            overrides.observeFrom(MONDAY).test {
-                assertEquals(setOf(LocalTime(9, 45)), awaitItem()[MONDAY]?.skippedBoundaries)
                 cancelAndIgnoreRemainingEvents()
             }
         }

@@ -59,8 +59,8 @@ class ChimePlanTest {
     }
 
     @Test
-    fun `a paused day yields no chimes at all`() {
-        val overrides = mapOf(MONDAY to DayOverride(MONDAY, paused = true, updatedAt = TEST_UPDATED_AT))
+    fun `a skipped day yields no chimes at all`() {
+        val overrides = mapOf(MONDAY to DayOverride(MONDAY, skipped = true, updatedAt = TEST_UPDATED_AT))
 
         val chimes = chimesFrom(schedules, overrides, at(8, 0), limit = 3)
 

@@ -64,7 +64,7 @@ class SchedulesMappingTest {
         val original =
             DayOverride(
                 date = LocalDate(2026, 9, 14),
-                paused = true,
+                skipped = true,
                 skippedBoundaries = setOf(LocalTime(9, 45), LocalTime(10, 0)),
                 updatedAt = UPDATED_AT,
             )

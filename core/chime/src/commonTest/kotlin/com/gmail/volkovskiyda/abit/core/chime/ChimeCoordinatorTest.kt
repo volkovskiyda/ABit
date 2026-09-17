@@ -67,7 +67,7 @@ class ChimeCoordinatorTest {
     fun `pausing today arms tomorrow rather than nothing`() =
         runTest {
             val fixture = fixture(atHour = 9, atMinute = 22)
-            fixture.overrides.setPaused(TUESDAY, paused = true)
+            fixture.overrides.setSkipped(TUESDAY, skipped = true)
 
             fixture.coordinator.onChimeFired()
 
@@ -79,22 +79,6 @@ class ChimeCoordinatorTest {
             )
             assertEquals(
                 LocalTime(9, 0),
-                fixture.scheduler.armed
-                    ?.at
-                    ?.time,
-            )
-        }
-
-    @Test
-    fun `a skipped boundary arms the one after it`() =
-        runTest {
-            val fixture = fixture(atHour = 9, atMinute = 22)
-            fixture.overrides.skipBoundary(TUESDAY, LocalTime(9, 45))
-
-            fixture.coordinator.onChimeFired()
-
-            assertEquals(
-                LocalTime(10, 0),
                 fixture.scheduler.armed
                     ?.at
                     ?.time,

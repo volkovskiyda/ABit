@@ -65,8 +65,8 @@ private fun List<Schedule>.chimesOn(
     overrides: Map<LocalDate, DayOverride>,
     after: kotlinx.datetime.LocalTime?,
 ): List<Chime> {
-    // A paused day makes no sound at all. The plan is untouched: the timeline still draws it.
-    if (overrides[date]?.paused == true) return emptyList()
+    // A skipped day makes no sound at all. The plan is untouched: the timeline still draws it.
+    if (overrides[date]?.skipped == true) return emptyList()
 
     val plan = planFor(date)
     val schedule = plan.schedule ?: return emptyList()

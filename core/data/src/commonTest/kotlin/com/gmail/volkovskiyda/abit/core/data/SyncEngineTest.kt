@@ -102,7 +102,7 @@ class SyncEngineTest {
             val date = LocalDate(2026, 9, 14)
             val fixture = fixture()
             fixture.dayOverrideDao.upsert(
-                DayOverride(date = date, paused = true, updatedAt = TEST_EPOCH).toEntity(),
+                DayOverride(date = date, skipped = true, updatedAt = TEST_EPOCH).toEntity(),
             )
 
             fixture.engine.syncNow()
@@ -115,7 +115,7 @@ class SyncEngineTest {
             assertTrue(
                 fixture.remote.overrides.value
                     .single()
-                    .paused,
+                    .skipped,
             )
         }
 

@@ -59,7 +59,7 @@ internal val CONTENT_MAX_WIDTH = 1200.dp
  * same three questions in the same order and only the accent and the actions differ.
  *
  * There is no start or stop control here, and there is not one anywhere else either: the schedule is
- * what starts things. The only interventions are Pause today and Skip next.
+ * what starts things. The only intervention is Skip today.
  */
 @Composable
 fun TodayScreen(
@@ -71,9 +71,8 @@ fun TodayScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     TodayContent(
         state = state,
-        onPauseToday = { viewModel.pauseToday(it) },
-        onPauseTomorrow = { viewModel.pauseTomorrow() },
-        onSkipNext = viewModel::skipNext,
+        onSkipToday = { viewModel.skipToday(it) },
+        onSkipTomorrow = { viewModel.skipTomorrow() },
         onOpenSignIn = onOpenSignIn,
         onOpenConflict = onOpenConflict,
         modifier = modifier,
@@ -84,9 +83,8 @@ fun TodayScreen(
 @Composable
 fun TodayContent(
     state: TodayUiState,
-    onPauseToday: (Boolean) -> Unit,
-    onPauseTomorrow: () -> Unit,
-    onSkipNext: () -> Unit,
+    onSkipToday: (Boolean) -> Unit,
+    onSkipTomorrow: () -> Unit,
     onOpenSignIn: () -> Unit,
     onOpenConflict: (String, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -145,13 +143,13 @@ fun TodayContent(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         TodayRing(state.today)
-                        TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
+                        TodayActions(state.today, onSkipToday, onSkipTomorrow)
                     }
                     Column(Modifier.weight(3f)) { RestOfToday(state.today, state.now) }
                 }
             } else {
                 TodayRing(state.today)
-                TodayActions(state.today, onPauseToday, onPauseTomorrow, onSkipNext)
+                TodayActions(state.today, onSkipToday, onSkipTomorrow)
                 RestOfToday(state.today, state.now)
             }
             Spacer(Modifier.height(24.dp))
@@ -176,7 +174,7 @@ private fun TodayRing(today: TodayState) {
         when (today) {
             is TodayState.Running -> ringArcs(today.session, today.sessionRemaining)
 
-            // Paused and off hours draw the bare track: no accent at all, which is the design's rule.
+            // Skipped and off hours draw the bare track: no accent at all, which is the design's rule.
             else -> RingArcs.Empty
         }
     SessionRing(arcs = arcs, stage = stage ?: BlockKind.Focus) {
@@ -187,8 +185,8 @@ private fun TodayRing(today: TodayState) {
                     CountdownText(today.stageRemaining)
                 }
 
-                is TodayState.Paused -> {
-                    Text("Paused", style = MaterialTheme.typography.headlineMedium)
+                is TodayState.Skipped -> {
+                    Text("Skipped", style = MaterialTheme.typography.headlineMedium)
                 }
 
                 is TodayState.OffHours -> {
@@ -211,26 +209,24 @@ private fun TodayRing(today: TodayState) {
 @Composable
 private fun TodayActions(
     today: TodayState,
-    onPauseToday: (Boolean) -> Unit,
-    onPauseTomorrow: () -> Unit,
-    onSkipNext: () -> Unit,
+    onSkipToday: (Boolean) -> Unit,
+    onSkipTomorrow: () -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         when (today) {
             is TodayState.Running -> {
-                FilledTonalButton(onClick = { onPauseToday(true) }) { Text("Pause today") }
-                OutlinedButton(onClick = onSkipNext) { Text("Skip next") }
+                FilledTonalButton(onClick = { onSkipToday(true) }) { Text("Skip today") }
             }
 
-            is TodayState.Paused -> {
+            is TodayState.Skipped -> {
                 Button(
-                    onClick = { onPauseToday(false) },
+                    onClick = { onSkipToday(false) },
                     colors = ButtonDefaults.buttonColors(),
                 ) { Text("Resume today") }
             }
 
             is TodayState.OffHours -> {
-                FilledTonalButton(onClick = onPauseTomorrow) { Text("Pause tomorrow") }
+                FilledTonalButton(onClick = onSkipTomorrow) { Text("Skip tomorrow") }
             }
         }
     }
@@ -249,7 +245,7 @@ private fun RestOfToday(
     val plan =
         when (today) {
             is TodayState.Running -> today.plan
-            is TodayState.Paused -> today.plan
+            is TodayState.Skipped -> today.plan
             is TodayState.OffHours -> today.today
         }
     if (plan.sessions.isEmpty()) return
@@ -331,7 +327,7 @@ private fun TodayUiState.subtitle(): String {
     val plan =
         when (val day = today) {
             is TodayState.Running -> day.plan
-            is TodayState.Paused -> day.plan
+            is TodayState.Skipped -> day.plan
             is TodayState.OffHours -> day.today
         }
     val name = plan.schedule?.name
@@ -344,8 +340,8 @@ private fun TodayState.caption(): String =
             "${if (stage == BlockKind.Focus) "break" else "focus"} at ${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
         }
 
-        is TodayState.Paused -> {
-            "Paused until ${dayLabel(resumesOn)}"
+        is TodayState.Skipped -> {
+            "Skipped until ${dayLabel(resumesOn)}"
         }
 
         is TodayState.OffHours -> {

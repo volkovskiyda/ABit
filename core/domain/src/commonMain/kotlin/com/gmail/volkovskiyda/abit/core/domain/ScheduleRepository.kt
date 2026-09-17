@@ -5,7 +5,6 @@ import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 
 /**
  * Reads come from the local database on every platform, so a screen renders without waiting for the
@@ -30,13 +29,9 @@ interface DayOverrideRepository {
     /** Keyed by date, from [date] onward — a past day cannot change what any surface renders. */
     fun observeFrom(date: LocalDate): Flow<Map<LocalDate, DayOverride>>
 
-    suspend fun setPaused(
+    /** Silences the whole day, or lifts that. The plan is untouched: every surface still draws it. */
+    suspend fun setSkipped(
         date: LocalDate,
-        paused: Boolean,
-    )
-
-    suspend fun skipBoundary(
-        date: LocalDate,
-        boundary: LocalTime,
+        skipped: Boolean,
     )
 }

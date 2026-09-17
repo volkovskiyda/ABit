@@ -37,7 +37,7 @@ fun WearTodayScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WearTodayContent(state = state, onPauseToday = { viewModel.pauseToday(it) }, modifier = modifier)
+    WearTodayContent(state = state, onSkipToday = { viewModel.skipToday(it) }, modifier = modifier)
 }
 
 /**
@@ -47,7 +47,7 @@ fun WearTodayScreen(
 @Composable
 fun WearTodayContent(
     state: TodayUiState,
-    onPauseToday: (Boolean) -> Unit,
+    onSkipToday: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = state.today
@@ -87,8 +87,8 @@ fun WearTodayContent(
             }
 
             // Below the fold on purpose: reachable by rotary or scroll, never in the way of the ring.
-            Button(onClick = { onPauseToday(today !is TodayState.Paused) }) {
-                Text(if (today is TodayState.Paused) "Resume today" else "Pause today")
+            Button(onClick = { onSkipToday(today !is TodayState.Skipped) }) {
+                Text(if (today is TodayState.Skipped) "Resume today" else "Skip today")
             }
         }
     }
@@ -104,20 +104,20 @@ private fun TodayState.modeColor() =
 private fun TodayState.mode(): String =
     when (this) {
         is TodayState.Running -> if (stage == BlockKind.Focus) "FOCUS" else "BREAK"
-        is TodayState.Paused -> "PAUSED"
+        is TodayState.Skipped -> "SKIPPED"
         is TodayState.OffHours -> "OFF HOURS"
     }
 
 private fun TodayState.headline(): String =
     when (this) {
         is TodayState.Running -> countdown(stageRemaining)
-        is TodayState.Paused -> "—"
+        is TodayState.Skipped -> "—"
         is TodayState.OffHours -> next?.at?.let(::hhmm) ?: "—"
     }
 
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> "${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
-        is TodayState.Paused -> "until tomorrow"
+        is TodayState.Skipped -> "until tomorrow"
         is TodayState.OffHours -> next?.scheduleName ?: "no schedule"
     }

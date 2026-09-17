@@ -28,15 +28,15 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalTestApi::class)
 class TrayPopoverTest {
     @Test
-    fun `shows the countdown and the two interventions`() =
+    fun `shows the countdown and the one intervention`() =
         runComposeUiTest {
             setContent {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running()),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
@@ -47,8 +47,7 @@ class TrayPopoverTest {
             onNodeWithText("FOCUS").assertIsDisplayed()
             // The focus block's own countdown, not the session's 37:38.
             onNodeWithText("22:38").assertIsDisplayed()
-            onNodeWithText("Pause today").assertIsDisplayed()
-            onNodeWithText("Skip next").assertIsDisplayed()
+            onNodeWithText("Skip today").assertIsDisplayed()
         }
 
     @Test
@@ -59,8 +58,8 @@ class TrayPopoverTest {
                     TrayPopoverContent(
                         state = TodayUiState(today = running()),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
@@ -85,8 +84,8 @@ class TrayPopoverTest {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous()),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
@@ -109,8 +108,8 @@ class TrayPopoverTest {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous()),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
@@ -140,8 +139,8 @@ class TrayPopoverTest {
                                     ),
                             ),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
@@ -163,8 +162,8 @@ class TrayPopoverTest {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous(), authError = "Sign-in cancelled"),
                         chimeOnThisMac = true,
-                        onPauseToday = {},
-                        onSkipNext = {},
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
                         onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},

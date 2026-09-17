@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -81,8 +80,8 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
                                     CountdownText(today.stageRemaining)
                                 }
 
-                                is TodayState.Paused -> {
-                                    Text("Paused", style = MaterialTheme.typography.headlineMedium)
+                                is TodayState.Skipped -> {
+                                    Text("Skipped", style = MaterialTheme.typography.headlineMedium)
                                 }
 
                                 is TodayState.OffHours -> {
@@ -103,16 +102,15 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         when (today) {
                             is TodayState.Running -> {
-                                FilledTonalButton(onClick = { viewModel.pauseToday(true) }) { Text("Pause today") }
-                                OutlinedButton(onClick = viewModel::skipNext) { Text("Skip next") }
+                                FilledTonalButton(onClick = { viewModel.skipToday(true) }) { Text("Skip today") }
                             }
 
-                            is TodayState.Paused -> {
-                                FilledTonalButton(onClick = { viewModel.pauseToday(false) }) { Text("Resume today") }
+                            is TodayState.Skipped -> {
+                                FilledTonalButton(onClick = { viewModel.skipToday(false) }) { Text("Resume today") }
                             }
 
                             is TodayState.OffHours -> {
-                                FilledTonalButton(onClick = { viewModel.pauseTomorrow() }) { Text("Pause tomorrow") }
+                                FilledTonalButton(onClick = { viewModel.skipTomorrow() }) { Text("Skip tomorrow") }
                             }
                         }
                     }
@@ -145,7 +143,7 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
 internal fun TodayState.plan() =
     when (this) {
         is TodayState.Running -> plan
-        is TodayState.Paused -> plan
+        is TodayState.Skipped -> plan
         is TodayState.OffHours -> today
     }
 
@@ -155,8 +153,8 @@ private fun TodayState.caption(): String =
             "${if (stage == BlockKind.Focus) "break" else "focus"} at ${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
         }
 
-        is TodayState.Paused -> {
-            "Paused until ${dayLabel(resumesOn)}"
+        is TodayState.Skipped -> {
+            "Skipped until ${dayLabel(resumesOn)}"
         }
 
         is TodayState.OffHours -> {

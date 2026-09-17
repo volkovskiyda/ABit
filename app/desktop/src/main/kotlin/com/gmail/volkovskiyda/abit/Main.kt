@@ -197,8 +197,8 @@ private fun AbitPopoverWindow(
             TrayPopoverContent(
                 state = state,
                 chimeOnThisMac = chimeOnThisMac,
-                onPauseToday = { viewModel.pauseToday(it) },
-                onSkipNext = viewModel::skipNext,
+                onSkipToday = { viewModel.skipToday(it) },
+                onSkipTomorrow = { viewModel.skipTomorrow() },
                 onChimeOnThisMac = onChimeOnThisMac,
                 onOpenSchedules = onOpenSchedules,
                 onQuit = onQuit,

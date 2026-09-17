@@ -118,13 +118,13 @@ internal fun AbitWearApp() {
 @ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
 @Composable
 private fun WearTodayLargeRoundPreview() {
-    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onPauseToday = {}) } }
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onSkipToday = {}) } }
 }
 
 @ComposePreview(device = WearDevices.SQUARE, showSystemUi = true)
 @Composable
 private fun WearTodaySquarePreview() {
-    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onPauseToday = {}) } }
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onSkipToday = {}) } }
 }
 
 @ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
@@ -151,7 +151,6 @@ private fun WearChimeLargeRoundPreview() {
             untilLabel = "until 10:00",
             thenLabel = "then focus for 45 min",
             onDismiss = {},
-            onSkipNext = {},
         )
     }
 }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,8 +54,8 @@ private const val TIMELINE_ROWS = 4
 fun TrayPopoverContent(
     state: TodayUiState,
     chimeOnThisMac: Boolean,
-    onPauseToday: (Boolean) -> Unit,
-    onSkipNext: () -> Unit,
+    onSkipToday: (Boolean) -> Unit,
+    onSkipTomorrow: () -> Unit,
     onChimeOnThisMac: (Boolean) -> Unit,
     onOpenSchedules: () -> Unit,
     onQuit: () -> Unit,
@@ -93,8 +92,8 @@ fun TrayPopoverContent(
                         CountdownText(today.stageRemaining, style = MaterialTheme.typography.headlineMedium)
                     }
 
-                    is TodayState.Paused -> {
-                        Text("Paused", style = MaterialTheme.typography.headlineMedium)
+                    is TodayState.Skipped -> {
+                        Text("Skipped", style = MaterialTheme.typography.headlineMedium)
                     }
 
                     is TodayState.OffHours -> {
@@ -113,16 +112,15 @@ fun TrayPopoverContent(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (today) {
                 is TodayState.Running -> {
-                    FilledTonalButton(onClick = { onPauseToday(true) }) { Text("Pause today") }
-                    OutlinedButton(onClick = onSkipNext) { Text("Skip next") }
+                    FilledTonalButton(onClick = { onSkipToday(true) }) { Text("Skip today") }
                 }
 
-                is TodayState.Paused -> {
-                    FilledTonalButton(onClick = { onPauseToday(false) }) { Text("Resume today") }
+                is TodayState.Skipped -> {
+                    FilledTonalButton(onClick = { onSkipToday(false) }) { Text("Resume today") }
                 }
 
                 is TodayState.OffHours -> {
-                    FilledTonalButton(onClick = { onPauseToday(true) }) { Text("Pause tomorrow") }
+                    FilledTonalButton(onClick = onSkipTomorrow) { Text("Skip tomorrow") }
                 }
             }
         }
@@ -213,13 +211,13 @@ private fun AccountRow(
 internal fun TodayState.plan() =
     when (this) {
         is TodayState.Running -> plan
-        is TodayState.Paused -> plan
+        is TodayState.Skipped -> plan
         is TodayState.OffHours -> today
     }
 
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> "ends ${hhmm(session.end)}"
-        is TodayState.Paused -> "Paused until ${dayLabel(resumesOn)}"
+        is TodayState.Skipped -> "Skipped until ${dayLabel(resumesOn)}"
         is TodayState.OffHours -> next?.let { "${it.scheduleName}, ${hhmm(it.at)}" } ?: "No schedule this week"
     }

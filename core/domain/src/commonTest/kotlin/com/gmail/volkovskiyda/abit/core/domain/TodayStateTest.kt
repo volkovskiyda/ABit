@@ -85,19 +85,19 @@ class TodayStateTest {
     }
 
     @Test
-    fun `is paused for the whole day when the day is paused, and says when it resumes`() {
-        val overrides = mapOf(MONDAY to DayOverride(MONDAY, paused = true, updatedAt = TEST_UPDATED_AT))
+    fun `is skipped for the whole day when the day is skipped, and says when it resumes`() {
+        val overrides = mapOf(MONDAY to DayOverride(MONDAY, skipped = true, updatedAt = TEST_UPDATED_AT))
 
         val state = todayState(schedules, overrides, at(9, 22))
 
-        assertIs<TodayState.Paused>(state)
+        assertIs<TodayState.Skipped>(state)
         assertEquals(TUESDAY, state.resumesOn)
-        assertEquals(9, state.plan.sessions.size, "pausing silences the day, it does not rewrite it")
+        assertEquals(9, state.plan.sessions.size, "skipping silences the day, it does not rewrite it")
     }
 
     @Test
-    fun `skips a paused day when looking for the next session`() {
-        val overrides = mapOf(TUESDAY to DayOverride(TUESDAY, paused = true, updatedAt = TEST_UPDATED_AT))
+    fun `skips a skipped day when looking for the next session`() {
+        val overrides = mapOf(TUESDAY to DayOverride(TUESDAY, skipped = true, updatedAt = TEST_UPDATED_AT))
 
         val state = todayState(schedules, overrides, at(22, 10))
 

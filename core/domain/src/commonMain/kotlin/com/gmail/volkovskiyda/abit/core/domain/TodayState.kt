@@ -43,8 +43,8 @@ sealed interface TodayState {
         val nextBoundary: LocalTime,
     ) : TodayState
 
-    /** "Pause today" is on. The plan is untouched — pausing silences the day, it does not rewrite it. */
-    data class Paused(
+    /** "Skip today" is on. The plan is untouched — skipping silences the day, it does not rewrite it. */
+    data class Skipped(
         val plan: DayPlan,
         val resumesOn: LocalDate,
     ) : TodayState
@@ -68,9 +68,9 @@ fun todayState(
 ): TodayState {
     val plan = schedules.planFor(now.date)
 
-    if (overrides[now.date]?.paused == true) {
+    if (overrides[now.date]?.skipped == true) {
         val resumesOn = schedules.nextRunningDay(overrides, after = now.date, lookaheadDays)?.date
-        return TodayState.Paused(plan, resumesOn = resumesOn ?: now.date.plus(1, DateTimeUnit.DAY))
+        return TodayState.Skipped(plan, resumesOn = resumesOn ?: now.date.plus(1, DateTimeUnit.DAY))
     }
 
     val session = plan.sessionAt(now.time)
@@ -99,7 +99,7 @@ fun todayState(
     return TodayState.OffHours(today = plan, next = next)
 }
 
-/** The first of the next [lookaheadDays] days that has sessions and is not paused. */
+/** The first of the next [lookaheadDays] days that has sessions and is not skipped. */
 private fun List<Schedule>.nextRunningDay(
     overrides: Map<LocalDate, DayOverride>,
     after: LocalDate,
@@ -108,7 +108,7 @@ private fun List<Schedule>.nextRunningDay(
     (1..lookaheadDays)
         .asSequence()
         .map { after.plus(it, DateTimeUnit.DAY) }
-        .filterNot { overrides[it]?.paused == true }
+        .filterNot { overrides[it]?.skipped == true }
         .map { planFor(it) }
         .firstOrNull { it.sessions.isNotEmpty() }
 

@@ -10,6 +10,7 @@ import com.gmail.volkovskiyda.abit.core.model.toDayOfWeekSet
 import com.gmail.volkovskiyda.abit.core.model.toDaysMask
 import com.gmail.volkovskiyda.abit.core.model.toMinuteOfDay
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -44,7 +45,11 @@ data class ScheduleDocument(
 @Serializable
 data class DayOverrideDocument(
     val epochDay: Long = 0,
-    val paused: Boolean = false,
+    /**
+     * The field is still `paused`: the rename happened in the domain, and renaming it in Firestore
+     * would strand every document an older build already wrote.
+     */
+    @SerialName("paused") val skipped: Boolean = false,
     /** Comma-separated minutes of day, the same encoding the database uses. */
     val skippedBoundaries: String = "",
     val updatedAtMillis: Long = 0,
@@ -83,7 +88,7 @@ fun Schedule.toDocument(deviceId: String): ScheduleDocument =
 fun DayOverrideDocument.toModel(): DayOverride =
     DayOverride(
         date = LocalDate.fromEpochDays(epochDay),
-        paused = paused,
+        skipped = skipped,
         skippedBoundaries = skippedBoundaries.decodeBoundaries(),
         updatedAt = Instant.fromEpochMilliseconds(updatedAtMillis),
     )
@@ -91,7 +96,7 @@ fun DayOverrideDocument.toModel(): DayOverride =
 fun DayOverride.toDocument(deviceId: String): DayOverrideDocument =
     DayOverrideDocument(
         epochDay = date.toEpochDays(),
-        paused = paused,
+        skipped = skipped,
         skippedBoundaries = skippedBoundaries.encodeBoundaries(),
         updatedAtMillis = updatedAt.toEpochMilliseconds(),
         deviceId = deviceId,

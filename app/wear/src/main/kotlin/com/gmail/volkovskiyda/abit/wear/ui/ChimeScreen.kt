@@ -3,7 +3,6 @@ package com.gmail.volkovskiyda.abit.wear.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -18,11 +17,8 @@ import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 
 /**
  * What a boundary looks like on the wrist: full-bleed mode colour, the mode word, when it ends, and
- * two actions. Launched by the chime notification's full-screen intent (item 08) and vibrating with
+ * one action. Launched by the chime notification's full-screen intent (item 08) and vibrating with
  * it.
- *
- * **Skip** writes a synced day override, so skipping here also silences the phone — which is the
- * point of the boundary being a shared fact rather than a per-device alarm.
  */
 @Composable
 fun WearChimeScreen(
@@ -30,7 +26,6 @@ fun WearChimeScreen(
     untilLabel: String,
     thenLabel: String,
     onDismiss: () -> Unit,
-    onSkipNext: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = if (stage == BlockKind.Focus) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
@@ -55,9 +50,6 @@ fun WearChimeScreen(
             color = MaterialTheme.colorScheme.onPrimary,
             textAlign = TextAlign.Center,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-            Button(onClick = onDismiss) { Text("OK") }
-            Button(onClick = onSkipNext) { Text("Skip") }
-        }
+        Button(onClick = onDismiss, modifier = Modifier.padding(top = 12.dp)) { Text("OK") }
     }
 }

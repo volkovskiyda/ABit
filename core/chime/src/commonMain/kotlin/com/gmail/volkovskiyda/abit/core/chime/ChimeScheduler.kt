@@ -14,7 +14,7 @@ interface ChimeScheduler {
     /** Arms the platform for [chime], replacing whatever was armed before. */
     suspend fun arm(chime: Chime)
 
-    /** Nothing is scheduled: off hours, paused, or chiming is off on this device. */
+    /** Nothing is scheduled: off hours, skipped, or chiming is off on this device. */
     suspend fun disarm()
 
     /** Renders or clears the ongoing countdown, on the platforms that have one. */

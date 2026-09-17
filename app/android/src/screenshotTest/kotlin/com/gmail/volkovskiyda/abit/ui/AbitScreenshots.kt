@@ -130,9 +130,8 @@ private fun Today(
     AbitTheme(themeMode = themeMode) {
         TodayContent(
             state = state,
-            onPauseToday = {},
-            onPauseTomorrow = {},
-            onSkipNext = {},
+            onSkipToday = {},
+            onSkipTomorrow = {},
             onOpenSignIn = {},
             onOpenConflict = { _, _ -> },
         )
