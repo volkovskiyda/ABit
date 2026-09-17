@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit.wear
 
 import android.app.Application
+import com.gmail.volkovskiyda.abit.app.shared.AbitPlatform
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
@@ -20,7 +21,13 @@ class AbitWearApplication : Application() {
         // is still being built, and that question needs a Context.
         initFirebaseAvailability(this)
         configureFirebaseCollection()
-        initKoin(platformModules = listOf(wearModule)) {
+        initKoin(
+            platform = AbitPlatform.Wear,
+            // The watch shares the phone's applicationId and version, so the platform label is
+            // the only thing that tells the two apart in a session list.
+            versionName = BuildConfig.VERSION_NAME,
+            platformModules = listOf(wearModule),
+        ) {
             androidContext(this@AbitWearApplication)
             if (BuildConfig.DEBUG) androidLogger(Level.INFO)
         }.startSync().startChimes()

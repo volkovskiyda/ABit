@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit
 
 import android.app.Application
+import com.gmail.volkovskiyda.abit.app.shared.AbitPlatform
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
@@ -19,7 +20,12 @@ class AbitApplication : Application() {
         // is still being built, and that question needs a Context.
         initFirebaseAvailability(this)
         configureFirebaseCollection()
-        initKoin {
+        initKoin(
+            platform = AbitPlatform.Android,
+            // AGP's versionNameSuffix is the one place `-debug` is spelled, so the reported version
+            // is `android-1.0-debug` on a debug build and `android-1.0` on a release one.
+            versionName = BuildConfig.VERSION_NAME,
+        ) {
             androidContext(this@AbitApplication)
             // Koin's own resolution logging, debug builds only: it names every definition it
             // creates, which is noise in a release build and costs time on every injection.

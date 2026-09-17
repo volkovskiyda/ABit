@@ -244,6 +244,16 @@ developer's crashes and a debug build's timings would otherwise pollute the numb
 judged on. Kotzilla watches the Koin graph on every platform, under a separate app for debug builds
 so development sessions stay out of production data.
 
+Which platform a session came from is reported as a prefix on the version — `android-1.0-debug`,
+`wear-1.0`, `desktop-1.0`, `web-1.0` — because Kotzilla groups sessions by app and by version and
+has no platform facet of its own. One app per platform would have given the same separation and
+taken away the comparison worth having: the graph is one graph, and "is this binding slow
+everywhere, or only on the Mac?" is a question four dashboards cannot answer. The phone and the
+watch need it most, since they share an application id and a version and are otherwise
+indistinguishable. Each app's entry point passes its own `AbitPlatform` to `initKoin`, and the
+Android apps pass `BuildConfig.VERSION_NAME` with it, so AGP's `versionNameSuffix` stays the one
+place `-debug` is spelled.
+
 ## Docs
 
 - [docs/RELEASING.md](docs/RELEASING.md) — how a build reaches a tester, and the one-time setup

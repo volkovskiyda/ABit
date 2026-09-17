@@ -26,6 +26,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.isTraySupported
 import androidx.compose.ui.window.rememberWindowState
+import com.gmail.volkovskiyda.abit.app.shared.AbitPlatform
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
@@ -100,7 +101,7 @@ fun main() {
 
     // Before `application`, not inside it: the composition can be recreated, and starting Koin
     // twice throws.
-    initKoin().startSync().startChimes()
+    initKoin(AbitPlatform.Desktop).startSync().startChimes()
 
     application {
         var popoverVisible by remember { mutableStateOf(!isTraySupported) }

@@ -30,7 +30,7 @@ class CompositionRootTest {
 
     @Test
     fun `the composition root starts and resolves`() {
-        val koin = initKoin().koin
+        val koin = initKoin(AbitPlatform.Desktop).koin
 
         assertNotNull(koin.get<DispatcherProvider>())
         assertNotNull(koin.get<ScheduleDao>())

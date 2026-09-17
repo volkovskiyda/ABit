@@ -39,6 +39,14 @@ you do.
 - **The Kotzilla plugin is applied per module, never at the root project.** Root application fails
   configuration with "The value for property 'languageVersion' is final". The vendor documents the
   per-module path as the supported alternative.
+- **There are two Kotzilla apps, not four, and the platform rides on the version.** `ABit` takes
+  release builds and `ABit Debug` everything else; the platform is a prefix on the reported version
+  (`android-1.0-debug`, `desktop-1.0`), composed in `abitMonitoring`. Kotzilla groups by app and by
+  version and has no platform facet, so an app per platform is the only other way to separate them —
+  and it would split one Koin graph's evidence across four dashboards that cannot be compared. Note
+  that `setVersion` only lands because the generated `monitoring()` invokes its `onConfig` last; the
+  SDK reads the Android `versionName` on the manual `setupAndConnect` path only, never on the Koin
+  one, so the tag is composed rather than read back.
 - **UI is written per platform.** There is no shared *screen* and there should not be one.
   `core:designsystem` holds the tokens, the bundled Inter, the theme and the shared components (the
   session ring, the timeline row, the schedule card) — four independent copies of one arc calculation

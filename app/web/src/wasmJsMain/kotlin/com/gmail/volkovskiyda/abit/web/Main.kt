@@ -11,6 +11,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gmail.volkovskiyda.abit.app.shared.AbitPlatform
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
@@ -36,7 +37,7 @@ private enum class WebDestination(
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    initKoin().startSync().startChimes()
+    initKoin(AbitPlatform.Web).startSync().startChimes()
 
     ComposeViewport(document.body!!) {
         val preferences: UserPreferencesRepository = koinInject()
