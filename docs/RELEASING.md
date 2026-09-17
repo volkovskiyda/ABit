@@ -39,7 +39,7 @@ The release carries, for version `V` (the tag plus the commit count):
 | Asset | What to do with it |
 |---|---|
 | `abit-V.apk` | The phone app. Also goes to App Distribution. |
-| `abit-wear-V.apk` | The watch app. Sideload it: `adb install abit-wear-V.apk`. There is no tester app on Wear OS. |
+| `abit-wear-V.apk` | The watch app. There is no tester app on Wear OS, and no way onto a watch but `adb` — [INSTALL.md](INSTALL.md#wear-os) is the procedure the release notes link to. |
 | `ABit-V.dmg` | The macOS menu-bar app. Unsigned until the Developer Program is paid — see below. |
 | `mapping-android-V.txt`, `mapping-wear-V.txt` | R8 mappings. Without the file from that exact build, a crash report from it cannot be read. Crashlytics holds its own copy; these are for stack traces pasted into an issue. |
 

@@ -39,11 +39,21 @@ account everything still works and stays on the device.
 | Crash reporting | Crashlytics | Crashlytics | — | — |
 | Performance | Firebase Performance | Firebase Performance | — | — |
 | Koin insight | Kotzilla | Kotzilla | Kotzilla | Kotzilla |
-| Ships via | App Distribution, GitHub | GitHub, sideload | GitHub, DMG | Firebase Hosting |
+| Ships via | App Distribution, GitHub | GitHub, [sideload](docs/INSTALL.md#wear-os) | GitHub, DMG | Firebase Hosting |
 
 Business logic is shared; **the UI is written per platform**. A watch face, a menu-bar popup and a
 phone screen are different products, and pretending otherwise produces something that is nobody's
 first choice.
+
+## Install
+
+Every platform ships from the [Releases page](https://github.com/volkovskiyda/ABit/releases), except
+the web app, which is always live at <https://abit-kmp.web.app>. ABit is on no app store, so nothing
+updates itself and the watch app has to be sideloaded over `adb` — that is the only way onto a Wear
+OS watch without Google Play.
+
+[**docs/INSTALL.md**](docs/INSTALL.md) has the steps for all four, the Gatekeeper dance for the
+unsigned DMG, and what to do when `adb` refuses.
 
 ## Module map
 

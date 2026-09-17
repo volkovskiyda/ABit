@@ -280,7 +280,10 @@ jobs:
           if [ -z "${NOTARIZATION_TEAM_ID:-}" ]; then
             NOTE=$'> The macOS app is **not signed or notarized** yet. macOS will refuse to open it on a double click — right-click the app and choose Open, once.\n\n'
           fi
-          NOTE+=$'The Wear OS app is sideloaded: `adb install abit-wear-'"$V"$'.apk`.\n'
+          # Linked at the tag, not at main: a release published a year ago must keep pointing at
+          # the instructions that matched it, however the doc moves afterwards.
+          DOCS="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs/INSTALL.md"
+          NOTE+=$'The Wear OS app is sideloaded over `adb` — there is no tester app and no store on a watch: `adb install -r abit-wear-'"$V"$'.apk`. Install steps for all four platforms: '"$DOCS"$'\n'
           gh release create "$GITHUB_REF_NAME" artifacts/* \
             --title "v$V" \
             --notes "$NOTE" \
