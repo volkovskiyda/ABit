@@ -34,6 +34,7 @@ import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmmss
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
 import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
+import com.gmail.volkovskiyda.abit.core.designsystem.skippedCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
@@ -211,6 +212,6 @@ private fun TodayState.headline(): String =
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> sessionCaption(nextBoundary, session.end)
-        is TodayState.Skipped -> "until tomorrow"
+        is TodayState.Skipped -> skippedCaption(resumesOn)
         is TodayState.OffHours -> next?.scheduleName ?: "no schedule"
     }

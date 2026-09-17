@@ -28,9 +28,9 @@ import com.gmail.volkovskiyda.abit.core.designsystem.components.ModeLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SessionRing
 import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelinePosition
 import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelineRow
-import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
+import com.gmail.volkovskiyda.abit.core.designsystem.skippedCaption
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
@@ -263,6 +263,6 @@ internal fun TodayState.plan() =
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> "ends ${hhmm(session.end)}"
-        is TodayState.Skipped -> "Skipped until ${dayLabel(resumesOn)}"
+        is TodayState.Skipped -> skippedCaption(resumesOn)
         is TodayState.OffHours -> next?.let { "${it.scheduleName}, ${hhmm(it.at)}" } ?: "No schedule this week"
     }

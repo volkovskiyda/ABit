@@ -57,6 +57,22 @@ fun sessionCaption(
 /** `Mon 15 Sep`. */
 fun dayLabel(date: LocalDate): String = "${date.dayOfWeek.shortLabel()} ${date.day} ${date.month.shortLabel()}"
 
+/**
+ * What a skipped day says under the ring:
+ *
+ * ```
+ * until
+ * Fri 18 Sep
+ * ```
+ *
+ * Not "Skipped until Fri 18 Sep": the ring directly above the caption already says *Skipped* in a
+ * headline, so the word arrived twice in one centred column. The day goes on its own line because
+ * this caption sits inside the dial on the watch, where `until Fri 18 Sep` wraps wherever the dial
+ * happens to be narrow rather than where the phrase divides. It lives here, next to [sessionCaption]
+ * and for the same reason: four screens each wrote their own version of it.
+ */
+fun skippedCaption(resumesOn: LocalDate): String = "until\n${dayLabel(resumesOn)}"
+
 /** `09:00 – 18:00`, with an en dash, which is what the design draws. */
 fun timeRange(
     from: LocalTime,

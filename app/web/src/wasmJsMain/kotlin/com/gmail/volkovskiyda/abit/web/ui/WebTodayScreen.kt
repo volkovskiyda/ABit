@@ -31,6 +31,7 @@ import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
 import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
+import com.gmail.volkovskiyda.abit.core.designsystem.skippedCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
@@ -155,7 +156,7 @@ private fun TodayState.caption(): String =
         }
 
         is TodayState.Skipped -> {
-            "Skipped until ${dayLabel(resumesOn)}"
+            skippedCaption(resumesOn)
         }
 
         is TodayState.OffHours -> {
