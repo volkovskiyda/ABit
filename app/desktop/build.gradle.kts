@@ -57,6 +57,41 @@ compose.desktop {
     application {
         mainClass = "com.gmail.volkovskiyda.abit.MainKt"
 
+        // The packaged app, not `run` or `hotRun`: a menu-bar process that sits there all day has no
+        // use for a heap sized as a fraction of the machine's RAM, and the default AWT look does not
+        // follow the system's dark mode on macOS. Both are runtime flags baked into the bundle.
+        jvmArgs +=
+            listOf(
+                // Measured on the packaged app after start-up: 12 MB of live heap in a 141 MB G1
+                // heap, so 512 MB is a ceiling with two orders of magnitude of room. Its job is to
+                // turn a leak in a process that runs all day into a crash report rather than into
+                // the quarter of physical RAM the JVM would otherwise help itself to.
+                "-Xmx512m",
+                "-Dapple.awt.application.appearance=system",
+            )
+
+        buildTypes.release.proguard {
+            // Off, and this is a decision rather than a default: the repository is public, so
+            // obfuscation hides nothing from anyone, while renaming is what breaks every framework
+            // in this app that resolves a class by name — Room's generated `_Impl`, Firebase's
+            // component registrars, kotlinx.serialization's generated serializers.
+            obfuscate.set(false)
+            // Off, and measured rather than assumed: with the optimizer on, the packaged app dies
+            // on startup with `VerifyError: Bad type on operand stack` in `okio.Okio.sink(Socket)`
+            // — ProGuard rewrote a constructor call into bytecode the JVM verifier rejects. The
+            // shrink is what this build wants anyway; the optimizer's few extra megabytes are not
+            // worth a crash that only a packaged build can show.
+            optimize.set(false)
+            // One jar rather than one per input. jlink walks the result either way, but a single
+            // jar is what makes `unzip -l` on the bundle a usable answer to "what shipped".
+            joinOutputJars.set(true)
+            // `maxHeapSize` is deliberately not set: the Compose plugin composes the flag as
+            // `-Xmx:<value>` (measured with 1.12.0), which no JVM accepts, so setting it at all
+            // fails the task with "Invalid maximum heap size". ProGuard runs in its own process at
+            // the JVM default and finishes this classpath comfortably.
+            configurationFiles.from(project.file("compose-desktop.pro"))
+        }
+
         nativeDistributions {
             // Dmg only: macOS is the one desktop target ABit ships. Msi and Deb would be untested
             // artifacts nobody asked for.
@@ -67,11 +102,22 @@ compose.desktop {
             description = "Change a bit — a focus chime that follows you"
             vendor = "Dmitriy Volkovskiy"
 
-            // Modules the bundled JRE must keep: jlink strips everything the analysis does not see,
-            // and both of these are reached reflectively — java.sql by Room's bundled SQLite and
-            // jdk.unsupported by the Firebase Java SDK. Re-check with `suggestRuntimeModules`
-            // whenever a dependency with native or reflective code is added.
-            modules("java.sql", "jdk.unsupported")
+            // Modules the bundled JRE must keep: jlink strips everything the analysis does not
+            // see, and every one of these is reached reflectively. This is exactly what
+            // `:app:desktop:suggestRuntimeModules` reports for the current classpath — re-run it
+            // whenever a dependency with native or reflective code is added, because a module
+            // missing here fails at runtime, on the one code path that needed it, in a packaged
+            // build nobody ran locally. java.sql is Room's bundled SQLite, java.naming and
+            // java.prefs come with the Firebase Java SDK, java.instrument and java.compiler with
+            // gRPC's and protobuf's runtime code generation.
+            modules(
+                "java.compiler",
+                "java.instrument",
+                "java.naming",
+                "java.prefs",
+                "java.sql",
+                "jdk.unsupported",
+            )
 
             macOS {
                 bundleID = "com.gmail.volkovskiyda.abit"

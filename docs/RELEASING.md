@@ -62,8 +62,34 @@ gh secret set NOTARIZATION_PASSWORD         # an app-specific password from appl
 gh secret set NOTARIZATION_TEAM_ID          # the 10-character team id
 ```
 
-With `NOTARIZATION_TEAM_ID` present the workflow runs `notarizeDmg` instead of `packageDmg`, submits
-the bundle to Apple and waits for the ticket.
+With `NOTARIZATION_TEAM_ID` present the workflow runs `notarizeReleaseDmg` instead of
+`packageReleaseDmg`, submits the bundle to Apple and waits for the ticket.
+
+### The minified DMG
+
+Both tasks build the `release` build type, which is the one Compose Desktop runs ProGuard over before
+jlink bundles a JRE: 107 MB unminified, 86 MB shipped. The keep rules are
+`app/desktop/compose-desktop.pro`, and every rule there names the framework that needed it.
+
+Two things about that file are worth knowing before touching it. Obfuscation is **off** — the
+repository is public, so renaming hides nothing while breaking every framework in the app that
+resolves a class by name. The ProGuard **optimizer** is off too, and that one is not a preference: it
+rewrote `okio.Okio.sink(Socket)` into bytecode the JVM verifier rejects, and the packaged app died on
+startup with `VerifyError: Bad type on operand stack`.
+
+A missing keep rule does not fail the build — it fails the app, on whichever code path needed the
+class. That is why `ci.yml` builds `packageReleaseDmg` on every push rather than leaving the minified
+bundle to be built for the first time at tag time. After changing a dependency or a keep rule, run
+the packaged app, not just the task:
+
+```sh
+./gradlew :app:desktop:createReleaseDistributable
+./app/desktop/build/compose/binaries/main-release/app/ABit.app/Contents/MacOS/ABit
+```
+
+The bundled JRE's module list is `:app:desktop:suggestRuntimeModules`, verbatim. Re-run it whenever a
+dependency with native or reflective code arrives — a module missing there fails the same way a
+missing keep rule does.
 
 ## One-time setup
 

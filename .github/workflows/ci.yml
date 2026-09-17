@@ -97,6 +97,11 @@ jobs:
 
   # macOS is the only runner that can package a DMG, and its minutes cost ten times a Linux one's —
   # so this builds the bundle to prove it still packages, and leaves signing to the release workflow.
+  #
+  # `packageReleaseDmg`, not `packageDmg`: the release build type is the one ProGuard runs over, and
+  # a missing keep rule does not fail the build — it fails the app, on the one code path that needed
+  # the class. Building the minified bundle on every push is what makes that a CI failure rather
+  # than a tester's crash report at tag time.
   desktop:
     runs-on: macos-15
     timeout-minutes: 30
@@ -108,12 +113,12 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
 
-      - run: ./gradlew :app:desktop:test :app:desktop:packageDmg
+      - run: ./gradlew :app:desktop:test :app:desktop:packageReleaseDmg
 
       - uses: actions/upload-artifact@v5
         with:
           name: abit-desktop-unsigned
-          path: app/desktop/build/compose/binaries/main/dmg/*.dmg
+          path: app/desktop/build/compose/binaries/main-release/dmg/*.dmg
           if-no-files-found: error
 
   # Real hardware and older API levels, which no emulator covers. Main pushes only: Test Lab is

@@ -185,8 +185,10 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/cert.p12"
 
-      # notarizeDmg when the Apple secrets are present, packageDmg when they are not. Notarization
-      # submits the bundle to Apple and waits, which is why this job's timeout is generous.
+      # notarizeReleaseDmg when the Apple secrets are present, packageReleaseDmg when they are not.
+      # Notarization submits the bundle to Apple and waits, which is why this job's timeout is
+      # generous. Both are the `release` build type, the one ProGuard shrinks — `packageDmg` would
+      # ship the unminified bundle, which is 25 MB larger and is not what CI proved on this commit.
       - name: Package the DMG
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -195,8 +197,8 @@ jobs:
           NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
         run: |
           set -euo pipefail
-          TASK=packageDmg
-          if [ -n "${NOTARIZATION_TEAM_ID:-}" ]; then TASK=notarizeDmg; fi
+          TASK=packageReleaseDmg
+          if [ -n "${NOTARIZATION_TEAM_ID:-}" ]; then TASK=notarizeReleaseDmg; fi
           echo "Running :app:desktop:$TASK"
           ./gradlew ":app:desktop:$TASK" \
             -PbuildNumber="$(git rev-list --count HEAD)" \
