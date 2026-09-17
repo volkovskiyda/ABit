@@ -8,7 +8,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-git fetch origin main
+# --tags as well: every main push leaves a build-<versionCode> pre-release tag behind, and the
+# duplicate check below has to see them.
+git fetch --tags origin main
 
 if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
   echo "HEAD is not origin/main. Push your work (and let CI go green) first." >&2
@@ -20,7 +22,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-echo "Last release:  $(git describe --tags --abbrev=0 2>/dev/null || echo '<none>')"
+# --match 'v*', or this reports the build-<versionCode> tag of the last main push instead.
+echo "Last release:  $(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo '<none>')"
 echo "versionCode:   $(git rev-list --count HEAD)  (computed, not entered)"
 read -rp "New version name (without the leading v): " version
 

@@ -19,7 +19,15 @@ val abitVersioning = the<AbitVersioning>()
 
 // Read once, outside the compose.desktop block: the nested blocks are extension-aware themselves,
 // so a provider looked up in there resolves against the wrong container.
-val appleSigningIdentity = providers.environmentVariable("APPLE_SIGNING_IDENTITY")
+//
+// Blank counts as absent, and that is the whole point of the helper: GitHub Actions defines an
+// environment variable for a secret that does not exist, with an empty value, so a bare
+// `isPresent` is true on a runner with no certificate — which turns signing on with an empty
+// identity and fails `createReleaseDistributable` with "Could not find certificate for '' in
+// keychain []". The unconfigured case has to read as "no value", not as "the empty value".
+fun envOrAbsentIfBlank(name: String): Provider<String> = providers.environmentVariable(name).map(String::trim).filter(String::isNotEmpty)
+
+val appleSigningIdentity = envOrAbsentIfBlank("APPLE_SIGNING_IDENTITY")
 
 kotlin {
     jvmToolchain(
@@ -160,10 +168,10 @@ compose.desktop {
                     identity.set(appleSigningIdentity)
                 }
                 notarization {
-                    appleID.set(providers.environmentVariable("NOTARIZATION_APPLE_ID"))
+                    appleID.set(envOrAbsentIfBlank("NOTARIZATION_APPLE_ID"))
                     // An app-specific password from appleid.apple.com, never the account password.
-                    password.set(providers.environmentVariable("NOTARIZATION_PASSWORD"))
-                    teamID.set(providers.environmentVariable("NOTARIZATION_TEAM_ID"))
+                    password.set(envOrAbsentIfBlank("NOTARIZATION_PASSWORD"))
+                    teamID.set(envOrAbsentIfBlank("NOTARIZATION_TEAM_ID"))
                 }
                 // The hardened runtime blocks a JIT outright without these; see the file itself.
                 entitlementsFile.set(project.file("entitlements.plist"))

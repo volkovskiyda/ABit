@@ -5,9 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# Superseded pull request runs are cancelled; main runs are never cancelled. A main run publishes a
+# release now, and cancelling one part-way through can leave a release with half its assets attached,
+# or a Hosting deploy with no release to match it. Two main pushes in quick succession therefore cost
+# two full runs — which is the cheaper of the two problems.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Everything that needs nothing but a JDK. It deliberately runs with no secrets restored, which
@@ -102,6 +106,14 @@ jobs:
   # a missing keep rule does not fail the build — it fails the app, on the one code path that needed
   # the class. Building the minified bundle on every push is what makes that a CI failure rather
   # than a tester's crash report at tag time.
+  #
+  # It runs on main pushes too, even though the binaries workflow below packages the same DMG for
+  # real a few jobs later. The two are not the same question. This one has no `needs`, so it answers
+  # "does the minified bundle still package?" in ten minutes and on every commit; the one below is
+  # gated on the whole test suite including Test Lab, which is metered, so on a day that has run out
+  # of quota it never runs at all — and a keep rule that went missing on that commit would reach a
+  # tag unchallenged. A macOS runner is free on a public repository and this one is off the critical
+  # path, which is a small price for the guarantee.
   desktop:
     runs-on: macos-15
     timeout-minutes: 30
@@ -175,47 +187,87 @@ jobs:
             --timeout 20m \
             --num-flaky-test-attempts 1
 
-  # Every green main push reaches testers and the web, with no manual step. Pull requests never
-  # get here, and this is the only job in the workflow that sees a secret.
-  distribute:
+  # The version, computed once and handed to everything below it. It is the only job here that needs
+  # the whole history: versionCode is the commit count and baseVersion is the latest v-tag reachable
+  # from HEAD, so a main build reports 1.3.348 — the same shape the tag v1.3 itself will publish —
+  # and nothing in the repository is edited per release.
+  #
+  # The --match 'v*' is not decoration. Every push now leaves a build-N tag behind, and a bare
+  # `git describe` would happily return one of those and hand the build a baseVersion of "build-347".
+  version:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [checks, instrumented, emulator-tests, testlab]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    outputs:
+      base: ${{ steps.compute.outputs.base }}
+      number: ${{ steps.compute.outputs.number }}
+      name: ${{ steps.compute.outputs.name }}
+      previous: ${{ steps.compute.outputs.previous }}
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0   # versionCode is the commit count
-          lfs: true        # the release build packages the LFS-tracked baseline profile, and a
-                           # pointer file would fail the ART profile step
-      - uses: actions/setup-java@v5
+          fetch-depth: 0
+      - id: compute
+        run: |
+          set -euo pipefail
+          TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0)
+          NUMBER=$(git rev-list --count HEAD)
+          # The nearest published tag of either kind — the last thing anyone could actually download.
+          # Empty on the very first run, and then the notes are the whole history, which is correct.
+          PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' --match 'build-*' HEAD 2>/dev/null || true)
+          {
+            echo "base=${TAG#v}"
+            echo "number=$NUMBER"
+            echo "name=${TAG#v}.$NUMBER"
+            echo "previous=$PREVIOUS"
+          } >> "$GITHUB_OUTPUT"
+
+  # Phone, watch, Mac and web, all four from the same commit. Pull requests never reach it: `version`
+  # is skipped for them, and a skipped dependency skips everything downstream.
+  binaries:
+    needs: [version]
+    uses: ./.github/workflows/binaries.yml
+    secrets: inherit
+    with:
+      base-version: ${{ needs.version.outputs.base }}
+      build-number: ${{ needs.version.outputs.number }}
+
+  # Every green main push becomes a downloadable release, with no manual step.
+  #
+  # It is published as a **pre-release**, tagged build-<versionCode>. That keeps two promises at
+  # once: the Releases page stays a real archive — every main build, with the R8 mappings that are
+  # the only way to read a crash report from it — while `releases/latest` still resolves to the most
+  # recent curated v-tag, because GitHub excludes pre-releases from "latest". A rolling release that
+  # overwrote itself would lose the mapping for build N the moment N+1 landed.
+  publish:
+    needs: [version, binaries]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write   # gh release create, and the tag it creates with it
+    steps:
+      - uses: actions/checkout@v5
         with:
-          distribution: temurin
-          java-version: 21
+          fetch-depth: 0   # the notes are a git log, and PREVIOUS is a tag
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - uses: gradle/actions/setup-gradle@v5
 
-      - name: Restore secrets
-        env:
-          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KOTZILLA_JSON_BASE64: ${{ secrets.KOTZILLA_JSON_BASE64 }}
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-        run: scripts/restore-secrets.sh
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
 
-      # baseVersion is the latest tag reachable from HEAD, so testers see 1.0.42-style versions that
-      # line up with the tagged releases instead of a hardcoded base.
-      - name: Build the signed release APK
-        run: |
-          set -euo pipefail
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo v1.0)
-          ./gradlew :app:android:assembleRelease \
-            -PbuildNumber="$(git rev-list --count HEAD)" \
-            -PbaseVersion="${TAG#v}"
-
-      - name: Upload to Firebase App Distribution
+      # The web app and the security rules ship together, deliberately: a rule change that a client
+      # change depends on must never lag behind it. Hosting gets the bytes out of the zip the release
+      # carries rather than a rebuild, so what is deployed and what is downloadable are the same
+      # build and not merely the same commit.
+      #
+      # Deliberately before the release step, for the same reason the App Distribution upload used to
+      # come first: a deploy is idempotent and `gh release create` fails once the release exists, so
+      # with this order a half-finished run can simply be re-run.
+      - name: Deploy the web app and the Firestore rules
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
@@ -223,20 +275,20 @@ jobs:
           set -euo pipefail
           : "${FIREBASE_SERVICE_ACCOUNT:?set the FIREBASE_SERVICE_ACCOUNT repository secret}"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
-          npx --yes firebase-tools@15 appdistribution:distribute \
-            app/android/build/outputs/apk/release/android-release.apk \
-            --app 1:335064890942:android:401a22493684705bb71b6f \
-            --groups testers \
-            --release-notes "main @ ${GITHUB_SHA::7}: $(git log -1 --pretty=%s)"
-
-      # The web app and the security rules ship together, deliberately: a rule change that a client
-      # change depends on must never lag behind it.
-      - name: Deploy the web app and the Firestore rules
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
-        run: |
-          set -euo pipefail
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
-          ./gradlew :app:web:wasmJsBrowserDistribution
+          DIST=app/web/build/dist/wasmJs/productionExecutable
+          mkdir -p "$DIST"
+          unzip -q "artifacts/abit-web-${{ needs.version.outputs.name }}.zip" -d "$DIST"
           npx --yes firebase-tools@15 deploy --only hosting,firestore:rules --project abit-kmp
+
+      # The script is shared with release.yml, so a change to what a release says lands on both
+      # channels at once. Everything it needs comes through the environment.
+      - name: Publish the pre-release
+        run: scripts/publish-release.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+          RELEASE_TAG: build-${{ needs.version.outputs.number }}
+          RELEASE_TITLE: ${{ needs.version.outputs.name }}
+          RELEASE_VERSION: ${{ needs.version.outputs.name }}
+          PREVIOUS_TAG: ${{ needs.version.outputs.previous }}
+          PRERELEASE: 'true'

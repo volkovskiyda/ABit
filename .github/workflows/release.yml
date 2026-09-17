@@ -1,9 +1,10 @@
 name: Release
 
-# Only a manually pushed v* tag publishes to the Releases page — that is what keeps it a curated
-# archive rather than a build log. Continuous delivery to testers is ci.yml's distribute job; a tag
-# feeds the same App Distribution channel as well, so testers who are behind get offered the
-# tag-named build rather than one named under the previous tag.
+# A pushed v* tag publishes the curated release: the one that is not a pre-release, and therefore
+# the one `releases/latest` resolves to. Every green main push publishes too — ci.yml tags those
+# build-<versionCode> and marks them pre-releases — so the difference between the two channels is
+# not what they contain, which is the same four platforms built the same way, but which of them a
+# link to "the latest version" points at.
 #
 # Cut one with scripts/release.sh, which checks the working tree and the tag format for you.
 on:
@@ -92,199 +93,72 @@ jobs:
             --timeout 20m \
             --num-flaky-test-attempts 1
 
-  build-android:
-    needs: [testlab]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0   # versionCode is the commit count
-          lfs: true        # the release build packages the LFS-tracked baseline profile
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-      - uses: gradle/actions/setup-gradle@v5
-
-      - name: Restore secrets
-        env:
-          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KOTZILLA_JSON_BASE64: ${{ secrets.KOTZILLA_JSON_BASE64 }}
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-          # Optional, and the script says so: the client does not exist yet.
-          OAUTH_PROPERTIES_BASE64: ${{ secrets.OAUTH_PROPERTIES_BASE64 }}
-        run: scripts/restore-secrets.sh
-
-      # versionName is <tag>.<versionCode>, the same rule the App Distribution builds follow, so a
-      # release needs no edit to any build file and the tag can never drift from what the APK says.
-      - name: Build the signed release APKs
-        run: |
-          ./gradlew :app:android:assembleRelease :app:wear:assembleRelease \
-            -PbuildNumber="$(git rev-list --count HEAD)" \
-            -PbaseVersion="${GITHUB_REF_NAME#v}"
-
-      # The mappings are not optional: R8 is on, so without the file from this exact build no crash
-      # report from this release can be read. Crashlytics holds its own copy; these are for anyone
-      # reading a stack trace out of a GitHub issue.
-      - name: Collect the artifacts
-        run: |
-          set -euo pipefail
-          V="${GITHUB_REF_NAME#v}.$(git rev-list --count HEAD)"
-          mkdir -p artifacts
-          cp app/android/build/outputs/apk/release/android-release.apk "artifacts/abit-$V.apk"
-          cp app/wear/build/outputs/apk/release/wear-release.apk "artifacts/abit-wear-$V.apk"
-          cp app/android/build/outputs/mapping/release/mapping.txt "artifacts/mapping-android-$V.txt"
-          cp app/wear/build/outputs/mapping/release/mapping.txt "artifacts/mapping-wear-$V.txt"
-
-      - uses: actions/upload-artifact@v5
-        with:
-          name: android-release
-          path: artifacts/*
-          if-no-files-found: error
-
-  # macOS is the only runner that can package or notarize a DMG.
-  build-desktop:
+  # The version, in the two pieces the build wants and the one the release page wants. A tag fixes
+  # the base — v1.3 means baseVersion 1.3 — so unlike ci.yml's copy this one has nothing to guess;
+  # what it still needs the whole history for is the commit count and the previous release.
+  version:
     needs: [guard]
-    runs-on: macos-15
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0   # packageVersion is derived from the tag and the commit count
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-      - uses: gradle/actions/setup-gradle@v5
-
-      # The Google OAuth client the desktop sign-in flow uses. Gated on the secret existing, like the
-      # Apple certificate below and for the same kind of reason: the client needs the OAuth consent
-      # screen configured in the Google Cloud console, which nobody can do headlessly. Without it the
-      # DMG still packages and runs — its popover reports Google sign-in unavailable.
-      # scripts/restore-secrets.sh restores the same file for the Android job.
-      - name: Restore the desktop OAuth client
-        env:
-          OAUTH_PROPERTIES_BASE64: ${{ secrets.OAUTH_PROPERTIES_BASE64 }}
-        run: |
-          set -euo pipefail
-          if [ -z "${OAUTH_PROPERTIES_BASE64:-}" ]; then
-            echo "No OAuth client configured — the DMG will report Google sign-in unavailable."
-            exit 0
-          fi
-          printf '%s' "$OAUTH_PROPERTIES_BASE64" | base64 -d > oauth.properties
-
-      # Signing is gated on the secrets existing, because the Apple Developer Program is not paid for
-      # yet. With no certificate the DMG is built unsigned and macOS shows the Gatekeeper warning; the
-      # release notes say so. When the certificate exists, adding these three secrets is the whole
-      # change — no code moves.
-      # The condition is on env rather than on `secrets` directly: GitHub does not allow the
-      # secrets context inside an `if`, so the value has to be carried through the environment.
-      - name: Import the Apple signing certificate
-        env:
-          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
-          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPLE_CERT_P12_BASE64:-}" ]; then
-            echo "No Apple signing certificate configured — the DMG will be unsigned."
-            exit 0
-          fi
-          KEYCHAIN="$RUNNER_TEMP/build.keychain"
-          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          printf '%s' "$APPLE_CERT_P12_BASE64" | base64 -d > "$RUNNER_TEMP/cert.p12"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$APPLE_CERT_PASSWORD" \
-            -T /usr/bin/codesign -T /usr/bin/productsign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-          rm -f "$RUNNER_TEMP/cert.p12"
-
-      # notarizeReleaseDmg when the Apple secrets are present, packageReleaseDmg when they are not.
-      # Notarization submits the bundle to Apple and waits, which is why this job's timeout is
-      # generous. Both are the `release` build type, the one ProGuard shrinks — `packageDmg` would
-      # ship the unminified bundle, which is 25 MB larger and is not what CI proved on this commit.
-      - name: Package the DMG
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          NOTARIZATION_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
-          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-          NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          TASK=packageReleaseDmg
-          if [ -n "${NOTARIZATION_TEAM_ID:-}" ]; then TASK=notarizeReleaseDmg; fi
-          echo "Running :app:desktop:$TASK"
-          ./gradlew ":app:desktop:$TASK" \
-            -PbuildNumber="$(git rev-list --count HEAD)" \
-            -PbaseVersion="${GITHUB_REF_NAME#v}"
-
-      - uses: actions/upload-artifact@v5
-        with:
-          name: desktop-release
-          path: app/desktop/build/compose/binaries/main*/dmg/*.dmg
-          if-no-files-found: error
-
-  release:
-    needs: [build-android, build-desktop]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    outputs:
+      base: ${{ steps.compute.outputs.base }}
+      number: ${{ steps.compute.outputs.number }}
+      name: ${{ steps.compute.outputs.name }}
+      previous: ${{ steps.compute.outputs.previous }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+      - id: compute
+        run: |
+          set -euo pipefail
+          BASE="${GITHUB_REF_NAME#v}"
+          NUMBER=$(git rev-list --count HEAD)
+          # From the tag's parent, so the tag being cut is not its own predecessor. Either kind of
+          # tag counts: the changelog should cover what has happened since the last publish, and on
+          # this repository that is almost always a build-N pre-release rather than the previous v.
+          PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' --match 'build-*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          {
+            echo "base=$BASE"
+            echo "number=$NUMBER"
+            echo "name=$BASE.$NUMBER"
+            echo "previous=$PREVIOUS"
+          } >> "$GITHUB_OUTPUT"
+
+  # The same four platforms ci.yml builds, from the same workflow, with the same names. A tagged
+  # release and the pre-release before it differ in their notes and in nothing else.
+  binaries:
+    needs: [version, testlab]
+    uses: ./.github/workflows/binaries.yml
+    secrets: inherit
+    with:
+      base-version: ${{ needs.version.outputs.base }}
+      build-number: ${{ needs.version.outputs.number }}
+
+  release:
+    needs: [version, binaries]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
         with:
-          node-version: 22
+          fetch-depth: 0   # the notes are a git log, and PREVIOUS is a tag
 
       - uses: actions/download-artifact@v6
         with:
           path: artifacts
           merge-multiple: true
 
-      # Deliberately before the Releases step: re-uploading the same binary is deduplicated by
-      # Firebase, while `gh release create` fails once the release exists — so with this order a
-      # failed run can simply be re-run.
-      - name: Upload to Firebase App Distribution
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
-        run: |
-          set -euo pipefail
-          : "${FIREBASE_SERVICE_ACCOUNT:?set the FIREBASE_SERVICE_ACCOUNT repository secret}"
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
-          V="${GITHUB_REF_NAME#v}.$(git rev-list --count HEAD)"
-          # The full version, then every commit subject since the previous tag — the same ground
-          # --generate-notes covers on the release page. The first tag has no predecessor, in which
-          # case the whole history is the changelog.
-          PREV=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
-          NOTES="v$V"$'\n\n'"$(git log ${PREV:+$PREV..}HEAD --pretty='- %s')"
-          npx --yes firebase-tools@15 appdistribution:distribute \
-            "artifacts/abit-$V.apk" \
-            --app 1:335064890942:android:401a22493684705bb71b6f \
-            --groups testers \
-            --release-notes "$NOTES"
-
+      # scripts/publish-release.sh is shared with ci.yml. The tag already exists here, so `gh release
+      # create` attaches the release to it rather than creating it; --target naming the same commit
+      # the tag points at is a no-op, not a move.
       - name: Publish the GitHub Release
+        run: scripts/publish-release.sh
         env:
           GH_TOKEN: ${{ github.token }}
           NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          V="${GITHUB_REF_NAME#v}.$(git rev-list --count HEAD)"
-          # An unsigned DMG is a fact testers need before they download it, not after.
-          NOTE=""
-          if [ -z "${NOTARIZATION_TEAM_ID:-}" ]; then
-            NOTE=$'> The macOS app is **not signed or notarized** yet. macOS will refuse to open it on a double click — right-click the app and choose Open, once.\n\n'
-          fi
-          # Linked at the tag, not at main: a release published a year ago must keep pointing at
-          # the instructions that matched it, however the doc moves afterwards.
-          DOCS="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs/INSTALL.md"
-          NOTE+=$'The Wear OS app is sideloaded over `adb` — there is no tester app and no store on a watch: `adb install -r abit-wear-'"$V"$'.apk`. Install steps for all four platforms: '"$DOCS"$'\n'
-          gh release create "$GITHUB_REF_NAME" artifacts/* \
-            --title "v$V" \
-            --notes "$NOTE" \
-            --generate-notes
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TITLE: v${{ needs.version.outputs.name }}
+          RELEASE_VERSION: ${{ needs.version.outputs.name }}
+          PREVIOUS_TAG: ${{ needs.version.outputs.previous }}
+          PRERELEASE: 'false'

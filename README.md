@@ -39,7 +39,7 @@ account everything still works and stays on the device.
 | Crash reporting | Crashlytics | Crashlytics | — | — |
 | Performance | Firebase Performance | Firebase Performance | — | — |
 | Koin insight | Kotzilla | Kotzilla | Kotzilla | Kotzilla |
-| Ships via | App Distribution, GitHub | GitHub, [sideload](docs/INSTALL.md#wear-os) | GitHub, DMG | Firebase Hosting |
+| Ships via | GitHub Releases | GitHub Releases, [sideload](docs/INSTALL.md#wear-os) | GitHub Releases, DMG | Firebase Hosting |
 
 Business logic is shared; **the UI is written per platform**. A watch face, a menu-bar popup and a
 phone screen are different products, and pretending otherwise produces something that is nobody's
@@ -188,10 +188,16 @@ versionName = <latest tag without its "v">.<versionCode>
 ```
 
 So tag `v1.3` at commit 348 ships as `1.3.348` with version code `348`. One monotonic code is shared
-by App Distribution builds and tagged releases, so neither can install backwards over the other. A
-local build passes neither property and stays at `1` / `1.0`.
+by the pre-release every main push publishes and by the tagged releases, so neither can install
+backwards over the other. A local build passes neither property and stays at `1` / `1.0`.
 
-Cut a release with `scripts/release.sh`. Everything else is [docs/RELEASING.md](docs/RELEASING.md).
+Every green push to `main` publishes a pre-release on the [Releases page][releases] carrying all four
+platforms and a changelog; a `v*` tag publishes the same four as the full release that
+`releases/latest` points at. There is no Play Store listing and no Firebase App Distribution — which
+means nothing updates itself except the web app. Cut a release with `scripts/release.sh`; everything
+else, including what going store-free costs, is [docs/RELEASING.md](docs/RELEASING.md).
+
+[releases]: https://github.com/volkovskiyda/ABit/releases
 
 ## Sync
 
