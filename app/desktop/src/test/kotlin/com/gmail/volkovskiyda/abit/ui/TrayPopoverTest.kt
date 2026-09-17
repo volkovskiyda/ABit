@@ -1,9 +1,16 @@
 package com.gmail.volkovskiyda.abit.ui
 
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import com.gmail.volkovskiyda.abit.core.designsystem.AbitTheme
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.Block
@@ -68,7 +75,7 @@ class TrayPopoverTest {
             }
 
             onNodeWithText("Chime on this Mac").assertIsDisplayed()
-            onNodeWithText("Schedules…").assertIsDisplayed()
+            onNodeWithText("Schedules").assertIsDisplayed()
             onNodeWithText("Start").assertDoesNotExist()
         }
 
@@ -179,15 +186,47 @@ class TrayPopoverTest {
     private fun anonymous() = AuthUser(id = UserId("anon"), isAnonymous = true)
 
     @Test
-    fun `the tray image stays square whether or not it carries minutes`() {
-        // Compose's Tray calls setImageAutoSize(true), which scales a non-square image to the menu
-        // bar's square. Keeping the intrinsic size square is what stops the digits being squashed.
+    fun `the tray image keeps one size whether or not it carries minutes`() {
+        // Auto-size is off, so macOS scales by height and keeps the aspect — the image's width is
+        // the item's width, and it must not change as the minutes come and go, or the menu bar
+        // shuffles every time one does.
         val withMinutes = AbitTrayPainter(minutes = 38, mode = BlockKind.Focus).intrinsicSize
         val without = AbitTrayPainter(minutes = null, mode = null).intrinsicSize
 
         assertEquals(withMinutes, without)
-        assertTrue(withMinutes.width == withMinutes.height)
+        // Wider than tall, because the padding is what the highlight fills: a selection that stops
+        // at the glyph reads as a box drawn round the icon, not as the item being lit.
+        assertTrue(withMinutes.width > withMinutes.height, "the item has no padding to light up")
     }
+
+    @Test
+    fun `the open popover lights the menu-bar item without swallowing its glyph`() {
+        // macOS draws that highlight itself only for a native popup menu, which this app does not
+        // use — so the image has to carry it, and a pixel is the only honest way to ask whether it
+        // does. The top edge's midpoint is inside the fill but outside its rounded corners.
+        val lit = AbitTrayPainter(minutes = 38, mode = BlockKind.Focus, highlighted = true).pixels()
+        val plain = AbitTrayPainter(minutes = 38, mode = BlockKind.Focus).pixels()
+        val fill = lit[lit.width / 2, 1].alpha
+
+        assertEquals(0f, plain[plain.width / 2, 1].alpha, "the unlit item paints a background it should not")
+        assertTrue(fill > 0f, "the lit item does not fill the menu-bar item")
+        // Alpha is the whole picture: the item is a template image, so macOS tints what this draws
+        // and an opaque fill would render the square as one featureless block with no dial in it.
+        assertTrue(fill < 0.5f, "the highlight is opaque enough to swallow the dial: alpha $fill")
+        assertTrue(lit.mostOpaque() > fill + 0.3f, "the glyph does not stand out of the highlight")
+    }
+
+    /** The painter rasterised at its own size, which is what `SystemTray` is handed. */
+    private fun AbitTrayPainter.pixels(): PixelMap {
+        val bitmap = ImageBitmap(intrinsicSize.width.toInt(), intrinsicSize.height.toInt())
+        CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(bitmap), intrinsicSize) {
+            draw(intrinsicSize)
+        }
+        return bitmap.toPixelMap()
+    }
+
+    /** The solidest ink in the image, which is the glyph — a template image is its alpha channel. */
+    private fun PixelMap.mostOpaque(): Float = (0 until height).maxOf { y -> (0 until width).maxOf { x -> this[x, y].alpha } }
 
     private fun running(): TodayState.Running {
         val focus = Block(BlockKind.Focus, LocalTime(9, 0), LocalTime(9, 45))

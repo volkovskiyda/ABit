@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.ui
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -20,25 +21,55 @@ import kotlin.math.sin
  * Desktop's `Tray` is a thin wrapper over `java.awt.TrayIcon` — confirmed by decompiling
  * `ui-desktop-1.12.0.jar` — whose only text is a tooltip; macOS shows no title for an AWT tray icon.
  *
- * `Tray` also calls `setImageAutoSize(true)`, which scales whatever image it is given to the menu
- * bar's square. A wide glyph-plus-minutes image therefore has to be square-padded here rather than
- * handed over at its natural aspect: [intrinsicSize] stays square and the content is laid out inside
- * it. The alternative — bypassing the composable for raw `java.awt.SystemTray` with auto-size off —
- * is written up in the item and stays the fallback if this reads badly on a real menu bar.
+ * **The image is wider than it is tall, and auto-size is off** ([main] again). AWT's two sizings
+ * are not a preference: `autosize` forces the image into the menu bar's *square*, while without it
+ * macOS scales by height and keeps the aspect. The square is what the highlight cannot live in —
+ * a selection that stops at the glyph's edge reads as a box drawn round the icon rather than as the
+ * item being lit — so the image carries [PADDING_PX] of its own on each side and the fill spans all
+ * of it. The content stays square within that, laid out about the middle, so the item keeps one
+ * width whether or not it is carrying minutes.
+ *
+ * Its pixels are twice the size the menu bar shows, which is what stops a Retina display scaling
+ * one of ours up: macOS scales by `MIN(1.0, thickness / height)`, so an image already at the bar's
+ * height is left at native size and drawn soft, while twice that comes back down crisply.
+ *
+ * **Colour is not this painter's to choose.** The item is handed to macOS as a *template* image
+ * (see [main]), which means only the alpha channel survives: the system tints the result with the
+ * colour the menu bar wants, white on a dark bar and black on a light one, and follows the user
+ * changing it. Drawing in anything but opaque ink would therefore be drawing in vain — and drawing
+ * in black, as this did before templates were turned on, left the dial all but invisible against a
+ * dark menu bar.
+ *
+ * [highlighted] is the selected look macOS gives a menu bar extra whose menu is open, drawn here
+ * because the system draws it only for a native popup menu — which this app does not use, its item
+ * opening a popover on one click instead. The real one is a *translucent* fill that the glyph stays
+ * solid against, so this is the same: a rounded rect at [HIGHLIGHT_ALPHA], which a template image
+ * renders as exactly that tint. An opaque fill would mask the whole square and tint it into a
+ * featureless block, which is what it looked like.
  */
 class AbitTrayPainter(
     private val minutes: Int?,
     private val mode: BlockKind?,
     private val color: Color = Color.Black,
+    private val highlighted: Boolean = false,
 ) : Painter() {
-    override val intrinsicSize: Size = Size(TRAY_ICON_SIZE_PX, TRAY_ICON_SIZE_PX)
+    override val intrinsicSize: Size = Size(CONTENT_PX + PADDING_PX * 2f, CONTENT_PX)
 
     override fun DrawScope.onDraw() {
-        val glyphSize = if (minutes == null) size.minDimension else size.minDimension * GLYPH_SHARE
+        if (highlighted) {
+            drawRoundRect(
+                color = color.copy(alpha = HIGHLIGHT_ALPHA),
+                cornerRadius = CornerRadius(size.minDimension * HIGHLIGHT_RADIUS_SHARE),
+            )
+        }
+        // Square, centred: the padding is the item's, not the glyph's, and the dial must not drift
+        // off centre when the minutes appear beside it.
+        val content = size.height
+        val left = (size.width - content) / 2f
+        val glyphSize = if (minutes == null) content else content * GLYPH_SHARE
         val unit = glyphSize / GLYPH_UNITS
-        val centre = Offset(glyphSize / 2f, size.height / 2f)
-        drawDial(centre, unit)
-        if (minutes != null) drawMinutes(minutes, glyphSize, unit)
+        drawDial(Offset(left + glyphSize / 2f, size.height / 2f), unit)
+        if (minutes != null) drawMinutes(minutes, left + glyphSize, content - glyphSize, unit)
     }
 
     private fun DrawScope.drawDial(
@@ -87,17 +118,18 @@ class AbitTrayPainter(
      */
     private fun DrawScope.drawMinutes(
         minutes: Int,
-        glyphSize: Float,
+        start: Float,
+        width: Float,
         unit: Float,
     ) {
         val digits = minutes.coerceIn(0, MAX_MINUTES).toString()
-        val digitWidth = (size.width - glyphSize) / (digits.length + 1)
+        val digitWidth = width / (digits.length + 1)
         val digitHeight = size.height * DIGIT_HEIGHT_SHARE
         val top = (size.height - digitHeight) / 2f
         val stroke = Stroke(width = (DIGIT_STROKE * unit).coerceAtLeast(1f))
 
         digits.forEachIndexed { index, digit ->
-            val left = glyphSize + index * digitWidth
+            val left = start + index * digitWidth
             drawDigit(digit, Offset(left, top), Size(digitWidth * DIGIT_WIDTH_SHARE, digitHeight), stroke)
         }
     }
@@ -132,7 +164,11 @@ class AbitTrayPainter(
     internal fun modeOrNull(): BlockKind? = mode
 
     private companion object {
-        const val TRAY_ICON_SIZE_PX = 22f
+        // Twice what the menu bar shows, so a Retina display has pixels to scale down rather than up.
+        const val CONTENT_PX = 44f
+        const val PADDING_PX = 8f
+        const val HIGHLIGHT_RADIUS_SHARE = 0.35f
+        const val HIGHLIGHT_ALPHA = 0.2f
         const val GLYPH_UNITS = 66f
         const val GLYPH_SHARE = 0.5f
         const val SEGMENTS = 8

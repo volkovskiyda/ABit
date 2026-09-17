@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,8 +47,8 @@ private const val TIMELINE_ROWS = 4
  * Stateless on purpose: the whole popover renders from one [TodayUiState] plus callbacks, so the
  * desktop UI test can drive it through Skiko with no Koin graph and no window.
  *
- * It draws its own rounded background and hairline border because the window is `undecorated` and
- * `transparent` — that pair is what makes this feel like a popover rather than a small window.
+ * This is the popover's first pane; "Schedules" swaps it for [SchedulesPaneContent] in the same
+ * window rather than opening a second one — see [PopoverSurface].
  */
 @Composable
 @Suppress("LongParameterList")
@@ -69,16 +70,7 @@ fun TrayPopoverContent(
     onSignOut: () -> Unit = {},
 ) {
     val today = state.today
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    PopoverSurface(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         SessionRing(
             arcs = if (today is TodayState.Running) ringArcs(today.session, today.sessionRemaining) else RingArcs.Empty,
             stage = (today as? TodayState.Running)?.stage ?: BlockKind.Focus,
@@ -151,10 +143,37 @@ fun TrayPopoverContent(
             onSignOut = onSignOut,
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onOpenSchedules) { Text("Schedules…") }
+            TextButton(onClick = onOpenSchedules) { Text("Schedules") }
             TextButton(onClick = onQuit) { Text("Quit") }
         }
     }
+}
+
+/**
+ * The chrome every pane of the popover shares.
+ *
+ * It draws its own rounded background and hairline border because the window is `undecorated` and
+ * `transparent` — that pair is what makes this feel like a popover rather than a small window. Each
+ * pane fills it, which is why the window grows instead of spawning a second one: there is one
+ * surface under the menu-bar item, and panes take turns in it.
+ */
+@Composable
+internal fun PopoverSurface(
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                .padding(16.dp),
+        horizontalAlignment = horizontalAlignment,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = content,
+    )
 }
 
 /**
