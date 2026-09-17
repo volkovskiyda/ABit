@@ -21,6 +21,9 @@ build
 .test.env
 keystore.properties
 *.jks
+# The desktop app's Google OAuth client. .example.oauth.properties is its committed twin; without
+# the real file the build still packages a DMG whose Google sign-in reports itself unavailable.
+oauth.properties
 /firebase-ci.json
 # Not at the repo root: the Kotzilla Gradle plugin reads this from the module it is applied to.
 # It carries the ingestion API keys, one per build type.

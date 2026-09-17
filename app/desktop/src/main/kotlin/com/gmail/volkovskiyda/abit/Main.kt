@@ -23,6 +23,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.gmail.volkovskiyda.abit.app.shared.initKoin
 import com.gmail.volkovskiyda.abit.app.shared.startChimes
 import com.gmail.volkovskiyda.abit.app.shared.startSync
+import com.gmail.volkovskiyda.abit.auth.GoogleSignIn
 import com.gmail.volkovskiyda.abit.core.chime.ChimeScheduler
 import com.gmail.volkovskiyda.abit.core.chime.PollingChimeScheduler
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
@@ -189,6 +190,10 @@ private fun AbitPopoverWindow(
         AbitTheme(darkTheme = themeMode == ThemeMode.Dark) {
             val viewModel: TodayViewModel = koinViewModel()
             val state by viewModel.state.collectAsState()
+            // Remembered, not injected: it holds no state worth sharing and its only dependency is
+            // a resource the build put in the jar.
+            val googleSignIn = remember { GoogleSignIn() }
+            val signInScope = rememberCoroutineScope()
             TrayPopoverContent(
                 state = state,
                 chimeOnThisMac = chimeOnThisMac,
@@ -198,6 +203,19 @@ private fun AbitPopoverWindow(
                 onOpenSchedules = onOpenSchedules,
                 onQuit = onQuit,
                 modifier = Modifier.fillMaxSize(),
+                signInAvailable = googleSignIn.available,
+                onSignIn = {
+                    signInScope.launch {
+                        googleSignIn
+                            .requestIdToken()
+                            // The token goes to the ViewModel, which **links** it to the anonymous
+                            // account rather than replacing it — so schedules made before signing in
+                            // survive and start syncing.
+                            .onSuccess(viewModel::signInWithGoogle)
+                            .onFailure { viewModel.onAuthError(it.message ?: "Sign-in failed") }
+                    }
+                },
+                onSignOut = viewModel::signOut,
             )
         }
     }

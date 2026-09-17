@@ -31,6 +31,7 @@ import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelineRow
 import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
+import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
@@ -50,6 +51,7 @@ private const val TIMELINE_ROWS = 4
  * `transparent` — that pair is what makes this feel like a popover rather than a small window.
  */
 @Composable
+@Suppress("LongParameterList")
 fun TrayPopoverContent(
     state: TodayUiState,
     chimeOnThisMac: Boolean,
@@ -59,6 +61,13 @@ fun TrayPopoverContent(
     onOpenSchedules: () -> Unit,
     onQuit: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * False on a build with no `oauth.properties`, which turns the account row into a sentence
+     * rather than a button. Defaulted so the UI test can render the popover without one.
+     */
+    signInAvailable: Boolean = false,
+    onSignIn: () -> Unit = {},
+    onSignOut: () -> Unit = {},
 ) {
     val today = state.today
     Column(
@@ -136,9 +145,67 @@ fun TrayPopoverContent(
             Text("Chime on this Mac", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(checked = chimeOnThisMac, onCheckedChange = onChimeOnThisMac)
         }
+        AccountRow(
+            user = state.user,
+            error = state.authError,
+            signInAvailable = signInAvailable,
+            onSignIn = onSignIn,
+            onSignOut = onSignOut,
+        )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = onOpenSchedules) { Text("Schedules…") }
             TextButton(onClick = onQuit) { Text("Quit") }
+        }
+    }
+}
+
+/**
+ * Who the schedules belong to, in one line at the foot of the popover.
+ *
+ * Anonymous counts as signed out here even though Firebase has issued it a uid: the account exists,
+ * but nothing syncs off this Mac until it is linked to a Google one, and saying "signed in" for that
+ * state would be a lie the user only discovers on their phone.
+ */
+@Composable
+private fun AccountRow(
+    user: AuthUser?,
+    error: String?,
+    signInAvailable: Boolean,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    val linked = user?.takeIf { !it.isAnonymous }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = error ?: linked?.let { it.email ?: it.displayName ?: "Signed in" } ?: "Not syncing",
+            style = MaterialTheme.typography.bodySmall,
+            color =
+                if (error != null) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            modifier = Modifier.weight(1f),
+        )
+        when {
+            linked != null -> {
+                TextButton(onClick = onSignOut) { Text("Sign out") }
+            }
+
+            signInAvailable -> {
+                TextButton(onClick = onSignIn) { Text("Sign in…") }
+            }
+
+            // No button at all rather than one that reports itself broken on every click. The
+            // sentence beside it is the whole message: this build cannot sync, and that is a
+            // property of the build, not something the user can fix from here.
+            else -> {
+                Text(
+                    "Sign-in unavailable",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

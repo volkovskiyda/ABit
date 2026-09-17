@@ -29,9 +29,28 @@ kotlin {
     )
 }
 
+// The Google OAuth client the loopback sign-in flow uses, copied into the app's resources when the
+// git-ignored file exists. A checkout without it compiles, packages and runs — `DesktopOAuthConfig`
+// finds no resource, `GoogleSignIn.available` is false, and the popover says so instead of offering
+// a button that cannot work. The same rule keystore.properties and kotzilla.json follow.
+//
+// A provider rather than a bare `if`: the file's presence is then re-read on each build instead of
+// being frozen into a configuration-cache entry made when it was absent.
+tasks.named<ProcessResources>("processResources") {
+    val oauthProperties = rootProject.file("oauth.properties")
+    // An empty list rather than a null, because `from()` queries the provider and a provider with no
+    // value is an error rather than "nothing to copy".
+    from(provider { listOfNotNull(oauthProperties.takeIf { it.exists() }) })
+}
+
 dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.app.shared)
+
+    // Reading one field out of Google's token response. The runtime alone, with no serialization
+    // compiler plugin: `Json.parseToJsonElement` needs no generated serializer, and a @Serializable
+    // data class for a response this app looks at exactly once would be the longer way round.
+    implementation(libs.kotlinx.serialization.json)
 
     // Same reason as app:web: a plain JVM module gets no Koin BoM from the convention plugins, and
     // the koin-compose artifacts carry no version of their own.
@@ -51,6 +70,7 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 compose.desktop {
@@ -110,12 +130,19 @@ compose.desktop {
             // build nobody ran locally. java.sql is Room's bundled SQLite, java.naming and
             // java.prefs come with the Firebase Java SDK, java.instrument and java.compiler with
             // gRPC's and protobuf's runtime code generation.
+            //
+            // java.net.http and jdk.httpserver are not in that report and are added by hand: they
+            // are what the Google sign-in flow uses — the token exchange and the loopback listener
+            // the browser redirects back to — and both are reached from code `suggestRuntimeModules`
+            // analysed before this feature existed. Re-running it now names them too.
             modules(
                 "java.compiler",
                 "java.instrument",
                 "java.naming",
+                "java.net.http",
                 "java.prefs",
                 "java.sql",
+                "jdk.httpserver",
                 "jdk.unsupported",
             )
 

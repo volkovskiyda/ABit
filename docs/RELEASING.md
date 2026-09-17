@@ -105,12 +105,38 @@ base64 -i abit-release.jks                 | gh secret set KEYSTORE_BASE64
 base64 -i app/shared/kotzilla.json         | gh secret set KOTZILLA_JSON_BASE64
 base64 -i app/android/google-services.json | gh secret set GOOGLE_SERVICES_JSON_BASE64
 gh secret set FIREBASE_SERVICE_ACCOUNT < firebase-ci.json && rm firebase-ci.json
+# Once the OAuth clients below exist:
+base64 -i oauth.properties                 | gh secret set OAUTH_PROPERTIES_BASE64
 ```
 
 `scripts/restore-secrets.sh` puts all of them back on a runner, at the paths the build reads them
 from. It fails loudly on a missing one rather than shipping a build that is quietly wrong — a build
 with no Kotzilla key reports no sessions and uploads no mapping, which is the right behaviour for a
 pull request and the wrong one for a release.
+
+`OAUTH_PROPERTIES_BASE64` is the one exception: it is optional, because the client it carries does
+not exist yet. **Make it required the moment it does** — from then on a DMG that silently cannot
+sign in is a regression rather than the state of the project.
+
+### Google sign-in: the two OAuth clients
+
+Every platform's sign-in is written and every one of them reports itself unavailable, because the
+project has no OAuth client to ask. Both need the **OAuth consent screen** configured first, in the
+Google Cloud console for `abit-kmp` — an interactive step, which is why this is written down rather
+than scripted.
+
+APIs & Services → Credentials → Create credentials → OAuth client ID, twice:
+
+| Type | Used by | Where it goes |
+|---|---|---|
+| **Web application** | Android, Wear (as Credential Manager's `serverClientId`) and the browser | Regenerate `google-services.json` from the Firebase console — the plugin turns it into the `default_web_client_id` resource the Android apps look up. Paste the same id into `FirebaseConfig.WEB_OAUTH_CLIENT_ID` for the web app, and add `https://abit-kmp.web.app` to its authorised JavaScript origins. |
+| **Desktop app** | The macOS app's loopback flow | `oauth.properties` at the repository root, git-ignored — see `.example.oauth.properties`. It needs no redirect URI of its own: a Desktop-app client accepts any `http://127.0.0.1` port, which is what the flow binds. |
+
+The desktop client's secret is shipped inside the DMG on purpose. Google's own documentation says an
+installed app's secret is not treated as confidential — it cannot be — and PKCE is what actually
+secures the exchange. Using the **web** client for the desktop flow instead would put a genuinely
+confidential secret in a file anyone can download, which is why there are two clients rather than
+one.
 
 ### The signing keystore
 

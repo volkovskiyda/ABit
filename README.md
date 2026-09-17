@@ -35,7 +35,7 @@ account everything still works and stays on the device.
 | UI | Compose, Material 3 | Compose for Wear | Compose Desktop, menu bar | Compose for Web (wasm) |
 | Local storage | Room | Room | Room | Room, in memory |
 | Sync | Firestore | Firestore | Firestore | Firestore |
-| Sign-in | anonymous, Google | anonymous | anonymous | anonymous |
+| Sign-in | anonymous, Google | anonymous, Google | anonymous, Google | anonymous, Google |
 | Crash reporting | Crashlytics | Crashlytics | — | — |
 | Performance | Firebase Performance | Firebase Performance | — | — |
 | Koin insight | Kotzilla | Kotzilla | Kotzilla | Kotzilla |
@@ -107,7 +107,7 @@ It is applied to `:app:desktop` and to nothing else, and no packaging task goes 
 ### Building without secrets
 
 **A fresh clone builds and runs with no credentials at all.** That is a rule this project keeps, not
-an accident: every pull request from a fork, and every check job in CI, builds exactly that way. Four
+an accident: every pull request from a fork, and every check job in CI, builds exactly that way. Five
 files are git-ignored, and the build degrades rather than failing when each is absent:
 
 | Missing file | What happens | Where the real one comes from |
@@ -115,6 +115,7 @@ files are git-ignored, and the build degrades rather than failing when each is a
 | `app/android/google-services.json`, `app/wear/…` | The Google Services plugin prints a warning. Firebase never initialises, so sync and sign-in report themselves unavailable and the app keeps everything on the device. | Firebase console → Project settings → your app → `google-services.json`. `app/android/google-services.example.json` shows the shape. |
 | `app/shared/kotzilla.json` | The Kotzilla plugin disables itself. No sessions are reported and no mapping is uploaded. | [console.kotzilla.io](https://console.kotzilla.io). `.example.kotzilla.json` is the template. |
 | `keystore.properties` and `abit-release.jks` | `assembleRelease` produces an **unsigned** APK instead of failing. | Generated once; `.example.keystore.properties` is the template. |
+| `oauth.properties` | The macOS app packages and runs; its popover reports Google sign-in unavailable and anonymous sign-in carries it. | Google Cloud console → Credentials → OAuth client ID → **Desktop app**. `.example.oauth.properties` is the template. |
 
 `debug.keystore` **is** committed, deliberately: it makes every machine and CI sign debug builds with
 the same certificate, which is what the Firebase API key restriction is pinned to.
@@ -194,9 +195,23 @@ happened, so two devices editing one is rare and the loser is a correction rathe
 Deletions are deliberately not propagated — without tombstones, a row missing on one side is
 indistinguishable from one the other side has not seen yet.
 
-Anonymous sign-in is the front door: someone can use ABit with no account, and their sessions stay on
-the device. Signing in with Google **links** that anonymous account rather than replacing it, so the
-history already there survives and starts syncing.
+Anonymous sign-in is the front door: someone can use ABit with no account, and their schedules stay
+on the device. Signing in with Google **links** that anonymous account rather than replacing it, so
+the history already there survives and starts syncing.
+
+Google sign-in reaches all four platforms through **one seam**: each platform obtains an id token its
+own way and `core:auth` is the single place that exchanges it for a Firebase user and does the
+linking. The phone and the watch use Credential Manager; the Mac opens the system browser and
+listens on a loopback port for the redirect, which is the flow Google documents for a desktop app;
+the browser uses Google Identity Services. Nothing platform-specific reaches `core:auth` but the
+token.
+
+**None of it can complete on this project yet.** The Firebase project has no web OAuth client and no
+desktop one, because creating either needs the OAuth consent screen configured in the Google Cloud
+console — an interactive step. Every platform detects the absence and says "sign-in unavailable"
+rather than offering a button that cannot work, and anonymous sign-in carries the app meanwhile. Two
+console steps and one constant (`FirebaseConfig.WEB_OAUTH_CLIENT_ID`) plus one git-ignored file
+(`oauth.properties`) are the whole remaining change; no code moves.
 
 ## Observability
 

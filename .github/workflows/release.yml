@@ -113,6 +113,8 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KOTZILLA_JSON_BASE64: ${{ secrets.KOTZILLA_JSON_BASE64 }}
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          # Optional, and the script says so: the client does not exist yet.
+          OAUTH_PROPERTIES_BASE64: ${{ secrets.OAUTH_PROPERTIES_BASE64 }}
         run: scripts/restore-secrets.sh
 
       # versionName is <tag>.<versionCode>, the same rule the App Distribution builds follow, so a
@@ -156,6 +158,22 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
+
+      # The Google OAuth client the desktop sign-in flow uses. Gated on the secret existing, like the
+      # Apple certificate below and for the same kind of reason: the client needs the OAuth consent
+      # screen configured in the Google Cloud console, which nobody can do headlessly. Without it the
+      # DMG still packages and runs — its popover reports Google sign-in unavailable.
+      # scripts/restore-secrets.sh restores the same file for the Android job.
+      - name: Restore the desktop OAuth client
+        env:
+          OAUTH_PROPERTIES_BASE64: ${{ secrets.OAUTH_PROPERTIES_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OAUTH_PROPERTIES_BASE64:-}" ]; then
+            echo "No OAuth client configured — the DMG will report Google sign-in unavailable."
+            exit 0
+          fi
+          printf '%s' "$OAUTH_PROPERTIES_BASE64" | base64 -d > oauth.properties
 
       # Signing is gated on the secrets existing, because the Apple Developer Program is not paid for
       # yet. With no certificate the DMG is built unsigned and macOS shows the Gatekeeper warning; the

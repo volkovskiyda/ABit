@@ -23,4 +23,20 @@ object FirebaseConfig {
     const val APP_ID_WEB: String = "1:335064890942:web:a734457746b2f9f8b71b6f"
     const val AUTH_DOMAIN: String = "abit-kmp.firebaseapp.com"
     const val STORAGE_BUCKET: String = "abit-kmp.firebasestorage.app"
+
+    /**
+     * The browser OAuth client the web app's Google sign-in asks Google for a token with.
+     *
+     * **Empty today**, and that is the honest state of the project rather than an oversight:
+     * creating the client needs the OAuth consent screen configured in the Google Cloud console,
+     * which is an interactive step nobody can do headlessly. It is the same missing piece that
+     * leaves `google-services.json` without a `default_web_client_id` on Android. Until it is
+     * filled in, Google sign-in reports itself unavailable on every platform and anonymous sign-in
+     * carries the app.
+     *
+     * Committed, like the API key above, and for the same reason: a browser client id ships inside
+     * every bundle that uses it. What protects it is the authorised-JavaScript-origins list on the
+     * client itself, not secrecy.
+     */
+    const val WEB_OAUTH_CLIENT_ID: String = ""
 }

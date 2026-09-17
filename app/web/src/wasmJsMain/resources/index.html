@@ -29,6 +29,11 @@
             }
         }
     </style>
+    <!-- Google Identity Services, for the Google sign-in in Settings. `async defer` so it never
+         delays the wasm bundle: the shim in web/auth/GoogleSignIn.kt checks that it has loaded and
+         reports sign-in unavailable until it has, which is also the state a blocked or offline
+         load leaves the page in. -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script type="application/javascript" src="abit.js"></script>
 </head>
 <body></body>

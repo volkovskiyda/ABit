@@ -29,3 +29,15 @@ printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > app/android/google-serv
 cp app/android/google-services.json app/wear/google-services.json
 
 echo "Restored keystore.properties, abit-release.jks, app/shared/kotzilla.json and both google-services.json files"
+
+# Optional, unlike everything above: the desktop app's Google OAuth client does not exist yet — it
+# needs the consent screen configured in the Google Cloud console, which is an interactive step. A
+# DMG built without it still packages and runs; its popover reports Google sign-in unavailable and
+# anonymous sign-in carries the app. Make this required the moment the secret exists, because from
+# then on a silently sign-in-less DMG is a regression rather than the state of the project.
+if [ -n "${OAUTH_PROPERTIES_BASE64:-}" ]; then
+  printf '%s' "$OAUTH_PROPERTIES_BASE64" | base64 -d > oauth.properties
+  echo "Restored oauth.properties"
+else
+  echo "No OAUTH_PROPERTIES_BASE64 — the desktop build will report Google sign-in unavailable."
+fi
