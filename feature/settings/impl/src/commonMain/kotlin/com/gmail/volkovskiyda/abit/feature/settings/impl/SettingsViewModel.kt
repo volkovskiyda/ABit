@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.feature.settings.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gmail.volkovskiyda.abit.core.chime.ChimePreview
 import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,6 +37,7 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val preferencesRepository: UserPreferencesRepository,
     private val authRepository: AuthRepository,
+    private val chimePreview: ChimePreview,
     syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
     private val permissions = MutableStateFlow<List<PermissionState>>(emptyList())
@@ -68,12 +71,27 @@ class SettingsViewModel(
 
     fun setThemeMode(mode: ThemeMode) = update { it.copy(themeMode = mode) }
 
-    /** Per device: this silences the machine in front of the user, not the account. */
-    fun setChimeOnThisDevice(enabled: Boolean) = update { it.copy(chimeOnThisDevice = enabled) }
+    /**
+     * Per device: this silences the machine in front of the user, not the account.
+     *
+     * Switching it back on rings once. A switch whose effect only arrives at the next boundary is one
+     * the user cannot evaluate while they are still looking at it — and on the web that same tap is
+     * the user gesture the browser needs before it will play anything at all.
+     */
+    fun setChimeOnThisDevice(enabled: Boolean) {
+        update { it.copy(chimeOnThisDevice = enabled) }
+        // Off to on only: a switch cannot be tapped to the value it already holds.
+        if (enabled) {
+            viewModelScope.launch { chimePreview.chime(preferencesRepository.preferences.first().chimeSound) }
+        }
+    }
 
     fun setChimeSound(sound: ChimeSound) = update { it.copy(chimeSound = sound) }
 
-    fun setVibrate(enabled: Boolean) = update { it.copy(vibrate = enabled) }
+    fun setVibrate(enabled: Boolean) {
+        update { it.copy(vibrate = enabled) }
+        if (enabled) viewModelScope.launch { chimePreview.vibrate() }
+    }
 
     fun setShowCountdownNotification(enabled: Boolean) = update { it.copy(showCountdownNotification = enabled) }
 

@@ -118,7 +118,9 @@ fun SettingsContent(
                     .padding(padding)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
+                    // The bottom inset is the navigation suite's, not this Scaffold's, so the last
+                    // section needs the gap spelled out or it ends flush against the bar.
+                    .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Section("ACCOUNT") {

@@ -1,8 +1,10 @@
 package com.gmail.volkovskiyda.abit.core.chime.di
 
 import com.gmail.volkovskiyda.abit.core.chime.Bell
+import com.gmail.volkovskiyda.abit.core.chime.ChimePreview
 import com.gmail.volkovskiyda.abit.core.chime.ChimeScheduler
 import com.gmail.volkovskiyda.abit.core.chime.DesktopBell
+import com.gmail.volkovskiyda.abit.core.chime.DesktopChimePreview
 import com.gmail.volkovskiyda.abit.core.chime.DesktopChimeScheduler
 import com.gmail.volkovskiyda.abit.core.common.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
@@ -12,6 +14,7 @@ import org.koin.dsl.module
 actual val platformChimeModule: Module =
     module {
         single<Bell> { DesktopBell() }
+        single<ChimePreview> { DesktopChimePreview(get()) }
         single<ChimeScheduler> {
             DesktopChimeScheduler(
                 scope = get<CoroutineScope>(ApplicationScope),

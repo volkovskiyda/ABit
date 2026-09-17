@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.feature.settings.impl
 
 import androidx.datastore.core.DataStore
 import app.cash.turbine.test
+import com.gmail.volkovskiyda.abit.core.chime.ChimePreview
 import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
@@ -20,6 +21,20 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
+/** Records what the screen asked to be played, which is the only thing worth asserting on. */
+private class RecordingChimePreview : ChimePreview {
+    val chimes = mutableListOf<ChimeSound>()
+    var buzzes = 0
+
+    override suspend fun chime(sound: ChimeSound) {
+        chimes += sound
+    }
+
+    override suspend fun vibrate() {
+        buzzes++
+    }
+}
 
 /** A DataStore that is a `MutableStateFlow`, which is all [UserPreferencesRepository] needs. */
 private class InMemoryPreferences : DataStore<UserPreferences> {
@@ -96,10 +111,51 @@ class SettingsViewModelTest {
             }
         }
 
-    private fun viewModel() =
+    @Test
+    fun `turning chiming back on rings once, and turning it off says nothing`() =
+        runTest {
+            val preview = RecordingChimePreview()
+            val viewModel = viewModel(preview)
+
+            viewModel.state.test {
+                awaitItem()
+
+                viewModel.setChimeOnThisDevice(false)
+                awaitItem()
+                assertEquals(emptyList(), preview.chimes, "silencing a device is not an occasion for a chime")
+
+                viewModel.setChimeOnThisDevice(true)
+                awaitItem()
+                assertEquals(listOf(ChimeSound.Platform), preview.chimes)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `turning vibration back on buzzes once`() =
+        runTest {
+            val preview = RecordingChimePreview()
+            val viewModel = viewModel(preview)
+
+            viewModel.state.test {
+                awaitItem()
+
+                viewModel.setVibrate(false)
+                awaitItem()
+                assertEquals(0, preview.buzzes)
+
+                viewModel.setVibrate(true)
+                awaitItem()
+                assertEquals(1, preview.buzzes)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    private fun viewModel(chimePreview: ChimePreview = RecordingChimePreview()) =
         SettingsViewModel(
             preferencesRepository = UserPreferencesRepository(InMemoryPreferences()),
             authRepository = FakeAuthRepository(),
+            chimePreview = chimePreview,
             syncStatusRepository = FakeSyncStatusRepository(),
         )
 }
