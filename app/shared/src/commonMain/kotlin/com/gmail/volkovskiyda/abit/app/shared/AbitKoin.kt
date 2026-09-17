@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.app.shared
 
+import com.gmail.volkovskiyda.abit.app.shared.di.appVersionModule
 import com.gmail.volkovskiyda.abit.core.auth.di.authModule
 import com.gmail.volkovskiyda.abit.core.chime.ChimeCoordinator
 import com.gmail.volkovskiyda.abit.core.chime.di.chimeModule
@@ -31,6 +32,7 @@ import org.koin.dsl.KoinAppDeclaration
 val abitModules: List<Module> =
     listOf(
         commonModule,
+        appVersionModule,
         observabilityModule,
         platformObservabilityModule,
         platformDatabaseModule,

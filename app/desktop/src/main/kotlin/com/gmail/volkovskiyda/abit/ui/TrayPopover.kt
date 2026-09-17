@@ -66,6 +66,12 @@ fun TrayPopoverContent(
     signInAvailable: Boolean = false,
     onSignIn: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    /**
+     * The running build, in the footer. The DMG is installed by hand from a GitHub release and
+     * never updates itself, so this is the only place the Mac says which one it is. Defaulted for
+     * the UI test, which has no Koin graph to ask.
+     */
+    appVersion: String = "",
 ) {
     val today = state.today
     PopoverSurface(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -136,9 +142,22 @@ fun TrayPopoverContent(
             onSignIn = onSignIn,
             onSignOut = onSignOut,
         )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onOpenSchedules) { Text("Schedules") }
-            TextButton(onClick = onQuit) { Text("Quit") }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Beside the buttons rather than on a line of its own: the popover is 440 dp tall and
+            // the version is not worth a row of it.
+            Text(
+                text = "ABit $appVersion",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onOpenSchedules) { Text("Schedules") }
+                TextButton(onClick = onQuit) { Text("Quit") }
+            }
         }
     }
 }

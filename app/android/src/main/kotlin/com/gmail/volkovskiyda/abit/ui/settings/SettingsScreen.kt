@@ -270,6 +270,16 @@ fun SettingsContent(
                     }
                 }
             }
+
+            // The app does not update itself — it was installed by hand from a GitHub release — so
+            // the version is the only way to tell whether this build is the current one.
+            Section("ABOUT") {
+                Text(
+                    "ABit ${state.appVersion}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

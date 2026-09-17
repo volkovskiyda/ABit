@@ -32,6 +32,7 @@ import com.gmail.volkovskiyda.abit.app.shared.startSync
 import com.gmail.volkovskiyda.abit.auth.GoogleSignIn
 import com.gmail.volkovskiyda.abit.core.chime.ChimeScheduler
 import com.gmail.volkovskiyda.abit.core.chime.PollingChimeScheduler
+import com.gmail.volkovskiyda.abit.core.common.AppVersion
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
 import com.gmail.volkovskiyda.abit.core.designsystem.AbitTheme
@@ -311,6 +312,7 @@ private fun TodayPane(
             }
         },
         onSignOut = viewModel::signOut,
+        appVersion = koinInject<AppVersion>().name,
     )
 }
 

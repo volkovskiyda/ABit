@@ -56,9 +56,15 @@ fun WearTodayScreen(
     viewModel: TodayViewModel,
     onOpenSchedules: () -> Unit,
     modifier: Modifier = Modifier,
+    appVersion: String = "",
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WearTodayContent(state = state, onOpenSchedules = onOpenSchedules, modifier = modifier)
+    WearTodayContent(
+        state = state,
+        onOpenSchedules = onOpenSchedules,
+        modifier = modifier,
+        appVersion = appVersion,
+    )
 }
 
 /**
@@ -70,6 +76,12 @@ fun WearTodayContent(
     state: TodayUiState,
     onOpenSchedules: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The running build. It matters more here than anywhere else: the watch app is the one that can
+     * only be installed over `adb`, so "which version is on the wrist?" is otherwise unanswerable
+     * without a computer. Defaulted for the previews.
+     */
+    appVersion: String = "",
 ) {
     val today = state.today
     // The ring is taller than the dial once the buttons are under it, so this column actually
@@ -146,6 +158,15 @@ fun WearTodayContent(
             Button(onClick = onOpenSchedules) {
                 Text("Schedules")
             }
+
+            // Last, under the only button: nothing on the watch updates itself, and this is the
+            // number `docs/INSTALL.md` says to compare against the release you have.
+            Text(
+                text = "ABit $appVersion",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

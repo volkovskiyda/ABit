@@ -52,6 +52,10 @@ gradlePlugin {
             id = "abit.versioning"
             implementationClass = "VersioningConventionPlugin"
         }
+        register("abitAppVersion") {
+            id = "abit.appversion"
+            implementationClass = "AppVersionConventionPlugin"
+        }
         register("abitTestSummary") {
             id = "abit.test-summary"
             implementationClass = "TestSummaryConventionPlugin"

@@ -107,6 +107,17 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
+
+            // The browser is the one platform that is always current — a reload is the update. It
+            // still says which build it is, because a bug report from a tab is as likely as one from
+            // a watch and the number is what makes the two comparable.
+            Section("ABOUT") {
+                Text(
+                    "ABit ${state.appVersion}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -59,6 +59,9 @@ private const val FIFTY = 50
 private const val FORTY_FIVE = 45
 private const val LARGEST_FONT_SCALE = 2.0f
 
+/** A stand-in for the git-derived version, so the goldens do not move with every commit. */
+private const val SCREENSHOT_VERSION = "1.0.0"
+
 /** Inside the first focus block, and inside the break that follows it: the two `running` states. */
 private val FOCUS_NOW = LocalTime(NINE_AM, TWENTY_TWO)
 private val BREAK_NOW = LocalTime(NINE_AM, FIFTY)
@@ -254,10 +257,17 @@ private fun SettingsLight() =
                     PermissionState(PermissionId.Notifications, granted = true),
                     PermissionState(PermissionId.ExactAlarms, granted = false),
                 ),
+            // Fixed, not the real one: the version is git-derived, so a golden holding the actual
+            // number would go red on the next commit.
+            appVersion = SCREENSHOT_VERSION,
         ),
     )
 
 @PreviewTest
 @Preview(showBackground = true)
 @Composable
-private fun SettingsDark() = Settings(ThemeMode.Dark, SettingsUiState(preferences = UserPreferences()))
+private fun SettingsDark() =
+    Settings(
+        ThemeMode.Dark,
+        SettingsUiState(preferences = UserPreferences(), appVersion = SCREENSHOT_VERSION),
+    )

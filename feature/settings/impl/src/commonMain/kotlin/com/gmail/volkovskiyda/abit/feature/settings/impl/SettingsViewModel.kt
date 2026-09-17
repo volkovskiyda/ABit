@@ -3,6 +3,7 @@ package com.gmail.volkovskiyda.abit.feature.settings.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gmail.volkovskiyda.abit.core.chime.ChimePreview
+import com.gmail.volkovskiyda.abit.core.common.AppVersion
 import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
@@ -32,6 +33,11 @@ data class SettingsUiState(
      */
     val permissions: List<PermissionState> = emptyList(),
     val authError: String? = null,
+    /**
+     * The running build, shown because no ABit app updates itself — every one of them is installed
+     * by hand from a GitHub release, so this is the only way a user can tell whether they are behind.
+     */
+    val appVersion: String = "",
 )
 
 class SettingsViewModel(
@@ -39,7 +45,9 @@ class SettingsViewModel(
     private val authRepository: AuthRepository,
     private val chimePreview: ChimePreview,
     syncStatusRepository: SyncStatusRepository,
+    appVersion: AppVersion,
 ) : ViewModel() {
+    private val version = appVersion.name
     private val permissions = MutableStateFlow<List<PermissionState>>(emptyList())
     private val authError = MutableStateFlow<String?>(null)
 
@@ -57,11 +65,12 @@ class SettingsViewModel(
                 syncState = syncState,
                 permissions = permissionStates,
                 authError = error,
+                appVersion = version,
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = SettingsUiState(),
+            initialValue = SettingsUiState(appVersion = version),
         )
 
     /** Called by the screen on every resume: a permission can be granted or revoked outside the app. */

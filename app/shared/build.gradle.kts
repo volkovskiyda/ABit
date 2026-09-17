@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotzilla)
     alias(libs.plugins.abit.kmp.library)
     alias(libs.plugins.abit.versioning)
+    // Bakes the same version name into a commonMain constant, for the settings surfaces to show.
+    alias(libs.plugins.abit.appversion)
 }
 
 // Kotzilla reads its API keys from app/shared/kotzilla.json, which is git-ignored because those keys

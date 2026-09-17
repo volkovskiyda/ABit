@@ -19,6 +19,7 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.gmail.volkovskiyda.abit.core.chime.ChimePermissions
+import com.gmail.volkovskiyda.abit.core.common.AppVersion
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesUiState
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
@@ -67,6 +68,7 @@ class MainActivity : ComponentActivity() {
 internal fun AbitWearApp() {
     val controller = rememberSwipeDismissableNavController()
     val permissions: ChimePermissions = koinInject()
+    val appVersion: AppVersion = koinInject()
     val context = LocalContext.current
     var permissionStates by remember { mutableStateOf(emptyList<PermissionState>()) }
 
@@ -105,6 +107,7 @@ internal fun AbitWearApp() {
             WearTodayScreen(
                 viewModel = koinViewModel(),
                 onOpenSchedules = { controller.navigate(ROUTE_SCHEDULES) },
+                appVersion = appVersion.name,
             )
         }
         composable(ROUTE_SCHEDULES) {

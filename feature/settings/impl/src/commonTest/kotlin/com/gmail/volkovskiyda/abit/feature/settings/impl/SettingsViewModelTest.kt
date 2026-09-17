@@ -3,6 +3,7 @@ package com.gmail.volkovskiyda.abit.feature.settings.impl
 import androidx.datastore.core.DataStore
 import app.cash.turbine.test
 import com.gmail.volkovskiyda.abit.core.chime.ChimePreview
+import com.gmail.volkovskiyda.abit.core.common.AppVersion
 import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
@@ -130,11 +131,27 @@ class SettingsViewModelTest {
             }
         }
 
+    @Test
+    fun `the running build is in the state from the first emission`() =
+        runTest {
+            // It has to be there before the first flow arrives: the settings screen renders the
+            // initial value, and a version that appears a frame later reads as a glitch.
+            val viewModel = viewModel()
+
+            assertEquals("1.2.345", viewModel.state.value.appVersion)
+
+            viewModel.state.test {
+                assertEquals("1.2.345", awaitItem().appVersion)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     private fun viewModel(chimePreview: ChimePreview = RecordingChimePreview()) =
         SettingsViewModel(
             preferencesRepository = UserPreferencesRepository(InMemoryPreferences()),
             authRepository = FakeAuthRepository(),
             chimePreview = chimePreview,
             syncStatusRepository = FakeSyncStatusRepository(),
+            appVersion = AppVersion("1.2.345"),
         )
 }

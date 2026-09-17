@@ -262,4 +262,5 @@ abit-kmp-feature = { id = "abit.kmp.feature" }
 abit-android-application = { id = "abit.android.application" }
 abit-android-test = { id = "abit.android.test" }
 abit-versioning = { id = "abit.versioning" }
+abit-appversion = { id = "abit.appversion" }
 abit-test-summary = { id = "abit.test-summary" }
