@@ -199,6 +199,15 @@ Anonymous sign-in is the front door: someone can use ABit with no account, and t
 on the device. Signing in with Google **links** that anonymous account rather than replacing it, so
 the history already there survives and starts syncing.
 
+When the Google account already exists as a separate Firebase user the link is refused — one uid
+cannot be made out of two — and ABit signs into the existing account and discards the anonymous one,
+which held nothing in Firestore anyway. The schedules made anonymously are still on the device, and
+the first sync afterwards merges them **in the account's favour**: where both sides know a schedule
+the account keeps its own copy, and anything only this device has is added. Last-write-wins is
+deliberately not used for that one pass, because its loser would be an account someone has been
+using on their phone for months, beaten by a throwaway identity that happened to be edited more
+recently.
+
 Google sign-in reaches all four platforms through **one seam**: each platform obtains an id token its
 own way and `core:auth` is the single place that exchanges it for a Firebase user and does the
 linking. The phone and the watch use Credential Manager; the Mac opens the system browser and

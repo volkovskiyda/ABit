@@ -16,6 +16,7 @@ import com.gmail.volkovskiyda.abit.core.testing.FakeAuthRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakeTimeProvider
 import com.gmail.volkovskiyda.abit.core.testing.FakeTimeZoneProvider
 import com.gmail.volkovskiyda.abit.core.testing.TEST_EPOCH
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -150,6 +152,94 @@ class SyncEngineTest {
             assertEquals(0, fixture.remote.calls)
         }
 
+    /**
+     * The collision case: the Google account already existed, so `core:auth` discarded the anonymous
+     * one and signed into it — which changes the uid, and is what tells the engine this is a merge
+     * rather than an ordinary sign-in.
+     *
+     * The account's own copy wins even though the anonymous one was edited hours later. That is the
+     * whole point of the rule: the loser would otherwise be an account someone has been using on
+     * their phone for months, beaten by a throwaway identity.
+     */
+    @Test
+    fun `joining an existing account keeps the account's copy of a schedule both sides have`() =
+        runTest {
+            val auth = FakeAuthRepository()
+            val fixture =
+                fixture(
+                    local = listOf(schedule(name = "Edited anonymously", updatedAt = TEST_EPOCH + 5.hours)),
+                    auth = auth,
+                )
+            fixture.remote.schedules.value = listOf(schedule(name = "In the account", updatedAt = TEST_EPOCH))
+
+            auth.signInAnonymously()
+            fixture.engine.start()
+            advanceUntilIdle()
+            // Discarding the anonymous account signs out before the Google sign-in, which is why the
+            // engine cannot simply look at the previous emission.
+            auth.signOut()
+            auth.signInWithGoogle("token")
+            advanceUntilIdle()
+
+            assertEquals("In the account", fixture.scheduleDao.findById("workdays")?.name)
+            assertEquals(
+                "In the account",
+                fixture.remote.schedules.value
+                    .single()
+                    .name,
+                "and the overwritten local row is not pushed back",
+            )
+            coroutineContext.cancelChildren()
+        }
+
+    @Test
+    fun `joining an existing account still gains a schedule only this device had`() =
+        runTest {
+            val auth = FakeAuthRepository()
+            val fixture = fixture(local = listOf(schedule(id = "mine", name = "Only here")), auth = auth)
+            fixture.remote.schedules.value = listOf(schedule(id = "theirs", name = "In the account"))
+
+            auth.signInAnonymously()
+            fixture.engine.start()
+            advanceUntilIdle()
+            auth.signOut()
+            auth.signInWithGoogle("token")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("In the account", "Only here"),
+                fixture.remote.schedules.value
+                    .map { it.name }
+                    .sorted(),
+            )
+            coroutineContext.cancelChildren()
+        }
+
+    /**
+     * Linking keeps the anonymous account's uid, so nothing was joined and nothing is overridden —
+     * those rows already belong to the account that is now signed in, and last-write-wins applies.
+     */
+    @Test
+    fun `linking an anonymous account leaves last-write-wins alone`() =
+        runTest {
+            val auth = FakeAuthRepository()
+            val fixture =
+                fixture(
+                    local = listOf(schedule(name = "Edited anonymously", updatedAt = TEST_EPOCH + 5.hours)),
+                    auth = auth,
+                )
+            fixture.remote.schedules.value = listOf(schedule(name = "Older remote", updatedAt = TEST_EPOCH))
+
+            auth.emit(AuthUser(UserId("same-uid"), isAnonymous = true))
+            fixture.engine.start()
+            advanceUntilIdle()
+            auth.emit(AuthUser(UserId("same-uid"), isAnonymous = false))
+            advanceUntilIdle()
+
+            assertEquals("Edited anonymously", fixture.scheduleDao.findById("workdays")?.name)
+            coroutineContext.cancelChildren()
+        }
+
     private class Fixture(
         val engine: SyncEngine,
         val remote: FakeScheduleRemoteSource,
@@ -161,6 +251,8 @@ class SyncEngineTest {
         local: List<Schedule> = emptyList(),
         user: AuthUser? = AuthUser(UserId("google-user"), isAnonymous = false),
         firebaseAvailable: Boolean = true,
+        // Passed in only by the merge tests, which have to drive the auth sequence themselves.
+        auth: FakeAuthRepository = FakeAuthRepository(user),
     ): Fixture {
         val scheduleDao = FakeScheduleDao(local.map { it.toEntity() })
         val dayOverrideDao = FakeDayOverrideDao()
@@ -170,7 +262,7 @@ class SyncEngineTest {
                 scheduleDao = scheduleDao,
                 dayOverrideDao = dayOverrideDao,
                 remote = remote,
-                authRepository = FakeAuthRepository(user),
+                authRepository = auth,
                 timeProvider = FakeTimeProvider(),
                 timeZoneProvider = FakeTimeZoneProvider(),
                 scope = this,

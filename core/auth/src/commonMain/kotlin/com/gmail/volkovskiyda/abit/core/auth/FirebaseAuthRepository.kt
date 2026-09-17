@@ -33,11 +33,20 @@ class FirebaseAuthRepository(
     /**
      * Upgrades the current anonymous account when there is one, and signs in normally otherwise.
      *
-     * The collision case — the Google account already exists as a separate Firebase user — cannot
-     * be resolved here: two accounts hold two sets of sessions and merging them is a product
-     * question, not a plumbing one. This signs into the existing account, which is the behaviour
-     * that loses nothing already synced, and the anonymous account's local data is left where it is.
-     * Merging it is a backlog item on the infrastructure plan.
+     * Two things can happen to an anonymous account here, and they are genuinely different:
+     *
+     * - **It links.** Firebase attaches the Google credential to the account that already exists,
+     *   *keeping its uid*. Everything written anonymously simply belongs to a Google account now.
+     * - **It collides.** That Google account is already a separate Firebase user, so the link is
+     *   refused and there is no way to make one uid out of two. This signs into the existing
+     *   account, which is the outcome that loses nothing already synced, and [discard]s the
+     *   anonymous one on the way.
+     *
+     * The collision case leaves the schedules written anonymously on the device, and `SyncEngine`
+     * is what carries them into the account — it can see this happened, because a link keeps the
+     * uid and a collision changes it. Its KDoc has the merge rule; the short version is that the
+     * account's own copy wins where both sides know a schedule, and anything only this device has
+     * is added.
      */
     override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
         runCatching {
@@ -47,12 +56,33 @@ class FirebaseAuthRepository(
             val user =
                 if (anonymous != null) {
                     runCatching { anonymous.linkWithCredential(credential).user }
-                        .getOrElse { auth.signInWithCredential(credential).user }
+                        .getOrElse {
+                            anonymous.discard()
+                            auth.signInWithCredential(credential).user
+                        }
                 } else {
                     auth.signInWithCredential(credential).user
                 }
             user.requireUser()
         }
+
+    /**
+     * Deletes the anonymous account that could not be linked, **before** signing into the Google
+     * one.
+     *
+     * Before, because a `FirebaseUser` can only delete itself while it is the signed-in user, and
+     * one sign-in later this object is stale. That ordering is safe here for one reason, and it is
+     * worth being explicit about: an anonymous uid never syncs (see `SyncEngine`), so this account
+     * holds nothing in Firestore. Deleting it destroys an identity nobody can sign back into, not
+     * data — the schedules are in the local database either way.
+     *
+     * A failure is swallowed on purpose. Firebase refuses `delete()` on an account whose sign-in is
+     * too old, and the only consequence is one unreachable anonymous row left in the project's user
+     * list. Failing the sign-in over that would trade a real outcome for a tidy one.
+     */
+    private suspend fun FirebaseUser.discard() {
+        runCatching { delete() }
+    }
 
     override suspend fun signOut() = auth.signOut()
 

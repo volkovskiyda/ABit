@@ -80,6 +80,19 @@ private const val OVERRIDE_RETENTION_DAYS = 7
  * **Only a Google-linked account syncs.** An anonymous uid is a device-local identity: pushing its
  * rows would strand them under an account nothing can ever sign back into. Anonymous reports
  * [SyncState.LocalOnly].
+ *
+ * **Coming from an anonymous account, the account's own copy wins.** Signing in with Google usually
+ * *links* the anonymous account, which keeps its uid — nothing special happens, because those rows
+ * already belong to the account that is now signed in. When the Google account already exists as a
+ * separate user the link is refused, `core:auth` signs into the existing account and discards the
+ * anonymous one, and the uid therefore **changes**. That change is the signal this class acts on: on
+ * the first pull afterwards a remote document replaces its local twin regardless of `updatedAt`,
+ * while a local row the account has never seen is pushed as usual.
+ *
+ * Which is to say: same schedule on both sides, the account keeps its own; a schedule only this
+ * device has, the account gains it; nothing is lost either way. Last-write-wins is deliberately
+ * *not* used for that one pass — the losing side would be an account someone has been using on
+ * their phone for months, beaten by a throwaway identity that happened to be edited more recently.
  */
 @Suppress("LongParameterList")
 class SyncEngine(
@@ -108,6 +121,13 @@ class SyncEngine(
     private val overrides = DayOverrideSync(dayOverrideDao, remote, deviceId)
 
     private var watcher: Job? = null
+
+    /**
+     * The last user that was actually signed in, which is not the same as the previous emission.
+     * Discarding the anonymous account signs out first, so the sequence this sees on a collision is
+     * anonymous → null → Google, and a naive "previous value" would be the null.
+     */
+    private var lastSignedIn: AuthUser? = null
 
     override suspend fun syncNow() {
         val user = signedInUser() ?: return
@@ -138,6 +158,12 @@ class SyncEngine(
         watcher = null
         schedules.reset()
         overrides.reset()
+        // A *different* uid than the anonymous one that came before it is exactly the collision
+        // case: linking keeps the uid, so a change means `core:auth` had to sign into an account
+        // that already existed. See this class's KDoc for what that changes.
+        val mergedFromAnonymous =
+            user != null && !user.isAnonymous && lastSignedIn?.let { it.isAnonymous && it.id != user.id } == true
+        if (user != null) lastSignedIn = user
         when {
             user == null -> {
                 state.value = SyncState.SignedOut
@@ -149,7 +175,7 @@ class SyncEngine(
 
             else -> {
                 state.value = SyncState.Syncing
-                watcher = scope.launch { watch(user.id) }
+                watcher = scope.launch { watch(user.id, mergedFromAnonymous) }
             }
         }
     }
@@ -159,50 +185,54 @@ class SyncEngine(
      * waits for its collection's first snapshot before it runs, or the local rows Room emits on
      * subscribe would be pushed over remote rows this device has not read yet.
      */
-    private suspend fun watch(user: UserId) =
-        coroutineScope {
-            val schedulesPulled = CompletableDeferred<Unit>()
-            val overridesPulled = CompletableDeferred<Unit>()
-            val from = today()
+    private suspend fun watch(
+        user: UserId,
+        mergedFromAnonymous: Boolean,
+    ) = coroutineScope {
+        val schedulesPulled = CompletableDeferred<Unit>()
+        val overridesPulled = CompletableDeferred<Unit>()
+        val from = today()
 
-            launch {
-                remote
-                    .observeSchedules(user)
-                    .failing()
-                    .collect { incoming ->
-                        schedules.pull(incoming)
-                        markIdle()
-                        schedulesPulled.complete(Unit)
-                    }
-            }
-            launch {
-                remote
-                    .observeOverrides(user, from)
-                    .failing()
-                    .collect { incoming ->
-                        overrides.pull(incoming)
-                        markIdle()
-                        overridesPulled.complete(Unit)
-                    }
-            }
-            launch {
-                schedulesPulled.await()
-                purge()
-                // Room invalidates the whole table, so this re-emits when a row is tombstoned even
-                // though `observeAll` filters tombstones out of what it carries.
-                scheduleDao.observeAll().collect {
-                    schedules.push(user)
+        launch {
+            remote
+                .observeSchedules(user)
+                .failing()
+                .collect { incoming ->
+                    // Only the first snapshot: after it, this device's rows and the account's are
+                    // the same history and the ordinary last-write-wins rule is the right one.
+                    schedules.pull(incoming, remoteWins = mergedFromAnonymous && !schedulesPulled.isCompleted)
                     markIdle()
+                    schedulesPulled.complete(Unit)
                 }
-            }
-            launch {
-                overridesPulled.await()
-                dayOverrideDao.observeFrom(from.toEpochDays()).collect {
-                    overrides.push(user)
+        }
+        launch {
+            remote
+                .observeOverrides(user, from)
+                .failing()
+                .collect { incoming ->
+                    overrides.pull(incoming, remoteWins = mergedFromAnonymous && !overridesPulled.isCompleted)
                     markIdle()
+                    overridesPulled.complete(Unit)
                 }
+        }
+        launch {
+            schedulesPulled.await()
+            purge()
+            // Room invalidates the whole table, so this re-emits when a row is tombstoned even
+            // though `observeAll` filters tombstones out of what it carries.
+            scheduleDao.observeAll().collect {
+                schedules.push(user)
+                markIdle()
             }
         }
+        launch {
+            overridesPulled.await()
+            dayOverrideDao.observeFrom(from.toEpochDays()).collect {
+                overrides.push(user)
+                markIdle()
+            }
+        }
+    }
 
     /**
      * Reports a listener failure and then tries again, rather than reporting it and stopping.
@@ -227,8 +257,10 @@ class SyncEngine(
     /** One pass in both directions, for the explicit [syncNow]. The listener does this continuously. */
     private suspend fun reconcile(user: UserId) {
         val from = today()
-        schedules.pull(remote.observeSchedules(user).first())
-        overrides.pull(remote.observeOverrides(user, from).first())
+        // Ordinary last-write-wins: the merge pass is the listener's first pull, not an explicit
+        // "sync now" the user asked for minutes later.
+        schedules.pull(remote.observeSchedules(user).first(), remoteWins = false)
+        overrides.pull(remote.observeOverrides(user, from).first(), remoteWins = false)
         schedules.push(user)
         overrides.push(user)
         purge()
@@ -285,16 +317,24 @@ private class ScheduleSync(
 
     suspend fun reset() = mutex.withLock { known.clear() }
 
-    suspend fun pull(incoming: List<Schedule>) =
-        mutex.withLock {
-            val local = dao.allIncludingDeleted().associate { it.id to it.toModel() }
-            incoming.forEach { row ->
-                known[row.id.value] = row.updatedAt
-                val mine = local[row.id.value]
-                // A tombstone is an ordinary edit here: the newer row wins whether or not it is one.
-                if (mine == null || row.updatedAt > mine.updatedAt) dao.upsert(row.toEntity())
-            }
+    /**
+     * [remoteWins] is the one-off merge pass after signing into an account that already existed:
+     * every remote row replaces its local twin whatever the timestamps say. Setting `known` to the
+     * remote time in that case is what stops the overwritten local row being pushed straight back —
+     * the row *is* the remote row now, so [push] finds nothing newer to send.
+     */
+    suspend fun pull(
+        incoming: List<Schedule>,
+        remoteWins: Boolean,
+    ) = mutex.withLock {
+        val local = dao.allIncludingDeleted().associate { it.id to it.toModel() }
+        incoming.forEach { row ->
+            known[row.id.value] = row.updatedAt
+            val mine = local[row.id.value]
+            // A tombstone is an ordinary edit here: the newer row wins whether or not it is one.
+            if (mine == null || remoteWins || row.updatedAt > mine.updatedAt) dao.upsert(row.toEntity())
         }
+    }
 
     suspend fun push(user: UserId) =
         mutex.withLock {
@@ -319,15 +359,18 @@ private class DayOverrideSync(
 
     suspend fun reset() = mutex.withLock { known.clear() }
 
-    suspend fun pull(incoming: List<DayOverride>) =
-        mutex.withLock {
-            val local = dao.all().map { it.toModel() }.associateBy { it.date }
-            incoming.forEach { row ->
-                known[row.date] = row.updatedAt
-                val mine = local[row.date]
-                if (mine == null || row.updatedAt > mine.updatedAt) dao.upsert(row.toEntity())
-            }
+    /** [remoteWins] as in [ScheduleSync.pull]: the merge pass after joining an existing account. */
+    suspend fun pull(
+        incoming: List<DayOverride>,
+        remoteWins: Boolean,
+    ) = mutex.withLock {
+        val local = dao.all().map { it.toModel() }.associateBy { it.date }
+        incoming.forEach { row ->
+            known[row.date] = row.updatedAt
+            val mine = local[row.date]
+            if (mine == null || remoteWins || row.updatedAt > mine.updatedAt) dao.upsert(row.toEntity())
         }
+    }
 
     suspend fun push(user: UserId) =
         mutex.withLock {

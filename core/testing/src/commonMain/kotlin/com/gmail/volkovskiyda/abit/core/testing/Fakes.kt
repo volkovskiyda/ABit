@@ -124,6 +124,16 @@ class FakeAuthRepository(
     override suspend fun signOut() {
         user.value = null
     }
+
+    /**
+     * Drives the flow directly, for a sequence the four methods above cannot produce — chiefly a
+     * *link*, which keeps the anonymous account's uid while flipping `isAnonymous` to false. That
+     * distinction is what `SyncEngine` reads to tell a link from a collision, so a test of it has
+     * to be able to say which one happened.
+     */
+    fun emit(next: AuthUser?) {
+        user.value = next
+    }
 }
 
 class FakeSyncStatusRepository(
