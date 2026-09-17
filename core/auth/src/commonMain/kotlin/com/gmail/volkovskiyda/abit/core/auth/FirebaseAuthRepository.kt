@@ -9,6 +9,7 @@ import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Firebase Authentication, as the app sees it.
@@ -52,12 +53,12 @@ class FirebaseAuthRepository(
      * is added.
      */
     override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
-        runCatching {
+        runCatchingCancellable {
             val anonymous = auth.currentUser?.takeIf { it.isAnonymous }
             if (anonymous == null) {
                 auth.signInWithGoogleCredential(idToken, link = null)
             } else {
-                runCatching { auth.signInWithGoogleCredential(idToken, link = anonymous) }
+                runCatchingCancellable { auth.signInWithGoogleCredential(idToken, link = anonymous) }
                     .getOrElse {
                         anonymous.discard()
                         auth.signInWithGoogleCredential(idToken, link = null)
@@ -80,11 +81,24 @@ class FirebaseAuthRepository(
      * list. Failing the sign-in over that would trade a real outcome for a tidy one.
      */
     private suspend fun FirebaseUser.discard() {
-        runCatching { delete() }
+        runCatchingCancellable { delete() }
     }
 
     override suspend fun signOut() = auth.signOut()
 }
+
+/**
+ * [runCatching], except that a cancellation goes through instead of becoming a failed [Result].
+ *
+ * Structured concurrency unwinds a cancelled coroutine by throwing [CancellationException], and
+ * `runCatching` catches it like anything else. Here that turned "the caller went away" into "the
+ * link was refused", which is the branch that deletes the anonymous account: one cancelled sign-in
+ * and the identity the local schedules belong to was gone, with nothing signed in to replace it.
+ * The delete reached the server even so, because its request is enqueued before the suspending
+ * await that the cancellation lands on.
+ */
+private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
+    runCatching(block).onFailure { if (it is CancellationException) throw it }
 
 internal fun FirebaseUser?.requireUser(): AuthUser =
     checkNotNull(this?.toAuthUser()) { "Firebase returned no user for a successful sign-in." }

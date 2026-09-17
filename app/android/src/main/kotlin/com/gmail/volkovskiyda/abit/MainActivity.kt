@@ -10,8 +10,11 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -235,6 +238,18 @@ private fun GoogleSignInSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val googleSignIn = remember(context) { GoogleSignIn(context) }
+    var linking by rememberSaveable { mutableStateOf(false) }
+
+    // Closed by the account changing, not by handing the token over. signInWithGoogle only *starts*
+    // the link, in a viewModelScope belonging to this back-stack entry — so dismissing on the next
+    // line tore the entry down and cancelled the link mid-flight, every time. A cancelled link is
+    // what FirebaseAuthRepository used to read as a uid collision, which deleted the anonymous
+    // account. Waiting for the user to actually change also puts any error in front of the person
+    // who caused it, on the sheet that is still open.
+    val linked = linking && state.user?.isAnonymous == false
+    LaunchedEffect(linked) {
+        if (linked) onDismiss()
+    }
 
     SignInSheet(
         onSignIn = {
@@ -246,8 +261,8 @@ private fun GoogleSignInSheet(onDismiss: () -> Unit) {
                     googleSignIn
                         .requestIdToken(clientId)
                         .onSuccess {
+                            linking = true
                             viewModel.signInWithGoogle(it)
-                            onDismiss()
                         }.onFailure { viewModel.onAuthError(it.message ?: "Sign-in failed") }
                 }
             }
