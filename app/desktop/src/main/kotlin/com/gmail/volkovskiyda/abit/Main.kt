@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -255,7 +256,17 @@ private fun AbitPopoverWindow(
             window.addWindowFocusListener(listener)
         }
 
-        AbitTheme(darkTheme = themeMode == ThemeMode.Dark) {
+        // System is the default and it is not Light: `== Dark` sent every Mac that had never opened
+        // the picker to the light palette, however the machine was set. Android and the web both
+        // resolve it by asking the platform, and so does this now.
+        val dark =
+            when (themeMode) {
+                ThemeMode.System -> isSystemInDarkTheme()
+                ThemeMode.Light -> false
+                ThemeMode.Dark -> true
+            }
+
+        AbitTheme(darkTheme = dark) {
             if (schedulesPane) {
                 SchedulesPane(onBack = onCloseSchedules)
             } else {
