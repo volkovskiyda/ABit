@@ -24,11 +24,11 @@ printf '%s' "$KEYSTORE_BASE64"            | base64 -d > abit-release.jks
 # Under app/shared/, where the Kotzilla plugin looks — it reads the file from the module it is
 # applied to, and that is the module that calls monitoring().
 printf '%s' "$KOTZILLA_JSON_BASE64"       | base64 -d > app/shared/kotzilla.json
-# The same file for both Android apps: they share one application id, so they share one client.
-printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > app/android/google-services.json
-cp app/android/google-services.json app/wear/google-services.json
+# At the repository root, which is where the convention plugin points the Google Services task for
+# both Android apps: they share one application id, so they share one client and one file.
+printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > google-services.json
 
-echo "Restored keystore.properties, abit-release.jks, app/shared/kotzilla.json and both google-services.json files"
+echo "Restored keystore.properties, abit-release.jks, app/shared/kotzilla.json and google-services.json"
 
 # Optional, unlike everything above: the desktop app's Google OAuth client does not exist yet — it
 # needs the consent screen configured in the Google Cloud console, which is an interactive step. A

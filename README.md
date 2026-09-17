@@ -112,7 +112,7 @@ files are git-ignored, and the build degrades rather than failing when each is a
 
 | Missing file | What happens | Where the real one comes from |
 |---|---|---|
-| `app/android/google-services.json`, `app/wear/…` | The Google Services plugin prints a warning. Firebase never initialises, so sync and sign-in report themselves unavailable and the app keeps everything on the device. | Firebase console → Project settings → your app → `google-services.json`. `app/android/google-services.example.json` shows the shape. |
+| `google-services.json` | The Google Services plugin prints a warning. Firebase never initialises, so sync and sign-in report themselves unavailable and the app keeps everything on the device. | Firebase console → Project settings → your app → `google-services.json`. One file at the repository root serves both Android apps; `.example.google-services.json` shows the shape. |
 | `app/shared/kotzilla.json` | The Kotzilla plugin disables itself. No sessions are reported and no mapping is uploaded. | [console.kotzilla.io](https://console.kotzilla.io). `.example.kotzilla.json` is the template. |
 | `keystore.properties` and `abit-release.jks` | `assembleRelease` produces an **unsigned** APK instead of failing. | Generated once; `.example.keystore.properties` is the template. |
 | `oauth.properties` | The macOS app packages and runs; its popover reports Google sign-in unavailable and anonymous sign-in carries it. | Google Cloud console → Credentials → OAuth client ID → **Desktop app**. `.example.oauth.properties` is the template. |

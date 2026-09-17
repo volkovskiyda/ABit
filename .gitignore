@@ -29,8 +29,10 @@ oauth.properties
 # It carries the ingestion API keys, one per build type.
 kotzilla.json
 # The real Firebase Android config, which carries the API key this project's keys are restricted to.
-# google-services.example.json is its committed, placeholder-filled twin — documentation only, never
-# read by the build.
+# One file, at the repository root, for both Android apps — the convention plugin points the Google
+# Services task there. .example.google-services.json is its committed, placeholder-filled twin —
+# documentation only, never read by the build. The unanchored pattern also catches a stray copy left
+# in a module, which would win over the root file if the build ever saw it.
 google-services.json
 # The Firebase CLI's local deploy/emulator cache. /.firebaserc and /firebase.json are deliberately
 # NOT ignored: together they are what points this repo at the abit-kmp project, and they carry

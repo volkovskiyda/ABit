@@ -4,6 +4,7 @@ import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import com.google.firebase.perf.plugin.FirebasePerfExtension
 import com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPluginConfig
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import com.google.gms.googleservices.GoogleServicesTask
 import com.gmail.volkovskiyda.abit.buildlogic.AbitVersioning
 import com.gmail.volkovskiyda.abit.buildlogic.configureAbitLint
 import com.gmail.volkovskiyda.abit.buildlogic.configureBenchmarkVariants
@@ -20,6 +21,7 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
+import java.util.Locale
 
 /** The phone app and the Wear OS app. Both ship the same application id and the same signing. */
 class AndroidApplicationConventionPlugin : Plugin<Project> {
@@ -73,6 +75,7 @@ private fun Project.configureFirebase() {
         extensions.configure<GoogleServicesPluginConfig> {
             missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN
         }
+        useRootGoogleServicesJson()
     }
 
     pluginManager.withPlugin("com.google.firebase.crashlytics") {
@@ -99,6 +102,41 @@ private fun Project.configureFirebase() {
                     // release), so the plugin's bytecode weaving would only slow every debug build.
                     configure<FirebasePerfExtension> { setInstrumentationEnabled(false) }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * One `google-services.json`, at the repository root, for both Android apps.
+ *
+ * The phone and the watch ship the same application id, so Firebase gives them one client — and the
+ * file was simply copied into `app/android/` and `app/wear/`, two paths to keep in step on every
+ * machine and in `restore-secrets.sh`, with nothing but habit stopping them from drifting apart.
+ *
+ * The plugin cannot be told where to look through its DSL and no longer finds the root itself: 4.x
+ * resolves its search list against `project.projectDir` alone, where 3.x also tried the root
+ * project. What it does leave open is the task's own input, which is an ordinary property.
+ *
+ * Reaching it has one constraint worth writing down, because getting it wrong fails with
+ * "property 'googleServicesJsonFiles' has no value available" rather than anything descriptive: a
+ * container rule — `tasks.withType(…).configureEach` — runs *before* the action a task was
+ * registered with, so there is nothing to read yet. `named` on an already-registered task appends
+ * instead, which is why this hangs off `onVariants`. Ours runs after the plugin's because the
+ * callback is registered from `withPlugin`, after the plugin that registers the task has applied.
+ *
+ * Appending rather than replacing keeps every location the plugin searches working — a module-local
+ * file still wins, since the plugin takes the first match and its own list is ordered ahead of ours
+ * — so this only adds the root as the last place looked.
+ */
+private fun Project.useRootGoogleServicesJson() {
+    val rootJson = rootProject.layout.projectDirectory.file("google-services.json").asFile
+    extensions.configure<ApplicationAndroidComponentsExtension> {
+        onVariants { variant ->
+            val capitalised = variant.name.replaceFirstChar { it.titlecase(Locale.getDefault()) }
+            tasks.named("process${capitalised}GoogleServices", GoogleServicesTask::class.java) {
+                val searched = googleServicesJsonFiles.get()
+                if (rootJson !in searched) googleServicesJsonFiles.set(searched + rootJson)
             }
         }
     }

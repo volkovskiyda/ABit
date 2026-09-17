@@ -1,0 +1,113 @@
+{
+  "project_info": {
+    "project_number": "<project number>",
+    "project_id": "<your-firebase-project-id>",
+    "storage_bucket": "<project>.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "<app id from the Firebase console>",
+        "android_client_info": {
+          "package_name": "com.gmail.volkovskiyda.abit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "<android oauth client id>",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gmail.volkovskiyda.abit",
+            "certificate_hash": "<release signing sha-1, lower case, no colons>"
+          }
+        },
+        {
+          "client_id": "<web oauth client id>",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "<android api key from the Firebase console>"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "<web oauth client id>",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "<app id from the Firebase console>",
+        "android_client_info": {
+          "package_name": "com.gmail.volkovskiyda.abit.benchmark"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "<web oauth client id>",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "<android api key from the Firebase console>"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "<web oauth client id>",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "<app id from the Firebase console>",
+        "android_client_info": {
+          "package_name": "com.gmail.volkovskiyda.abit.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "<debug oauth client id>",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gmail.volkovskiyda.abit.debug",
+            "certificate_hash": "<debug.keystore sha-1, lower case, no colons>"
+          }
+        },
+        {
+          "client_id": "<web oauth client id>",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "<android api key from the Firebase console>"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "<web oauth client id>",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

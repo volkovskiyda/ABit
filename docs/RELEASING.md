@@ -103,7 +103,7 @@ Run these from a checkout that has the real files, and never paste their content
 base64 -i keystore.properties              | gh secret set KEYSTORE_PROPERTIES_BASE64
 base64 -i abit-release.jks                 | gh secret set KEYSTORE_BASE64
 base64 -i app/shared/kotzilla.json         | gh secret set KOTZILLA_JSON_BASE64
-base64 -i app/android/google-services.json | gh secret set GOOGLE_SERVICES_JSON_BASE64
+base64 -i google-services.json             | gh secret set GOOGLE_SERVICES_JSON_BASE64
 gh secret set FIREBASE_SERVICE_ACCOUNT < firebase-ci.json && rm firebase-ci.json
 # Once the OAuth clients below exist:
 base64 -i oauth.properties                 | gh secret set OAUTH_PROPERTIES_BASE64
