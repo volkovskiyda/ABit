@@ -19,6 +19,13 @@ private const val STOP_TIMEOUT_MILLIS = 5_000L
 data class SchedulesUiState(
     val schedules: List<Schedule> = emptyList(),
     val conflicts: List<Conflict> = emptyList(),
+    /**
+     * False for the initial value only, which is the frame before the repository has answered.
+     * Without it "no schedules" and "not asked yet" are the same empty list, and a screen that acts
+     * on the difference — the conflict sheet, which dismisses itself when its conflict is gone —
+     * acts on the wrong one.
+     */
+    val loaded: Boolean = false,
 ) {
     /** The conflicts a given schedule is part of, for its card's overlap chip. */
     fun conflictsFor(id: ScheduleId): List<Conflict> = conflicts.filter { it.first == id || it.second == id }
@@ -30,7 +37,7 @@ class SchedulesViewModel(
     val state: StateFlow<SchedulesUiState> =
         repository
             .observeSchedules()
-            .map { schedules -> SchedulesUiState(schedules = schedules, conflicts = schedules.conflicts()) }
+            .map { schedules -> SchedulesUiState(schedules = schedules, conflicts = schedules.conflicts(), loaded = true) }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),

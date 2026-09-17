@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -195,11 +196,18 @@ private fun ConflictScreen(
     val viewModel = koinViewModel<SchedulesViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val conflict = state.conflicts.firstOrNull { it.first.value == key.first && it.second.value == key.second }
-    if (conflict == null) {
-        // Someone resolved it on another device while this sheet was opening.
-        onDismiss()
-        return
+
+    // Someone resolved it on another device while this sheet was opening — but only once the
+    // repository has actually answered. This ViewModel is scoped to this back-stack entry, so it is
+    // always freshly created here and its first frame carries stateIn's empty initial value; the
+    // sheet used to read that as "already resolved" and pop itself before it ever drew, from both
+    // entry points. Popping from a LaunchedEffect rather than the composition body, too: mutating
+    // the back stack while composing it is its own hazard.
+    LaunchedEffect(state.loaded, conflict) {
+        if (state.loaded && conflict == null) onDismiss()
     }
+    if (conflict == null) return
+
     ConflictSheet(
         conflict = conflict,
         schedules = state.schedules,
