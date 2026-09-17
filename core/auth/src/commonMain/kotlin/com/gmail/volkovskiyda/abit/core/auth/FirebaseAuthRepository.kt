@@ -6,7 +6,6 @@ import com.gmail.volkovskiyda.abit.core.model.UserId
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
-import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -40,7 +39,11 @@ class FirebaseAuthRepository(
      * - **It collides.** That Google account is already a separate Firebase user, so the link is
      *   refused and there is no way to make one uid out of two. This signs into the existing
      *   account, which is the outcome that loses nothing already synced, and [discard]s the
-     *   anonymous one on the way.
+     *   anonymous one on the way. Any other failure of the link is read the same way, because a
+     *   link that did not happen leaves nothing to tell them apart.
+     *
+     * [signInWithGoogleCredential] is the exchange itself, which is per platform for a reason that
+     * has nothing to do with this rule.
      *
      * The collision case leaves the schedules written anonymously on the device, and `SyncEngine`
      * is what carries them into the account — it can see this happened, because a link keeps the
@@ -50,20 +53,16 @@ class FirebaseAuthRepository(
      */
     override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
         runCatching {
-            val credential = GoogleAuthProvider.credential(idToken = idToken, accessToken = null)
             val anonymous = auth.currentUser?.takeIf { it.isAnonymous }
-
-            val user =
-                if (anonymous != null) {
-                    runCatching { anonymous.linkWithCredential(credential).user }
-                        .getOrElse {
-                            anonymous.discard()
-                            auth.signInWithCredential(credential).user
-                        }
-                } else {
-                    auth.signInWithCredential(credential).user
-                }
-            user.requireUser()
+            if (anonymous == null) {
+                auth.signInWithGoogleCredential(idToken, link = null)
+            } else {
+                runCatching { auth.signInWithGoogleCredential(idToken, link = anonymous) }
+                    .getOrElse {
+                        anonymous.discard()
+                        auth.signInWithGoogleCredential(idToken, link = null)
+                    }
+            }
         }
 
     /**
@@ -85,10 +84,10 @@ class FirebaseAuthRepository(
     }
 
     override suspend fun signOut() = auth.signOut()
-
-    private fun FirebaseUser?.requireUser(): AuthUser =
-        checkNotNull(this?.toAuthUser()) { "Firebase returned no user for a successful sign-in." }
 }
+
+internal fun FirebaseUser?.requireUser(): AuthUser =
+    checkNotNull(this?.toAuthUser()) { "Firebase returned no user for a successful sign-in." }
 
 private fun FirebaseUser.toAuthUser(): AuthUser =
     AuthUser(

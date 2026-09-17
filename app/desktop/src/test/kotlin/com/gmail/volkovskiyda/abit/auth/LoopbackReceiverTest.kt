@@ -63,11 +63,28 @@ class LoopbackReceiverTest {
             }
         }
 
-    /** The build has no `oauth.properties`, which is the state every fresh clone is in. */
+    /**
+     * The fresh-clone state, asserted on the seam rather than on the file: whether this machine has
+     * an `oauth.properties` is not something a test may depend on, and an earlier version of this
+     * one asserted [DesktopOAuthConfig.fromResources] was null — which held on a fresh clone and on
+     * CI, and failed the moment the developer running it had the credential the app is built to use.
+     */
     @Test
     fun `reports sign-in unavailable without an OAuth client`() {
-        assertEquals(null, DesktopOAuthConfig.fromResources())
         assertTrue(!GoogleSignIn(config = null).available)
+    }
+
+    /**
+     * And the resource itself, in whichever state this checkout is in: absent, or present with both
+     * halves filled in. A file carrying only one of them is the interesting failure — it would leave
+     * the popover offering a button whose exchange cannot complete — and [DesktopOAuthConfig] is
+     * what refuses it, by returning null rather than a half-built config.
+     */
+    @Test
+    fun `reads a complete OAuth client or none at all`() {
+        val config = DesktopOAuthConfig.fromResources() ?: return
+        assertTrue(config.clientId.endsWith(".apps.googleusercontent.com"))
+        assertTrue(config.clientSecret.isNotBlank())
     }
 
     /** Plays the part of the browser: fetches the redirect URI the way Google's redirect would. */

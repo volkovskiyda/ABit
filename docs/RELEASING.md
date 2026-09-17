@@ -105,7 +105,6 @@ base64 -i abit-release.jks                 | gh secret set KEYSTORE_BASE64
 base64 -i app/shared/kotzilla.json         | gh secret set KOTZILLA_JSON_BASE64
 base64 -i google-services.json             | gh secret set GOOGLE_SERVICES_JSON_BASE64
 gh secret set FIREBASE_SERVICE_ACCOUNT < firebase-ci.json && rm firebase-ci.json
-# Once the OAuth clients below exist:
 base64 -i oauth.properties                 | gh secret set OAUTH_PROPERTIES_BASE64
 ```
 
@@ -114,22 +113,20 @@ from. It fails loudly on a missing one rather than shipping a build that is quie
 with no Kotzilla key reports no sessions and uploads no mapping, which is the right behaviour for a
 pull request and the wrong one for a release.
 
-`OAUTH_PROPERTIES_BASE64` is the one exception: it is optional, because the client it carries does
-not exist yet. **Make it required the moment it does** — from then on a DMG that silently cannot
-sign in is a regression rather than the state of the project.
+All five are required. `OAUTH_PROPERTIES_BASE64` was the one exception while the Desktop-app client
+it carries did not exist; it stopped being one the day that client was created, because from then on
+a DMG that silently cannot sign in is a regression rather than the state of the project.
 
 ### Google sign-in: the two OAuth clients
 
-Every platform's sign-in is written and every one of them reports itself unavailable, because the
-project has no OAuth client to ask. Both need the **OAuth consent screen** configured first, in the
-Google Cloud console for `abit-kmp` — an interactive step, which is why this is written down rather
-than scripted.
+Both exist on `abit-kmp` now. Both needed the **OAuth consent screen** configured first, in the
+Google Cloud console — an interactive step, which is why this is written down rather than scripted.
 
-APIs & Services → Credentials → Create credentials → OAuth client ID, twice:
+Google Auth Platform → Clients → Create client, twice:
 
 | Type | Used by | Where it goes |
 |---|---|---|
-| **Web application** | Android, Wear (as Credential Manager's `serverClientId`) and the browser | Regenerate `google-services.json` from the Firebase console — the plugin turns it into the `default_web_client_id` resource the Android apps look up. Paste the same id into `FirebaseConfig.WEB_OAUTH_CLIENT_ID` for the web app, and add `https://abit-kmp.web.app` to its authorised JavaScript origins. |
+| **Web application** | Android, Wear (as Credential Manager's `serverClientId`) and the browser | Regenerate `google-services.json` from the Firebase console — the plugin turns it into the `default_web_client_id` resource the Android apps look up. The same id is committed as `FirebaseConfig.WEB_OAUTH_CLIENT_ID` for the web app. Its authorised JavaScript origins are `https://abit-kmp.web.app`, `https://abit-kmp.firebaseapp.com` and `http://localhost:8080`; a browser sign-in from an origin missing there fails with nothing in the UI, only a GIS error in the console. |
 | **Desktop app** | The macOS app's loopback flow | `oauth.properties` at the repository root, git-ignored — see `.example.oauth.properties`. It needs no redirect URI of its own: a Desktop-app client accepts any `http://127.0.0.1` port, which is what the flow binds. |
 
 The desktop client's secret is shipped inside the DMG on purpose. Google's own documentation says an

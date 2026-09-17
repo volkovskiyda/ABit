@@ -18,4 +18,4 @@ cd "$(dirname "$0")/.."
 exec npx --yes firebase-tools@15 emulators:exec \
   --only auth,firestore \
   --project abit-kmp \
-  "./gradlew :core:sync:desktopTest --rerun-tasks"
+  "./gradlew :core:auth:desktopTest :core:sync:desktopTest --rerun-tasks"

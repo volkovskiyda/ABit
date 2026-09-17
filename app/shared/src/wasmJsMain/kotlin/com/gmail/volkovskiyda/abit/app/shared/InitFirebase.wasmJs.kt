@@ -13,7 +13,7 @@ actual fun initFirebase(): Boolean =
             options =
                 FirebaseOptions(
                     applicationId = FirebaseConfig.APP_ID_WEB,
-                    apiKey = FirebaseConfig.API_KEY,
+                    apiKey = FirebaseConfig.API_KEY_WEB,
                     projectId = FirebaseConfig.PROJECT_ID,
                     authDomain = FirebaseConfig.AUTH_DOMAIN,
                     storageBucket = FirebaseConfig.STORAGE_BUCKET,

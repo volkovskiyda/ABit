@@ -1,6 +1,6 @@
 package com.gmail.volkovskiyda.abit.app.shared
 
-import android.content.Context
+import android.app.Application
 import com.gmail.volkovskiyda.abit.core.common.AppDirs
 import com.gmail.volkovskiyda.abit.core.common.markFirebaseInitialised
 import com.google.firebase.FirebasePlatform
@@ -22,14 +22,19 @@ actual fun initFirebase(): Boolean =
     runCatching {
         FirebasePlatform.initializeFirebasePlatform(FilePlatform(AppDirs.dataDirectory))
         Firebase.initialize(
-            // An android.content.Context, on the JVM, and not a mistake: the Firebase Java SDK is a
-            // port of the Firebase *Android* SDK and ships its own stub of that class, which GitLive's
-            // JVM binding casts to unconditionally. Neither Unit nor null survives the cast.
-            context = Context(),
+            // An android.app.Application, on the JVM, and not a mistake: the Firebase Java SDK is a
+            // port of the Firebase *Android* SDK and ships its own stubs of those classes, which
+            // GitLive's JVM binding casts to unconditionally. Neither Unit nor null survives the
+            // cast — and a bare `Context` does not survive the *second* one: Firestore's
+            // `AndroidConnectivityMonitor` casts the application context to `Application` to
+            // register lifecycle callbacks, and a `ClassCastException` there is raised inside its
+            // async queue, which rethrows it on the main thread as "Internal error in Cloud
+            // Firestore". The listener never opens, so nothing syncs and nothing says why.
+            context = Application(),
             options =
                 FirebaseOptions(
                     applicationId = FirebaseConfig.APP_ID_WEB,
-                    apiKey = FirebaseConfig.API_KEY,
+                    apiKey = FirebaseConfig.API_KEY_DESKTOP,
                     projectId = FirebaseConfig.PROJECT_ID,
                     authDomain = FirebaseConfig.AUTH_DOMAIN,
                     storageBucket = FirebaseConfig.STORAGE_BUCKET,

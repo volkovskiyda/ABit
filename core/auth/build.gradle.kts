@@ -24,5 +24,10 @@ kotlin {
             // storage and logging implementation supplied before anything else touches Firebase.
             implementation(libs.gitlive.firebase.java.sdk)
         }
+        desktopTest.dependencies {
+            // The Firebase Emulator Suite harness, for the Google sign-in this module implements
+            // itself on the JVM.
+            implementation(projects.core.testing)
+        }
     }
 }

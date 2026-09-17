@@ -215,12 +215,17 @@ listens on a loopback port for the redirect, which is the flow Google documents 
 the browser uses Google Identity Services. Nothing platform-specific reaches `core:auth` but the
 token.
 
-**None of it can complete on this project yet.** The Firebase project has no web OAuth client and no
-desktop one, because creating either needs the OAuth consent screen configured in the Google Cloud
-console — an interactive step. Every platform detects the absence and says "sign-in unavailable"
-rather than offering a button that cannot work, and anonymous sign-in carries the app meanwhile. Two
-console steps and one constant (`FirebaseConfig.WEB_OAUTH_CLIENT_ID`) plus one git-ignored file
-(`oauth.properties`) are the whole remaining change; no code moves.
+The project has **two** OAuth clients, and which platform uses which is the only asymmetry. The
+phone, the watch and the browser share the Web application client: Android resolves it out of
+`google-services.json` as `default_web_client_id`, and the browser reads the same id from
+`FirebaseConfig.WEB_OAUTH_CLIENT_ID`. Its authorised JavaScript origins are what gate it —
+`https://abit-kmp.web.app`, `https://abit-kmp.firebaseapp.com` and `http://localhost:8080` for the
+development server — so a new origin is a console change, not a code one. The Mac has a **Desktop
+app** client of its own in `oauth.properties`, because an installed app cannot keep the web client's
+genuinely confidential secret inside a downloadable DMG.
+
+A checkout without `oauth.properties` still builds, packages and runs; the popover says sign-in is
+unavailable and anonymous sign-in carries the Mac, which is what a fork's pull request gets.
 
 ## Observability
 

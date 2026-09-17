@@ -8,7 +8,9 @@
 #   - without kotzilla.json the Kotzilla plugin disables itself, so the build reports no sessions
 #     and uploads no mapping, leaving every crash from it unsymbolicated;
 #   - without google-services.json Firebase never initialises, so the app ships with sync switched
-#     off and no crash reporting at all.
+#     off and no crash reporting at all;
+#   - without oauth.properties the DMG's popover reports Google sign-in unavailable, so the Mac ships
+#     as the one platform that cannot sync.
 # Each of those is the right behaviour for a pull-request checkout and the wrong one here.
 set -euo pipefail
 
@@ -18,6 +20,7 @@ cd "$(dirname "$0")/.."
 : "${KEYSTORE_BASE64:?set the KEYSTORE_BASE64 repository secret}"
 : "${KOTZILLA_JSON_BASE64:?set the KOTZILLA_JSON_BASE64 repository secret}"
 : "${GOOGLE_SERVICES_JSON_BASE64:?set the GOOGLE_SERVICES_JSON_BASE64 repository secret}"
+: "${OAUTH_PROPERTIES_BASE64:?set the OAUTH_PROPERTIES_BASE64 repository secret}"
 
 printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | base64 -d > keystore.properties
 printf '%s' "$KEYSTORE_BASE64"            | base64 -d > abit-release.jks
@@ -28,16 +31,10 @@ printf '%s' "$KOTZILLA_JSON_BASE64"       | base64 -d > app/shared/kotzilla.json
 # both Android apps: they share one application id, so they share one client and one file.
 printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > google-services.json
 
-echo "Restored keystore.properties, abit-release.jks, app/shared/kotzilla.json and google-services.json"
+# At the repository root, where :app:desktop's processResources copies it into the app's resources.
+# This one was optional while the project had no Desktop-app OAuth client to put in it; it stopped
+# being optional the day that client was created, because from then on a DMG that silently cannot
+# sign in is a regression rather than the state of the project.
+printf '%s' "$OAUTH_PROPERTIES_BASE64"     | base64 -d > oauth.properties
 
-# Optional, unlike everything above: the desktop app's Google OAuth client does not exist yet — it
-# needs the consent screen configured in the Google Cloud console, which is an interactive step. A
-# DMG built without it still packages and runs; its popover reports Google sign-in unavailable and
-# anonymous sign-in carries the app. Make this required the moment the secret exists, because from
-# then on a silently sign-in-less DMG is a regression rather than the state of the project.
-if [ -n "${OAUTH_PROPERTIES_BASE64:-}" ]; then
-  printf '%s' "$OAUTH_PROPERTIES_BASE64" | base64 -d > oauth.properties
-  echo "Restored oauth.properties"
-else
-  echo "No OAUTH_PROPERTIES_BASE64 — the desktop build will report Google sign-in unavailable."
-fi
+echo "Restored keystore.properties, abit-release.jks, app/shared/kotzilla.json, google-services.json and oauth.properties"
