@@ -2,6 +2,8 @@ package com.gmail.volkovskiyda.abit.wear.tile
 
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.wear.protolayout.ActionBuilders
+import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
+import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.LayoutElementBuilders
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
@@ -9,21 +11,23 @@ import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.protolayout.material3.MaterialScope
 import androidx.wear.protolayout.material3.Typography
 import androidx.wear.protolayout.material3.materialScope
-import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
-import androidx.wear.protolayout.material3.textEdgeButton
+import androidx.wear.protolayout.modifiers.LayoutModifier
+import androidx.wear.protolayout.modifiers.clickable
+import androidx.wear.protolayout.modifiers.contentDescription
+import androidx.wear.protolayout.modifiers.toProtoLayoutModifiers
 import androidx.wear.protolayout.types.layoutString
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import com.gmail.volkovskiyda.abit.core.common.LocalClock
-import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
-import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
-import com.gmail.volkovskiyda.abit.core.domain.Chime
-import com.gmail.volkovskiyda.abit.core.domain.ChimeKind
+import com.gmail.volkovskiyda.abit.core.designsystem.AbitTokens
+import com.gmail.volkovskiyda.abit.core.designsystem.RingArcs
+import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
 import com.gmail.volkovskiyda.abit.core.domain.DayOverrideRepository
 import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
-import com.gmail.volkovskiyda.abit.core.domain.chimesFrom
+import com.gmail.volkovskiyda.abit.core.domain.TodayState
+import com.gmail.volkovskiyda.abit.core.domain.todayState
 import com.gmail.volkovskiyda.abit.wear.MainActivity
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
@@ -32,8 +36,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
+import kotlinx.datetime.LocalDateTime
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.minutes
@@ -41,20 +44,36 @@ import kotlin.time.Duration.Companion.minutes
 private const val RESOURCES_VERSION = "1"
 
 /**
- * Refreshed often enough to be honest and rarely enough not to drain the watch. The lower bound
- * matters because the copy says "in 23 min"; the upper bound because an idle evening should not wake
- * the watch every minute.
+ * How often the *service* is woken. Not how often the tile changes: the countdown and the ring are
+ * bound to the renderer's own clock, so between rebuilds they stay true on their own. What a rebuild
+ * is for is the things an expression cannot carry — which arc is the saturated one, which session is
+ * being counted, whether a schedule was edited on the phone. Those change at a boundary, so the
+ * interval is the time to the next one, floored so a flurry of boundaries cannot busy-wake the watch
+ * and capped so an idle evening still picks up an edit within the hour.
  */
 private val MIN_FRESHNESS = 1.minutes
 private val MAX_FRESHNESS = 20.minutes
 
 /**
- * The next chime, one swipe from the watch face — which is the point of a watch app like this one.
+ * The ring hugs the bezel inside an 8 % inset at a 6 dp stroke — the brief's numbers, and the ones
+ * `WearTodayScreen` draws to, so the tile and the app's own Today screen are the same dial.
  *
- * ProtoLayout, not Compose: a tile is rendered by the system launcher in another process, so it is a
- * serialized layout tree rather than a composition. Nothing from `core:designsystem`'s composables
- * can be reused here; the tokens and `AbitFormat` can, and that is the second reason item 06 keeps
- * them Compose-free.
+ * It is given a diameter rather than left to expand into the tile. An arc that fills a container it
+ * does not know to be square is drawn as an ellipse; that is the trap `WearTodayScreen` documents on
+ * `RING_MAX_DIAMETER`, and the answer in both places is to hand the ring one number.
+ */
+private const val RING_INSET_FRACTION = 0.08f
+
+private const val RING_STROKE_DP = 6f
+
+/**
+ * The next boundary, one swipe from the watch face — which is the point of a watch app like this one.
+ *
+ * It renders the same [TodayState] as every other surface, which is what stops the tile and the app
+ * disagreeing, and draws the same session ring around the same countdown. What it does *not* share is
+ * the drawing: ProtoLayout is a serialized layout tree rendered by the system launcher in another
+ * process, so nothing from `core:designsystem`'s composables can be reused here. The tokens,
+ * `AbitFormat` and `RingGeometry` can, and that is the second reason item 06 keeps them Compose-free.
  */
 class AbitTileService :
     TileService(),
@@ -100,7 +119,7 @@ class AbitTileService :
                 scope.launch {
                     runCatching { buildTile(requestParams) }
                         .onSuccess { completer.set(it) }
-                        .onFailure { completer.set(tile(requestParams, next = null)) }
+                        .onFailure { completer.set(emptyTile(requestParams)) }
                 }
             job.invokeOnCompletion { cause -> if (cause != null) completer.setCancelled() }
             "AbitTileService.onTileRequest"
@@ -110,36 +129,38 @@ class AbitTileService :
         val now = clock.now()
         val schedules = scheduleRepository.observeSchedules().first()
         val overrides = dayOverrideRepository.observeFrom(now.date).first()
-        return tile(requestParams, next = chimesFrom(schedules, overrides, now, limit = 1).firstOrNull())
+        return tile(requestParams, todayState(schedules, overrides, now), now)
+    }
+
+    /** What the tile shows when the plan could not be read: the same thing an empty plan shows. */
+    private fun emptyTile(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
+        val now = clock.now()
+        return tile(requestParams, todayState(emptyList(), emptyMap(), now), now)
     }
 
     /** The layout alone: no I/O, so this is the half that cannot fail. */
     private fun tile(
         requestParams: RequestBuilders.TileRequest,
-        next: Chime?,
+        state: TodayState,
+        now: LocalDateTime,
     ): TileBuilders.Tile {
+        val live = TileCountdown(zone = clock.zone(), today = now.date)
         val layout =
             materialScope(
                 context = this,
                 deviceConfiguration = requestParams.deviceConfiguration,
+                // Tangerine means Focus and mint means Break. A device-tinted scheme would repaint
+                // that at random, which is why the app has no dynamic colour anywhere.
+                allowDynamicTheme = false,
+                defaultColorScheme = AbitTileColorScheme,
             ) {
-                primaryLayout(
-                    titleSlot = { text(headline(next).layoutString, typography = Typography.LABEL_SMALL) },
-                    mainSlot = {
-                        LayoutElementBuilders.Column
-                            .Builder()
-                            .addContent(text(boundary(next).layoutString, typography = Typography.DISPLAY_MEDIUM))
-                            .addContent(text(detail(next).layoutString, typography = Typography.BODY_MEDIUM))
-                            .build()
-                    },
-                    bottomSlot = { openAbitButton() },
-                )
+                dial(state, live, now, requestParams.deviceConfiguration)
             }
 
         return TileBuilders.Tile
             .Builder()
             .setResourcesVersion(RESOURCES_VERSION)
-            .setFreshnessIntervalMillis(freshnessMillis(next))
+            .setFreshnessIntervalMillis(freshnessMillis(state, live, now))
             .setTileTimeline(
                 TimelineBuilders.Timeline
                     .Builder()
@@ -156,50 +177,90 @@ class AbitTileService :
             ).build()
     }
 
-    private fun MaterialScope.openAbitButton(): LayoutElementBuilders.LayoutElement =
-        textEdgeButton(
-            onClick =
-                ModifiersBuilders.Clickable
-                    .Builder()
-                    .setId("open")
-                    .setOnClick(
-                        ActionBuilders.LaunchAction
-                            .Builder()
-                            .setAndroidActivity(
-                                ActionBuilders.AndroidActivity
-                                    .Builder()
-                                    .setPackageName(packageName)
-                                    .setClassName(MainActivity::class.java.name)
-                                    .build(),
-                            ).build(),
-                    ).build(),
-        ) { text("Open ABit".layoutString) }
+    /**
+     * The whole tile: the ring, the mode label, the countdown and the caption, on the watch's own
+     * black. No `primaryLayout` and no edge button — a tile with a button in it is a tile with a
+     * smaller dial, and there is only ever one thing to do here, so the dial itself is the target.
+     * Tapping anywhere opens the app.
+     */
+    private fun MaterialScope.dial(
+        state: TodayState,
+        live: TileCountdown,
+        now: LocalDateTime,
+        device: DeviceParameters,
+    ): LayoutElementBuilders.LayoutElement {
+        // A round screen is reported square-bounded; taking the smaller side is what keeps the ring
+        // a circle on a watch that is not.
+        val screen = minOf(device.screenWidthDp, device.screenHeightDp)
+        val diameter = DimensionBuilders.dp(screen * (1f - 2 * RING_INSET_FRACTION))
+        val running = state as? TodayState.Running
+        val arcs = running?.let { ringArcs(it.session, it.sessionRemaining) } ?: RingArcs.Empty
 
-    /** The tile is accurate to the minute near a boundary and cheap when the day is over. */
-    private fun freshnessMillis(next: Chime?): Long {
-        if (next == null) return MAX_FRESHNESS.inWholeMilliseconds
-        val until = next.at.toInstant(clock.zone()) - clock.instant()
-        return until.coerceIn(MIN_FRESHNESS, MAX_FRESHNESS).inWholeMilliseconds
+        val ring =
+            LayoutElementBuilders.Box
+                .Builder()
+                .setWidth(diameter)
+                .setHeight(diameter)
+                .addContent(ringTrack(RING_STROKE_DP))
+        if (running != null) {
+            ring.addContent(sessionRing(running.session, running.stage, arcs, live, RING_STROKE_DP))
+        }
+        val headline = state.headline(live, now)
+        ring.addContent(
+            LayoutElementBuilders.Column
+                .Builder()
+                .addContent(text(state.mode().layoutString, typography = Typography.LABEL_SMALL, color = state.modeColor()))
+                .addContent(text(headline.text, typography = headline.typography))
+                .addContent(
+                    text(
+                        state.caption(now).layoutString,
+                        typography = Typography.BODY_EXTRA_SMALL,
+                        color = AbitTokens.Dark.ON_SURFACE_VARIANT.layoutColor(),
+                    ),
+                ).build(),
+        )
+
+        return LayoutElementBuilders.Box
+            .Builder()
+            .setWidth(DimensionBuilders.expand())
+            .setHeight(DimensionBuilders.expand())
+            .setModifiers(
+                LayoutModifier
+                    .contentDescription(state.spoken(now))
+                    .clickable(openAbit())
+                    .toProtoLayoutModifiers(),
+            ).addContent(ring.build())
+            .build()
     }
 
-    private fun headline(next: Chime?): String = if (next == null) "NO SCHEDULE" else "NEXT CHIME"
+    private fun openAbit(): ModifiersBuilders.Clickable =
+        ModifiersBuilders.Clickable
+            .Builder()
+            .setId("open")
+            .setOnClick(
+                ActionBuilders.LaunchAction
+                    .Builder()
+                    .setAndroidActivity(
+                        ActionBuilders.AndroidActivity
+                            .Builder()
+                            .setPackageName(packageName)
+                            .setClassName(MainActivity::class.java.name)
+                            .build(),
+                    ).build(),
+            ).build()
 
-    private fun boundary(next: Chime?): String = if (next == null) "—" else hhmm(next.at.time)
-
-    private fun detail(next: Chime?): String {
-        if (next == null) return "Add one on your phone"
-        val kind =
-            when (next.kind) {
-                ChimeKind.FocusStart -> "Focus"
-                ChimeKind.BreakStart -> "Break"
-                ChimeKind.DayEnd -> "Done"
-            }
-        val until = next.at.toInstant(clock.zone()) - clock.instant()
-        val minutes = until.inWholeMinutes
-        return if (next.at.date == clock.today()) {
-            "$kind · in $minutes min"
-        } else {
-            "$kind · ${dayLabel(next.at.date)}"
-        }
+    /** The next moment the layout itself has to change, clamped. See [MIN_FRESHNESS]. */
+    private fun freshnessMillis(
+        state: TodayState,
+        live: TileCountdown,
+        now: LocalDateTime,
+    ): Long {
+        val until =
+            when (state) {
+                is TodayState.Running -> live.remainingAt(LocalDateTime(now.date, state.nextBoundary), now)
+                is TodayState.OffHours -> state.next?.let { live.remainingAt(LocalDateTime(it.date, it.at), now) }
+                is TodayState.Skipped -> null
+            } ?: MAX_FRESHNESS
+        return until.coerceIn(MIN_FRESHNESS, MAX_FRESHNESS).inWholeMilliseconds
     }
 }
