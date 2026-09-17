@@ -1,6 +1,9 @@
 package com.gmail.volkovskiyda.abit.ui
 
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -171,6 +174,28 @@ class TrayPopoverTest {
 
             onNodeWithText("Sign-in cancelled").assertIsDisplayed()
             onNodeWithText("Not syncing").assertDoesNotExist()
+        }
+
+    /**
+     * The popover is the one root in this project with no scaffold over it, so [PopoverSurface] is
+     * the only thing that can provide a content colour — and Material's default is `Color.Black`,
+     * which on the dark palette painted the countdown, "Rest of today" and every schedule's name
+     * into the navy behind them. Asking the composition for the colour is the honest question: the
+     * bug was never in a `Text`, it was in what the `Text`s inherit.
+     */
+    @Test
+    fun `the popover provides a content colour rather than Material's black`() =
+        runComposeUiTest {
+            var inherited: Color? = null
+            var onSurface: Color? = null
+            setContent {
+                AbitTheme(darkTheme = true) {
+                    onSurface = MaterialTheme.colorScheme.onSurface
+                    PopoverSurface { inherited = LocalContentColor.current }
+                }
+            }
+
+            assertEquals(onSurface, inherited, "the popover leaves its labels to inherit a colour it never set")
         }
 
     private fun anonymous() = AuthUser(id = UserId("anon"), isAnonymous = true)

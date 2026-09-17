@@ -1,7 +1,6 @@
 package com.gmail.volkovskiyda.abit.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -169,6 +169,13 @@ fun TrayPopoverContent(
  * `transparent` — that pair is what makes this feel like a popover rather than a small window. Each
  * pane fills it, which is why the window grows instead of spawning a second one: there is one
  * surface under the menu-bar item, and panes take turns in it.
+ *
+ * A [Surface] rather than a `Modifier.background`, and that is not a style preference: `Surface` is
+ * the only thing in Material 3 that provides `LocalContentColor`, whose default is **black** — so a
+ * painted background alone left every `Text` that names no colour of its own (the countdown, "Rest
+ * of today", a schedule's name) rendering black on the dark palette's navy. Phone and web never
+ * showed it because `Scaffold` and `NavigationSuiteScaffold` each own a `Surface`; the popover is
+ * the one root in this project that has no scaffold above it.
  */
 @Composable
 internal fun PopoverSurface(
@@ -176,17 +183,23 @@ internal fun PopoverSurface(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                .padding(16.dp),
-        horizontalAlignment = horizontalAlignment,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        content = content,
-    )
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        // Explicit, because `contentColorFor` knows the roles Material named and not the container
+        // tones: handed `surfaceContainerLow` it answers `Color.Unspecified`, which falls straight
+        // back to the black this exists to prevent.
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = horizontalAlignment,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = content,
+        )
+    }
 }
 
 /**
