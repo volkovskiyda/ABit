@@ -87,6 +87,23 @@ Node. Run `git lfs install` once: the screenshot goldens and the baseline profil
 ./gradlew :app:web:wasmJsBrowserDevelopmentRun    # web app on localhost:8080
 ```
 
+### Hot reload on the desktop app
+
+```sh
+./gradlew :app:desktop:hotRun --auto    # start the tray app; every save re-composes it
+./gradlew reload                        # or reload by hand, without --auto
+```
+
+[Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload) replaces the edit-build-relaunch
+loop with a recomposition, which matters most here because the app under test is a menu-bar item
+whose state (a running schedule, a countdown) is tedious to get back to after every restart. The
+plugin provisions a JetBrains Runtime the first time it runs — enhanced class redefinition is a JBR
+feature, and the toolchain the rest of the build uses does not have it — so the first `hotRun`
+downloads a JDK and later ones do not.
+
+It is applied to `:app:desktop` and to nothing else, and no packaging task goes near it: `run`,
+`packageDmg` and `packageReleaseDmg` build the same bytes with or without the plugin.
+
 ### Building without secrets
 
 **A fresh clone builds and runs with no credentials at all.** That is a rule this project keeps, not

@@ -24,6 +24,11 @@ composeMaterial3 = "1.9.0"
 # 2026-09-15 that 1.2.0 publishes a `wasm:js` variant — a missing wasm variant fails only at link
 # time, long after the dependency resolves.
 composeAdaptive = "1.2.0"
+# Compose Hot Reload, for `:app:desktop:hotRun` only. Versioned independently of Compose
+# Multiplatform — it is a separate JetBrains repository with its own release line — and never
+# reaches a shipped artifact: the plugin is applied to the desktop app alone and the agent it adds
+# runs only under its own run task.
+composeHotReload = "1.2.0"
 
 # ---- AndroidX, multiplatform builds ------------------------------------------------------------
 androidxLifecycle = "2.11.0"
@@ -239,6 +244,7 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room3", version.ref = "androidxRoom" }
 kotzilla = { id = "io.kotzilla.kotzilla-plugin", version.ref = "kotzilla" }

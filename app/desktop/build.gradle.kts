@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    // Compose Hot Reload: `./gradlew :app:desktop:hotRun` starts the tray app and re-composes it on
+    // every save instead of rebuilding and relaunching. Applied here and nowhere else — it adds a
+    // JVM agent and a dev runtime classpath, neither of which belongs anywhere near `package` or
+    // `packageReleaseDmg`, and its own tasks are the only ones that use them.
+    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.abit.versioning)
 }
 

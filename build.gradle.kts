@@ -15,6 +15,9 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
+    // Applied to :app:desktop alone (see that module's build file): it exists to make one
+    // developer's edit-run loop faster and has no business on the Android, Wear or web builds.
+    alias(libs.plugins.composeHotReload) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.room) apply false
     alias(libs.plugins.googleServices) apply false
