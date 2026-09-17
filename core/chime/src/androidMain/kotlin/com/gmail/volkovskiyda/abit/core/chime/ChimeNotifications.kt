@@ -28,6 +28,17 @@ internal const val NOTIFICATION_COUNTDOWN = 1002
 /** Its own id, so a sample never stands in for the real countdown nor is cancelled along with it. */
 internal const val NOTIFICATION_SAMPLE_COUNTDOWN = 1003
 
+/**
+ * How long a boundary notification stays before the system takes it away.
+ *
+ * The chime is the point; the card is only what carries the platform's sound, and a "Break · until
+ * 14:30" left in the shade an hour later says nothing true. Ten seconds outlasts the heads-up peek —
+ * which is about five — so the banner is never pulled out from under someone reading it, and the
+ * shade is clean by the time anyone opens it. The *system* removes it, so it needs neither a
+ * coroutine nor the process to still be alive at the deadline.
+ */
+private const val CHIME_TIMEOUT_MILLIS = 10_000L
+
 /** What the sample counts down from — a plausible remainder rather than a round, obviously fake one. */
 private const val SAMPLE_REMAINING_MILLIS = 24L * 60L * 1000L
 
@@ -69,8 +80,8 @@ class ChimeNotifications(
             }
         val caption =
             when (kind) {
-                ChimeKind.FocusStart -> "Focus until ${focusEnd.hhmm()} · $scheduleName"
-                ChimeKind.BreakStart -> "Break until ${sessionEnd.hhmm()} · $scheduleName"
+                ChimeKind.FocusStart -> "until ${focusEnd.hhmm()}"
+                ChimeKind.BreakStart -> "until ${sessionEnd.hhmm()}"
                 ChimeKind.DayEnd -> "That is the last block of $scheduleName"
             }
         val notification =
@@ -82,6 +93,7 @@ class ChimeNotifications(
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
+                .setTimeoutAfter(CHIME_TIMEOUT_MILLIS)
                 .build()
         manager.notify(NOTIFICATION_CHIME, notification)
     }

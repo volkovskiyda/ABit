@@ -47,9 +47,24 @@ private fun documentHidden(): Boolean = js("document.hidden")
 
 private fun notificationsGranted(): Boolean = js("typeof Notification !== 'undefined' && Notification.permission === 'granted'")
 
-// Both parameters are read inside the `js(…)` body, which detekt cannot see.
+/**
+ * The boundary notification, closed again ten seconds later.
+ *
+ * The bell is what the user is listening for; the notification is what tells them which boundary it
+ * was, and it has said everything it has to say long before the session it announces ends. The
+ * timer belongs here rather than in a coroutine because the notification it closes is a browser
+ * object, not a Kotlin one, and nothing on the Kotlin side holds a reference to it.
+ *
+ * Both parameters are read inside the `js(…)` body, which detekt cannot see.
+ */
 @Suppress("UnusedParameter")
 private fun postNotification(
     title: String,
     body: String,
-): Unit = js("{ new Notification(title, { body: body }); }")
+): Unit =
+    js(
+        """{
+        const notification = new Notification(title, { body: body });
+        setTimeout(() => notification.close(), 10000);
+    }""",
+    )
