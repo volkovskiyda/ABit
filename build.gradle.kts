@@ -36,6 +36,10 @@ plugins {
     // application would have given. Re-test on a Kotzilla bump.
     alias(libs.plugins.kotzilla) apply false
     alias(libs.plugins.detekt)
+    // `./gradlew testSummary` — one HTML page over every test layer and all three analysis tools.
+    // Root-only by construction: it aggregates every module, and it reads reports rather than
+    // producing them, so it never makes a layer run.
+    alias(libs.plugins.abit.test.summary)
     // Applied to every project below rather than here, so `apply false`.
     alias(libs.plugins.ktlint) apply false
 }

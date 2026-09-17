@@ -142,6 +142,16 @@ Layer by layer:
 - **Firestore rules** are tested by attempting the access for real against the local emulator —
   including one user trying to read another's data, which must be refused.
 
+Every run leaves one page behind at `build/reports/test-summary/index.html`: every layer's totals,
+the three analysis tools, and — when something failed — the modules it failed in with the cases
+named. `scripts/run-tests.sh` writes it last, on a failing run too; `./gradlew testSummary` rebuilds
+it from whatever is already on disk without running a thing.
+
+A row reads **not run** rather than "0 passed" when the layer produced no XML at all. That
+distinction is the point of the page: a layer skipped for want of a device is not a layer that
+passed, and a summary that could not tell them apart would report a green wall for a run that
+tested a third of the project.
+
 ## Static analysis
 
 ```sh

@@ -2,7 +2,8 @@
 #
 # run-tests.sh
 #
-# Runs every check in the project and prints one summary at the end:
+# Runs every check in the project, prints one summary at the end, and leaves an HTML page behind
+# (`:testSummary`) that aggregates every layer's results and all three analysis tools:
 #
 #   1. Static analysis  (detekt, ktlintCheck, lint)                 host-side, always
 #   2. Unit tests       (desktopTest, testAndroidHostTest)          host-side, always
@@ -10,6 +11,9 @@
 #   4. Screenshot       (:app:android:validateDebugScreenshotTest)  host-side, always
 #   5. Instrumented     (managed emulator, or a connected device)   opt in, see below
 #   6. Emulator suite   (scripts/emulator-tests.sh)                 opt in, needs Node
+#
+# The HTML page lands at build/reports/test-summary/index.html and reports on whichever layers ran —
+# a layer nobody ran reads "not run" rather than "0 passed".
 #
 # Layers 1 to 4 need nothing but a JDK, so this is safe to run anywhere — including on a pull-request
 # runner with no emulator. That is why the instrumented and Firebase layers are opt in rather than
@@ -37,7 +41,7 @@ for arg in "$@"; do
     --connected) run_connected=true ;;
     --emulator)  run_emulator=true ;;
     --all)       run_managed=true; run_emulator=true ;;
-    -h|--help)   sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)   sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)           echo "Unknown option: $arg (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -79,4 +83,11 @@ fi
 echo
 echo "── Summary ───────────────────────────────────────────"
 printf '%s\n' "${results[@]}"
+
+# Always, and `|| true` on purpose: the page is most useful after a failing run, and a summary task
+# that could itself fail the script would be one more thing to debug when something is already
+# broken. It only reads XML that is already on disk, so it never makes a layer run.
+echo
+./gradlew testSummary --console=plain -q || true
+
 exit "$failed"
