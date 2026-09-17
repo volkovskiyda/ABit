@@ -10,4 +10,7 @@ class DesktopChimePreview(
 
     /** A Mac has nothing to buzz, and the setting is not offered here. */
     override suspend fun vibrate() = Unit
+
+    /** The tray popover is the Mac's countdown; there is no notification to sample. */
+    override suspend fun countdown() = Unit
 }

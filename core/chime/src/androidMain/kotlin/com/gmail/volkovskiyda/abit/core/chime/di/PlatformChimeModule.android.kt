@@ -15,10 +15,10 @@ import org.koin.dsl.module
 actual val platformChimeModule: Module =
     module {
         single { ChimePermissions(androidContext()) }
-        single<ChimePreview> { AndroidChimePreview(androidContext()) }
         // The watch overrides this with its tile updater; the phone has nothing to update.
         single<ChimeSurfaceUpdater> { NoChimeSurfaces() }
         single { ChimeNotifications(context = androidContext(), permissions = get()) }
+        single<ChimePreview> { AndroidChimePreview(androidContext(), notifications = get()) }
         single<ChimeScheduler> {
             AndroidChimeScheduler(
                 context = androidContext(),

@@ -22,6 +22,9 @@ class WebChimePreview(
     override suspend fun vibrate() {
         vibrateOnce(BUZZ_MILLIS)
     }
+
+    /** A browser notification cannot carry a live countdown, so the tab itself is the only one. */
+    override suspend fun countdown() = Unit
 }
 
 // The parameter is read inside the `js(…)` body, which detekt cannot see.

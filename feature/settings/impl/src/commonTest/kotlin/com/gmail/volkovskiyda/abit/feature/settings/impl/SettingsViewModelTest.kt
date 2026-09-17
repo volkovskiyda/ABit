@@ -26,6 +26,7 @@ import kotlin.test.assertTrue
 private class RecordingChimePreview : ChimePreview {
     val chimes = mutableListOf<ChimeSound>()
     var buzzes = 0
+    var countdowns = 0
 
     override suspend fun chime(sound: ChimeSound) {
         chimes += sound
@@ -33,6 +34,10 @@ private class RecordingChimePreview : ChimePreview {
 
     override suspend fun vibrate() {
         buzzes++
+    }
+
+    override suspend fun countdown() {
+        countdowns++
     }
 }
 
@@ -84,8 +89,8 @@ class SettingsViewModelTest {
                 viewModel.setVibrate(false)
                 assertEquals(false, awaitItem().preferences.vibrate)
 
-                viewModel.setShowCountdownNotification(false)
-                assertEquals(false, awaitItem().preferences.showCountdownNotification)
+                viewModel.setShowCountdownNotification(true)
+                assertEquals(true, awaitItem().preferences.showCountdownNotification)
 
                 viewModel.setThemeMode(ThemeMode.Dark)
                 assertEquals(ThemeMode.Dark, awaitItem().preferences.themeMode)
@@ -147,6 +152,23 @@ class SettingsViewModelTest {
                 viewModel.setVibrate(true)
                 awaitItem()
                 assertEquals(1, preview.buzzes)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the countdown is off until it is asked for, and shows a sample when it is`() =
+        runTest {
+            val preview = RecordingChimePreview()
+            val viewModel = viewModel(preview)
+
+            viewModel.state.test {
+                assertEquals(false, awaitItem().preferences.showCountdownNotification)
+
+                viewModel.setShowCountdownNotification(true)
+
+                assertEquals(true, awaitItem().preferences.showCountdownNotification)
+                assertEquals(1, preview.countdowns)
                 cancelAndIgnoreRemainingEvents()
             }
         }

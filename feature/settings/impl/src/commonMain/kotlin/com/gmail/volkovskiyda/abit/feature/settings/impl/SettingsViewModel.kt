@@ -93,7 +93,14 @@ class SettingsViewModel(
         if (enabled) viewModelScope.launch { chimePreview.vibrate() }
     }
 
-    fun setShowCountdownNotification(enabled: Boolean) = update { it.copy(showCountdownNotification = enabled) }
+    /**
+     * The screen is what gates this on the notification permission — asking for one needs an Activity,
+     * which is not something `commonMain` has. By the time this is called the answer is yes.
+     */
+    fun setShowCountdownNotification(enabled: Boolean) {
+        update { it.copy(showCountdownNotification = enabled) }
+        if (enabled) viewModelScope.launch { chimePreview.countdown() }
+    }
 
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {

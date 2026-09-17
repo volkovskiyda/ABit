@@ -15,12 +15,29 @@ import kotlinx.datetime.LocalTime
 internal const val CHANNEL_CHIMES = "abit.chimes"
 internal const val CHANNEL_COUNTDOWN = "abit.countdown"
 
+/**
+ * The sample's own channel, because it is the one countdown notification that has to announce
+ * itself. It is posted from Settings, where the shade is closed, and a silent sample is
+ * indistinguishable from a switch that did nothing.
+ */
+internal const val CHANNEL_COUNTDOWN_SAMPLE = "abit.countdown.sample"
+
 internal const val NOTIFICATION_CHIME = 1001
 internal const val NOTIFICATION_COUNTDOWN = 1002
 
+/** Its own id, so a sample never stands in for the real countdown nor is cancelled along with it. */
+internal const val NOTIFICATION_SAMPLE_COUNTDOWN = 1003
+
+/** What the sample counts down from — a plausible remainder rather than a round, obviously fake one. */
+private const val SAMPLE_REMAINING_MILLIS = 24L * 60L * 1000L
+
+/** Long enough to read, short enough that nobody is left with a second countdown to dismiss. */
+private const val SAMPLE_TIMEOUT_MILLIS = 12_000L
+
 /**
- * Two channels, deliberately different: the boundary itself is a high-importance alert with the
- * platform's own sound, while the countdown is a silent ongoing notification the *system* ticks.
+ * Three channels, deliberately different: the boundary itself is a high-importance alert with the
+ * platform's own sound, the countdown is a silent ongoing notification the *system* ticks, and the
+ * countdown's sample is high-importance too, so that it reaches the user who just asked to see it.
  *
  * The countdown uses `setUsesChronometer` + `setChronometerCountDown` + `setWhen(sessionEnd)` rather
  * than a repost per second. That is what makes an ongoing countdown affordable without a foreground
@@ -103,6 +120,39 @@ class ChimeNotifications(
         manager.cancel(NOTIFICATION_COUNTDOWN)
     }
 
+    /**
+     * One dismissible copy of the countdown, for the switch in Settings that turns it on.
+     *
+     * The real one exists only while a session is running, which is rarely when someone is in
+     * Settings deciding whether they want it. This is labelled as a sample and given a timeout, so
+     * the user gets a look at the shape of the thing rather than a second countdown to live with.
+     *
+     * Unlike the real countdown it is neither ongoing nor silent: it peeks over Settings with the
+     * platform's notification sound, because the user is looking at the switch they just flipped
+     * and not at the shade.
+     */
+    fun postSampleCountdown() {
+        if (!permissions.canPostNotifications()) return
+        ensureChannels(vibrate = false)
+
+        val notification =
+            NotificationCompat
+                .Builder(context, CHANNEL_COUNTDOWN_SAMPLE)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle("Focus · session 3 of 9")
+                .setContentText("Sample · this is how a running session looks")
+                .setAutoCancel(true)
+                .setShowWhen(true)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(System.currentTimeMillis() + SAMPLE_REMAINING_MILLIS)
+                // The system takes it away, so it survives the user leaving Settings and does not
+                // depend on a coroutine that the screen going away would cancel.
+                .setTimeoutAfter(SAMPLE_TIMEOUT_MILLIS)
+                .build()
+        manager.notify(NOTIFICATION_SAMPLE_COUNTDOWN, notification)
+    }
+
     private fun ensureChannels(vibrate: Boolean) {
         val system = context.getSystemService<NotificationManager>() ?: return
         system.createNotificationChannel(
@@ -118,6 +168,21 @@ class ChimeNotifications(
         system.createNotificationChannel(
             NotificationChannel(CHANNEL_COUNTDOWN, "Countdown", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "The quiet ongoing countdown to the end of the current session."
+                setShowBadge(false)
+                enableVibration(false)
+            },
+        )
+        system.createNotificationChannel(
+            // High, not low: importance is the only thing that decides whether a notification peeks
+            // on this minSdk, and a sample that waits in the shade is a sample the user never sees.
+            // That is why it is a channel of its own rather than a flag on the builder — raising the
+            // real countdown's importance would make every boundary of every session noisy.
+            NotificationChannel(
+                CHANNEL_COUNTDOWN_SAMPLE,
+                "Countdown sample",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "The one-off preview shown when you turn the countdown on."
                 setShowBadge(false)
                 enableVibration(false)
             },

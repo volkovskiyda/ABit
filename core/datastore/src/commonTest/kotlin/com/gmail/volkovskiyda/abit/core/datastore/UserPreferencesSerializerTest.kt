@@ -52,6 +52,8 @@ class UserPreferencesSerializerTest {
             assertEquals(true, read.chimeOnThisDevice)
             assertEquals(ChimeSound.Platform, read.chimeSound)
             assertEquals(true, read.vibrate)
-            assertEquals(true, read.showCountdownNotification)
+            // The one that does not default on: it needs a permission, and a switch that reads on
+            // while Android refuses to post is a switch that lies.
+            assertEquals(false, read.showCountdownNotification)
         }
 }

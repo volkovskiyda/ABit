@@ -33,5 +33,9 @@ data class UserPreferences(
     val chimeOnThisDevice: Boolean = true,
     val chimeSound: ChimeSound = ChimeSound.Platform,
     val vibrate: Boolean = true,
-    val showCountdownNotification: Boolean = true,
+    /**
+     * Off until asked for: it is the one chime setting that needs a permission Android can refuse,
+     * and a default-on switch that silently does nothing is worse than one the user turned on.
+     */
+    val showCountdownNotification: Boolean = false,
 )

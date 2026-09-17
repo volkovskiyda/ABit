@@ -19,6 +19,7 @@ private const val BUZZ_MILLIS = 120L
  */
 class AndroidChimePreview(
     private val context: Context,
+    private val notifications: ChimeNotifications,
 ) : ChimePreview {
     override suspend fun chime(sound: ChimeSound) {
         if (sound == ChimeSound.Silent) return
@@ -35,4 +36,6 @@ class AndroidChimePreview(
         if (!vibrator.hasVibrator()) return
         vibrator.vibrate(VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE))
     }
+
+    override suspend fun countdown() = notifications.postSampleCountdown()
 }

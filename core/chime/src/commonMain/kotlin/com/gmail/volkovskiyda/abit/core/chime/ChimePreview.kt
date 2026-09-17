@@ -17,4 +17,7 @@ interface ChimePreview {
 
     /** One buzz, on a device that has the hardware. A no-op where it does not. */
     suspend fun vibrate()
+
+    /** A sample of the ongoing countdown, where a platform has one. A no-op where it does not. */
+    suspend fun countdown()
 }

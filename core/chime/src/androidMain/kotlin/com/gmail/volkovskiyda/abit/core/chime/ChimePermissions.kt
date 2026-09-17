@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 
@@ -29,6 +30,9 @@ class ChimePermissions(
     }
 
     fun canPostNotifications(): Boolean {
+        // Below API 33 there is no runtime permission to hold, but the user can still switch this
+        // app's notifications off in system settings — and then nothing posted here arrives either.
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
