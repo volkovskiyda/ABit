@@ -49,21 +49,6 @@ class ChimeCoordinatorTest {
         }
 
     @Test
-    fun `turning the chime off on this device disarms, without touching the plan`() =
-        runTest {
-            val fixture = fixture(atHour = 9, atMinute = 22)
-            fixture.preferences.set(UserPreferences(chimeOnThisDevice = false))
-
-            fixture.coordinator.onChimeFired()
-
-            assertNull(fixture.scheduler.armed)
-            assertEquals(1, fixture.scheduler.disarmCount)
-            // The countdown still reports a running session: the device is silent, not off duty.
-            val state = fixture.scheduler.lastState
-            assertEquals(true, state is TodayState.Running)
-        }
-
-    @Test
     fun `pausing today arms tomorrow rather than nothing`() =
         runTest {
             val fixture = fixture(atHour = 9, atMinute = 22)

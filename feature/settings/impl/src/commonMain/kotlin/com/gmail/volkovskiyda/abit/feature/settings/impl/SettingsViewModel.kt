@@ -72,25 +72,16 @@ class SettingsViewModel(
     fun setThemeMode(mode: ThemeMode) = update { it.copy(themeMode = mode) }
 
     /**
-     * Per device: this silences the machine in front of the user, not the account.
+     * Picking a sound plays it.
      *
-     * Switching it back on rings once. A switch whose effect only arrives at the next boundary is one
-     * the user cannot evaluate while they are still looking at it — and on the web that same tap is
-     * the user gesture the browser needs before it will play anything at all.
+     * A sound whose effect only arrives at the next boundary is one the user cannot evaluate while
+     * they are still looking at the picker — and on the web that same tap is the user gesture the
+     * browser needs before it will play anything at all, so it is also the only moment the audio
+     * context can be started.
      */
-    fun setChimeOnThisDevice(enabled: Boolean) {
-        update { it.copy(chimeOnThisDevice = enabled) }
-        // Off to on only: a switch cannot be tapped to the value it already holds.
-        if (enabled) {
-            viewModelScope.launch { chimePreview.chime(preferencesRepository.preferences.first().chimeSound) }
-        }
-    }
-
-    fun setChimeSound(sound: ChimeSound) = update { it.copy(chimeSound = sound) }
-
-    fun setVibrate(enabled: Boolean) {
-        update { it.copy(vibrate = enabled) }
-        if (enabled) viewModelScope.launch { chimePreview.vibrate() }
+    fun setChimeSound(sound: ChimeSound) {
+        update { it.copy(chimeSound = sound) }
+        viewModelScope.launch { chimePreview.chime(sound) }
     }
 
     /**

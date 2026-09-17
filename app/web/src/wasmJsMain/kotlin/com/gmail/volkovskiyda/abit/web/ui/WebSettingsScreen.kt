@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.gmail.volkovskiyda.abit.core.chime.WEB_CHIME_LIMITATION
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.designsystem.components.PermissionRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
@@ -69,15 +68,6 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                     onIdToken = viewModel::signInWithGoogle,
                     onError = viewModel::onAuthError,
                     onSignOut = viewModel::signOut,
-                )
-            }
-
-            Section("THIS DEVICE") {
-                SwitchRow(
-                    title = "Chime in this tab",
-                    subtitle = WEB_CHIME_LIMITATION,
-                    checked = state.preferences.chimeOnThisDevice,
-                    onCheckedChange = viewModel::setChimeOnThisDevice,
                 )
             }
 
@@ -182,31 +172,6 @@ private fun Section(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         content()
-    }
-}
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    subtitle: String?,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            if (subtitle != null) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

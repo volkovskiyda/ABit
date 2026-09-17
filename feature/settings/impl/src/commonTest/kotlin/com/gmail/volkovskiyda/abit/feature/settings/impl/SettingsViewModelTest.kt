@@ -25,15 +25,10 @@ import kotlin.test.assertTrue
 /** Records what the screen asked to be played, which is the only thing worth asserting on. */
 private class RecordingChimePreview : ChimePreview {
     val chimes = mutableListOf<ChimeSound>()
-    var buzzes = 0
     var countdowns = 0
 
     override suspend fun chime(sound: ChimeSound) {
         chimes += sound
-    }
-
-    override suspend fun vibrate() {
-        buzzes++
     }
 
     override suspend fun countdown() {
@@ -61,21 +56,6 @@ class SettingsViewModelTest {
     fun tearDown() = mainDispatcherRule.tearDown()
 
     @Test
-    fun `every device chimes until this one is told not to`() =
-        runTest {
-            val viewModel = viewModel()
-
-            viewModel.state.test {
-                assertTrue(awaitItem().preferences.chimeOnThisDevice)
-
-                viewModel.setChimeOnThisDevice(false)
-
-                assertEquals(false, awaitItem().preferences.chimeOnThisDevice)
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
     fun `the other per-device settings persist too`() =
         runTest {
             val viewModel = viewModel()
@@ -85,9 +65,6 @@ class SettingsViewModelTest {
 
                 viewModel.setChimeSound(ChimeSound.SoftBell)
                 assertEquals(ChimeSound.SoftBell, awaitItem().preferences.chimeSound)
-
-                viewModel.setVibrate(false)
-                assertEquals(false, awaitItem().preferences.vibrate)
 
                 viewModel.setShowCountdownNotification(true)
                 assertEquals(true, awaitItem().preferences.showCountdownNotification)
@@ -117,41 +94,21 @@ class SettingsViewModelTest {
         }
 
     @Test
-    fun `turning chiming back on rings once, and turning it off says nothing`() =
+    fun `picking a sound plays it`() =
         runTest {
+            // The only way to hear a chime without waiting for a boundary, now that the switch which
+            // used to preview one is gone. On the web it is also the user gesture the browser wants
+            // before it will play anything at all.
             val preview = RecordingChimePreview()
             val viewModel = viewModel(preview)
 
             viewModel.state.test {
                 awaitItem()
 
-                viewModel.setChimeOnThisDevice(false)
-                awaitItem()
-                assertEquals(emptyList(), preview.chimes, "silencing a device is not an occasion for a chime")
-
-                viewModel.setChimeOnThisDevice(true)
-                awaitItem()
-                assertEquals(listOf(ChimeSound.Platform), preview.chimes)
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
-
-    @Test
-    fun `turning vibration back on buzzes once`() =
-        runTest {
-            val preview = RecordingChimePreview()
-            val viewModel = viewModel(preview)
-
-            viewModel.state.test {
+                viewModel.setChimeSound(ChimeSound.SoftBell)
                 awaitItem()
 
-                viewModel.setVibrate(false)
-                awaitItem()
-                assertEquals(0, preview.buzzes)
-
-                viewModel.setVibrate(true)
-                awaitItem()
-                assertEquals(1, preview.buzzes)
+                assertEquals(listOf(ChimeSound.SoftBell), preview.chimes)
                 cancelAndIgnoreRemainingEvents()
             }
         }

@@ -19,9 +19,9 @@ enum class ChimeSound { SoftBell, Platform, Silent }
  * that syncs lives in Firestore. The serializer's default-on-failure behaviour means adding a field
  * here is not a migration.
  *
- * The chime settings live here rather than in Firestore on purpose: every signed-in device is meant
- * to chime at 09:45, and "not this one" is a statement about the laptop in the meeting room, not
- * about the person. Syncing it would silence the phone in their pocket too.
+ * The chime settings live here rather than in Firestore on purpose: they describe the machine in
+ * front of the user, not the person, and syncing them would carry one device's answer to all of
+ * them.
  */
 @Serializable
 data class UserPreferences(
@@ -29,10 +29,7 @@ data class UserPreferences(
     val hasSeenOnboarding: Boolean = false,
     /** Epoch milliseconds of the last successful sync, or null if it has never run. */
     val lastSyncedAtMillis: Long? = null,
-    /** Per device, never synced: every device chimes unless this one is told not to. */
-    val chimeOnThisDevice: Boolean = true,
     val chimeSound: ChimeSound = ChimeSound.Platform,
-    val vibrate: Boolean = true,
     /**
      * Off until asked for: it is the one chime setting that needs a permission Android can refuse,
      * and a default-on switch that silently does nothing is worse than one the user turned on.

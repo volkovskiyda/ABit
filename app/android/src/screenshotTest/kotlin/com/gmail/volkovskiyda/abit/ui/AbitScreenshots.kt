@@ -147,8 +147,6 @@ private fun Settings(
         SettingsContent(
             state = state,
             onThemeMode = {},
-            onChimeOnThisDevice = {},
-            onVibrate = {},
             onShowCountdown = {},
             onSignIn = {},
             onSignOut = {},

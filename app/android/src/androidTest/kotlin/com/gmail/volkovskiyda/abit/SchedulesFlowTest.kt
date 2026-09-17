@@ -72,12 +72,12 @@ class SchedulesFlowTest {
     }
 
     @Test
-    fun settingsShowsThePerDeviceChimeSwitch() {
+    fun settingsShowsThePerDeviceCountdownSwitch() {
         composeRule.onNodeWithText("Settings").performClick()
 
         // The setting that is per device and never syncs — the distinction the whole product rests
         // on once four devices share one account.
-        composeRule.onNodeWithText("Chime on this device").assertIsDisplayed()
+        composeRule.onNodeWithText("Show countdown in notification").assertIsDisplayed()
         composeRule.onNodeWithText("PERMISSIONS").assertIsDisplayed()
     }
 }

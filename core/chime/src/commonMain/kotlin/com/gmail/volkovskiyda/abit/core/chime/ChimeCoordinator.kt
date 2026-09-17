@@ -30,8 +30,9 @@ private data class Inputs(
  * once more after each chime fires — so it never has to reason about time passing, only about the
  * plan changing and about being told the alarm went off.
  *
- * `chimeOnThisDevice == false` disarms while everything on screen keeps showing the live plan: the
- * setting silences *this device*, it does not opt it out of the schedule.
+ * There is no per-device mute to consult: a device running the app chimes its schedule, and the
+ * place to silence one is the platform's own notification settings, which every platform already
+ * has and which work whether the app is running or not.
  */
 class ChimeCoordinator(
     private val scheduleRepository: ScheduleRepository,
@@ -76,11 +77,7 @@ class ChimeCoordinator(
     private suspend fun apply(inputs: Inputs) {
         val now = clock.now()
         val next =
-            if (inputs.preferences.chimeOnThisDevice) {
-                chimesFrom(inputs.schedules, inputs.overrides, now, limit = 1).firstOrNull()
-            } else {
-                null
-            }
+            chimesFrom(inputs.schedules, inputs.overrides, now, limit = 1).firstOrNull()
 
         if (next == null) scheduler.disarm() else scheduler.arm(next)
         scheduler.showCountdown(todayState(inputs.schedules, inputs.overrides, now))

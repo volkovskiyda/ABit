@@ -14,9 +14,7 @@ class UserPreferencesSerializerTest {
                     themeMode = ThemeMode.Dark,
                     hasSeenOnboarding = true,
                     lastSyncedAtMillis = 1_700_000_000_000,
-                    chimeOnThisDevice = false,
                     chimeSound = ChimeSound.SoftBell,
-                    vibrate = false,
                     showCountdownNotification = false,
                 )
 
@@ -43,15 +41,18 @@ class UserPreferencesSerializerTest {
     @Test
     fun `reads a file written before the chime settings existed, and every device chimes`() =
         runTest {
-            // What a build from before item 07 would have left behind. The defaults matter: a device
-            // that has been running since then must start chiming, not stay silent.
-            val buffer = Buffer().writeUtf8("""{"themeMode":"Dark","hasSeenOnboarding":true}""")
+            // What a build from before item 07 would have left behind, plus the two switches that
+            // were removed again afterwards — a file still carrying them has to read, which is what
+            // ignoreUnknownKeys is for and the reason dropping a preference is not a migration.
+            val buffer =
+                Buffer().writeUtf8(
+                    """{"themeMode":"Dark","hasSeenOnboarding":true,"chimeOnThisDevice":false,"vibrate":false}""",
+                )
 
             val read = UserPreferencesSerializer.readFrom(buffer)
 
-            assertEquals(true, read.chimeOnThisDevice)
+            assertEquals(ThemeMode.Dark, read.themeMode)
             assertEquals(ChimeSound.Platform, read.chimeSound)
-            assertEquals(true, read.vibrate)
             // The one that does not default on: it needs a permission, and a switch that reads on
             // while Android refuses to post is a switch that lies.
             assertEquals(false, read.showCountdownNotification)

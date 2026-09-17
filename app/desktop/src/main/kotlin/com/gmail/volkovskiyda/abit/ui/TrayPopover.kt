@@ -54,10 +54,8 @@ private const val TIMELINE_ROWS = 4
 @Suppress("LongParameterList")
 fun TrayPopoverContent(
     state: TodayUiState,
-    chimeOnThisMac: Boolean,
     onSkipToday: (Boolean) -> Unit,
     onSkipTomorrow: () -> Unit,
-    onChimeOnThisMac: (Boolean) -> Unit,
     onOpenSchedules: () -> Unit,
     onQuit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -131,10 +129,6 @@ fun TrayPopoverContent(
             }
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Chime on this Mac", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Switch(checked = chimeOnThisMac, onCheckedChange = onChimeOnThisMac)
-        }
         AccountRow(
             user = state.user,
             error = state.authError,

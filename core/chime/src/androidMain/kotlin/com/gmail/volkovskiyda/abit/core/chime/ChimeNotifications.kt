@@ -57,10 +57,9 @@ class ChimeNotifications(
         scheduleName: String,
         focusEnd: LocalTime,
         sessionEnd: LocalTime,
-        vibrate: Boolean,
     ) {
         if (!permissions.canPostNotifications()) return
-        ensureChannels(vibrate)
+        ensureChannels()
 
         val title =
             when (kind) {
@@ -96,7 +95,7 @@ class ChimeNotifications(
             manager.cancel(NOTIFICATION_COUNTDOWN)
             return
         }
-        ensureChannels(vibrate = false)
+        ensureChannels()
 
         val stage = if (state.stage == BlockKind.Focus) "Focus" else "Break"
         val notification =
@@ -133,7 +132,7 @@ class ChimeNotifications(
      */
     fun postSampleCountdown() {
         if (!permissions.canPostNotifications()) return
-        ensureChannels(vibrate = false)
+        ensureChannels()
 
         val notification =
             NotificationCompat
@@ -153,15 +152,23 @@ class ChimeNotifications(
         manager.notify(NOTIFICATION_SAMPLE_COUNTDOWN, notification)
     }
 
-    private fun ensureChannels(vibrate: Boolean) {
+    private fun ensureChannels() {
         val system = context.getSystemService<NotificationManager>() ?: return
         system.createNotificationChannel(
             NotificationChannel(CHANNEL_CHIMES, "Chimes", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "The sound at every focus and break boundary."
-                enableVibration(vibrate)
                 // No setSound call on purpose: a channel left alone uses the platform's default
                 // notification sound, which is decision 12A. A synthesized bell here would override
-                // the one the user chose for their phone.
+                // the one the user chose for their phone. What this must not do is leave the
+                // channel silent — a boundary nobody hears is the whole feature missing — so the
+                // importance stays HIGH and the sound stays the platform's.
+                //
+                // Vibration on, with no in-app switch. A channel's vibration can only be set as the
+                // channel is created: createNotificationChannel ignores it, and the importance,
+                // for an id that already exists. That is exactly why the switch which used to pass
+                // a flag here did nothing from the second chime onwards, and why this belongs to
+                // the system's own channel settings, which were always the half that worked.
+                enableVibration(true)
                 if (isWatch) setShowBadge(false)
             },
         )

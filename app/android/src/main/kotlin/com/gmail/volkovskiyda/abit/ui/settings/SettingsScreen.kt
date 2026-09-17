@@ -125,8 +125,6 @@ fun SettingsScreen(
     SettingsContent(
         state = state,
         onThemeMode = viewModel::setThemeMode,
-        onChimeOnThisDevice = viewModel::setChimeOnThisDevice,
-        onVibrate = viewModel::setVibrate,
         // The countdown is the one setting that cannot work without a permission Android can refuse,
         // so asking is part of turning it on. It stays off until the answer is yes.
         onShowCountdown = { wanted ->
@@ -199,8 +197,6 @@ private fun NotificationRationale(
 fun SettingsContent(
     state: SettingsUiState,
     onThemeMode: (ThemeMode) -> Unit,
-    onChimeOnThisDevice: (Boolean) -> Unit,
-    onVibrate: (Boolean) -> Unit,
     onShowCountdown: (Boolean) -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
@@ -238,18 +234,6 @@ fun SettingsContent(
             }
 
             Section("THIS DEVICE") {
-                SwitchRow(
-                    title = "Chime on this device",
-                    subtitle = "Turn off to keep this device quiet. Your other devices still chime.",
-                    checked = state.preferences.chimeOnThisDevice,
-                    onCheckedChange = onChimeOnThisDevice,
-                )
-                SwitchRow(
-                    title = "Vibrate",
-                    subtitle = null,
-                    checked = state.preferences.vibrate,
-                    onCheckedChange = onVibrate,
-                )
                 SwitchRow(
                     title = "Show countdown in notification",
                     subtitle = null,

@@ -104,13 +104,10 @@ fun main() {
         var popoverVisible by remember { mutableStateOf(!isTraySupported) }
         var popoverDismissed by remember { mutableStateOf<TimeMark?>(null) }
         var schedulesPane by remember { mutableStateOf(false) }
-        val scope = rememberCoroutineScope()
 
         val preferences: UserPreferencesRepository = koinInject()
         val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
         val themeMode by themeFlow.collectAsState(initial = ThemeMode.System)
-        val chimeFlow = remember(preferences) { preferences.preferences.map { it.chimeOnThisDevice } }
-        val chimeOnThisMac by chimeFlow.collectAsState(initial = true)
 
         AbitMenuBarItem(
             // The item stays lit for as long as the popover it opened is up, which is what a menu
@@ -131,16 +128,12 @@ fun main() {
             visible = popoverVisible,
             schedulesPane = schedulesPane,
             themeMode = themeMode,
-            chimeOnThisMac = chimeOnThisMac,
             onDismiss = {
                 popoverVisible = false
                 popoverDismissed = TimeSource.Monotonic.markNow()
                 // A popover that reopened where it was left would come back at whatever size the
                 // last visit ended on; the menu-bar item's own surface is Today.
                 schedulesPane = false
-            },
-            onChimeOnThisMac = { enabled ->
-                scope.launch { preferences.update { it.copy(chimeOnThisDevice = enabled) } }
             },
             onOpenSchedules = { schedulesPane = true },
             onCloseSchedules = { schedulesPane = false },
@@ -222,9 +215,7 @@ private fun AbitPopoverWindow(
     visible: Boolean,
     schedulesPane: Boolean,
     themeMode: ThemeMode,
-    chimeOnThisMac: Boolean,
     onDismiss: () -> Unit,
-    onChimeOnThisMac: (Boolean) -> Unit,
     onOpenSchedules: () -> Unit,
     onCloseSchedules: () -> Unit,
     onQuit: () -> Unit,
@@ -269,8 +260,6 @@ private fun AbitPopoverWindow(
                 SchedulesPane(onBack = onCloseSchedules)
             } else {
                 TodayPane(
-                    chimeOnThisMac = chimeOnThisMac,
-                    onChimeOnThisMac = onChimeOnThisMac,
                     onOpenSchedules = onOpenSchedules,
                     onQuit = onQuit,
                 )
@@ -282,8 +271,6 @@ private fun AbitPopoverWindow(
 /** The popover's first pane, wired to the ViewModel the window keeps for as long as it lives. */
 @Composable
 private fun TodayPane(
-    chimeOnThisMac: Boolean,
-    onChimeOnThisMac: (Boolean) -> Unit,
     onOpenSchedules: () -> Unit,
     onQuit: () -> Unit,
 ) {
@@ -295,10 +282,8 @@ private fun TodayPane(
     val signInScope = rememberCoroutineScope()
     TrayPopoverContent(
         state = state,
-        chimeOnThisMac = chimeOnThisMac,
         onSkipToday = { viewModel.skipToday(it) },
         onSkipTomorrow = { viewModel.skipTomorrow() },
-        onChimeOnThisMac = onChimeOnThisMac,
         onOpenSchedules = onOpenSchedules,
         onQuit = onQuit,
         modifier = Modifier.fillMaxSize(),

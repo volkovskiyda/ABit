@@ -2,15 +2,9 @@ package com.gmail.volkovskiyda.abit.core.chime
 
 import android.content.Context
 import android.media.RingtoneManager
-import android.os.VibrationEffect
-import android.os.Vibrator
-import androidx.core.content.getSystemService
 import com.gmail.volkovskiyda.abit.core.datastore.ChimeSound
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-/** Long enough to feel deliberate, short enough not to outlast the tap that asked for it. */
-private const val BUZZ_MILLIS = 120L
 
 /**
  * Plays the sound the chime channel would play, which on Android and Wear is the platform's own
@@ -29,12 +23,6 @@ class AndroidChimePreview(
         withContext(Dispatchers.IO) {
             runCatching { RingtoneManager.getRingtone(context, uri)?.play() }
         }
-    }
-
-    override suspend fun vibrate() {
-        val vibrator = context.getSystemService<Vibrator>() ?: return
-        if (!vibrator.hasVibrator()) return
-        vibrator.vibrate(VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     override suspend fun countdown() = notifications.postSampleCountdown()

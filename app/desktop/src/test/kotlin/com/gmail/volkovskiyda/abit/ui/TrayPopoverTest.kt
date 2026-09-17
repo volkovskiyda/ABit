@@ -41,10 +41,8 @@ class TrayPopoverTest {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running()),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                     )
@@ -58,25 +56,25 @@ class TrayPopoverTest {
         }
 
     @Test
-    fun `has no start control, and offers the Mac's own chime switch`() =
+    fun `has no start control, and no per-device chime switch`() =
         runComposeUiTest {
             setContent {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running()),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                     )
                 }
             }
 
-            onNodeWithText("Chime on this Mac").assertIsDisplayed()
             onNodeWithText("Schedules").assertIsDisplayed()
             onNodeWithText("Start").assertDoesNotExist()
+            // Silencing one machine belongs to macOS's notification settings, which work whether
+            // the app is running or not. An in-app copy of them was one more thing to keep true.
+            onNodeWithText("Chime on this Mac").assertDoesNotExist()
         }
 
     /**
@@ -90,10 +88,8 @@ class TrayPopoverTest {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous()),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                         signInAvailable = false,
@@ -114,10 +110,8 @@ class TrayPopoverTest {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous()),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                         signInAvailable = true,
@@ -145,10 +139,8 @@ class TrayPopoverTest {
                                         email = "someone@example.com",
                                     ),
                             ),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                         signInAvailable = true,
@@ -168,10 +160,8 @@ class TrayPopoverTest {
                 AbitTheme(darkTheme = false) {
                     TrayPopoverContent(
                         state = TodayUiState(today = running(), user = anonymous(), authError = "Sign-in cancelled"),
-                        chimeOnThisMac = true,
                         onSkipToday = {},
                         onSkipTomorrow = {},
-                        onChimeOnThisMac = {},
                         onOpenSchedules = {},
                         onQuit = {},
                         signInAvailable = true,

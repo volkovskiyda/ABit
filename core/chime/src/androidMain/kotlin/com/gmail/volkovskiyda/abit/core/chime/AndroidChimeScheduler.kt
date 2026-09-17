@@ -85,7 +85,7 @@ class AndroidChimeScheduler(
         val prefs = preferences.preferences.first()
         notifications.showCountdown(
             state = state,
-            enabled = prefs.showCountdownNotification && prefs.chimeOnThisDevice,
+            enabled = prefs.showCountdownNotification,
         )
     }
 

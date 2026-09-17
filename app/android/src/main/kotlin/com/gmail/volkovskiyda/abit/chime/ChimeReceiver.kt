@@ -9,7 +9,6 @@ import com.gmail.volkovskiyda.abit.core.chime.EXTRA_FOCUS_END_SECOND
 import com.gmail.volkovskiyda.abit.core.chime.EXTRA_KIND
 import com.gmail.volkovskiyda.abit.core.chime.EXTRA_SCHEDULE_NAME
 import com.gmail.volkovskiyda.abit.core.chime.EXTRA_SESSION_END_SECOND
-import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
 import com.gmail.volkovskiyda.abit.core.domain.ChimeKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +30,6 @@ class ChimeReceiver :
     KoinComponent {
     private val coordinator: ChimeCoordinator by inject()
     private val notifications: ChimeNotifications by inject()
-    private val preferences: UserPreferencesRepository by inject()
 
     override fun onReceive(
         context: Context,
@@ -41,13 +39,12 @@ class ChimeReceiver :
         CoroutineScope(Dispatchers.Default).launch {
             try {
                 val kind = intent.getStringExtra(EXTRA_KIND)?.let { runCatching { ChimeKind.valueOf(it) }.getOrNull() }
-                if (kind != null && preferences.preferences.first().chimeOnThisDevice) {
+                if (kind != null) {
                     notifications.postChime(
                         kind = kind,
                         scheduleName = intent.getStringExtra(EXTRA_SCHEDULE_NAME).orEmpty(),
                         focusEnd = LocalTime.fromSecondOfDay(intent.getIntExtra(EXTRA_FOCUS_END_SECOND, 0)),
                         sessionEnd = LocalTime.fromSecondOfDay(intent.getIntExtra(EXTRA_SESSION_END_SECOND, 0)),
-                        vibrate = preferences.preferences.first().vibrate,
                     )
                 }
                 coordinator.onChimeFired()
