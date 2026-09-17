@@ -13,7 +13,12 @@ scripts/run-tests.sh --all      # ... plus managed-emulator and Firebase emulato
 ./gradlew desktopTest testAndroidHostTest       # the same commonTest sources, on both JVM hosts
 ./gradlew ciGroupDebugAndroidTest               # instrumented, on an emulator Gradle boots itself
 scripts/emulator-tests.sh                       # Firestore rules, against the local emulators
+./gradlew testSummary                           # one HTML page over every layer that has run
+./gradlew :app:desktop:hotRun --auto            # the tray app, re-composed on every save
 ```
+
+`testSummary` reads reports off disk and runs nothing, so it is safe after a failing run —
+`run-tests.sh` calls it last. A layer nobody ran reads "not run" rather than "0 passed".
 
 Watching a CI run:
 
@@ -53,6 +58,21 @@ you do.
   deliberate; the reasoning is in `SyncEngine`'s KDoc. A schedule is not hard-deleted: it is deleted
   by stamping `deletedAt`, which syncs like any other edit and is filtered out of every read.
 - **Crashlytics and Performance collect in release builds only.**
+- **Google sign-in hands `core:auth` an id token and nothing else, on all four platforms.**
+  Credential Manager on phone and watch, a loopback OAuth flow on the Mac, Google Identity Services
+  in the browser. Firebase's `signInWithPopup` is deliberately unused on web: it signs in *instead
+  of* linking the anonymous account, which would make the browser the one platform where signing in
+  discards local schedules. The Mac uses a **Desktop app** OAuth client (git-ignored
+  `oauth.properties`), never the web one, whose secret is genuinely confidential and must not ship
+  in a DMG. None of it can complete until the project has OAuth clients — see `docs/RELEASING.md`.
+- **Signing into a Google account that already exists resolves in the account's favour**, not by
+  `updatedAt`. It is the one place last-write-wins does not apply; `SyncEngine`'s KDoc says why, and
+  it detects the case from the uid changing rather than from any new API.
+- **The desktop ProGuard optimizer stays off.** With it on, the packaged app dies on startup with
+  `VerifyError` in `okio.Okio.sink(Socket)`. Obfuscation stays off too, and `maxHeapSize` stays
+  unset because the Compose plugin composes it as `-Xmx:<value>`. CI builds `packageReleaseDmg` on
+  every push, because a missing keep rule fails the *app*, not the build.
+- **Compose Hot Reload is applied to `:app:desktop` alone**, and no packaging task goes near it.
 
 ## Layout
 
@@ -80,9 +100,10 @@ yourself repeating configuration in two modules, that is a convention plugin.
 
 ## Secrets
 
-`keystore.properties`, `*.jks`, `google-services.json` and `kotzilla.json` are git-ignored and each
-has a committed `.example.*` twin. **Never commit one, never print its contents, never paste a key
-into a commit message or a PR description.** `scripts/restore-secrets.sh` is how CI gets them.
+`keystore.properties`, `*.jks`, `google-services.json`, `kotzilla.json` and `oauth.properties` are
+git-ignored and each has a committed `.example.*` twin. **Never commit one, never print its
+contents, never paste a key into a commit message or a PR description.**
+`scripts/restore-secrets.sh` is how CI gets them.
 
 `debug.keystore` *is* committed on purpose — it gives every machine the same debug SHA-1, which the
 Firebase API key restriction is pinned to.
@@ -95,12 +116,12 @@ records every locked decision with its reasoning — read it before re-deciding 
 
 ## Commits
 
-Imperative mood with a `type:` prefix, matching the existing history (`feat:`, `build:`, `test:`,
-`ci:`, `docs:`, `perf:`). **No trailers and no attribution of any kind** — no `Co-Authored-By`, no
-session links, no generated-with footers.
+Conventional commits: imperative mood, lowercase `type:` prefix, matching the existing history
+(`feat:`, `fix:`, `build:`, `test:`, `ci:`, `docs:`, `perf:`, `refactor:`). **No trailers and no
+attribution of any kind** — no `Co-Authored-By`, no session links, no generated-with footers.
 
-When asked to change something already committed, put the change in a **separate commit whose message
-starts with `Fix`**; never amend or rewrite the original.
+When asked to change something already committed, put the change in a **separate `fix:` commit** —
+lowercase, like every other type, never `Fix` or `Fix:`; never amend or rewrite the original.
 
 ## External services
 
