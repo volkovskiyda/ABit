@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -32,8 +33,10 @@ import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
 import com.gmail.volkovskiyda.abit.feature.settings.impl.SettingsViewModel
 import com.gmail.volkovskiyda.abit.web.auth.GoogleSignIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun WebSettingsScreen(modifier: Modifier = Modifier) {
@@ -78,10 +81,17 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                     granted = state.permissions.firstOrNull { it.id == PermissionId.BrowserNotifications }?.granted == true,
                     actionLabel = "Allow",
                     onAction = {
-                        requestNotificationPermission()
-                        viewModel.onPermissionsChanged(
-                            listOf(PermissionState(PermissionId.BrowserNotifications, notificationsGranted())),
-                        )
+                        // Notification.requestPermission() answers with a promise, and the row used
+                        // to re-read the permission on the next line — before the browser had even
+                        // shown the prompt. It said "not granted" however the user answered, until
+                        // something else remounted the screen.
+                        val answered = {
+                            viewModel.onPermissionsChanged(
+                                listOf(PermissionState(PermissionId.BrowserNotifications, notificationsGranted())),
+                            )
+                        }
+                        val request = requestNotificationPermission()
+                        if (request == null) answered() else request.then { answered() }
                     },
                 )
             }
@@ -120,6 +130,18 @@ private fun AccountCard(
     val scope = rememberCoroutineScope()
     val linked = user?.takeIf { !it.isAnonymous }
 
+    // index.html loads Google's script `async defer`, so on a cold open this composes before
+    // `google.accounts.id` exists. Reading it as a plain value meant the card said sync was
+    // unavailable and nothing ever recomposed to correct it — a snapshot read is the only way a
+    // JS global that appears later can reach Compose. Polling because the script tag is not ours
+    // to attach a load handler to; it stops as soon as the answer is yes.
+    val signInAvailable by produceState(googleSignIn.available, googleSignIn) {
+        while (!value) {
+            delay(GIS_POLL_INTERVAL)
+            value = googleSignIn.available
+        }
+    }
+
     when {
         linked != null -> {
             SignInCard(
@@ -132,7 +154,7 @@ private fun AccountCard(
 
         // Honest rather than broken: with no web OAuth client on the project there is nothing to ask
         // Google for, and a button that cannot work is worse than a sentence saying why.
-        !googleSignIn.available -> {
+        !signInAvailable -> {
             SignInCard(
                 onSignIn = {},
                 title = "Sync is not available in this build",
@@ -177,4 +199,21 @@ private fun Section(
 
 private fun notificationsGranted(): Boolean = js("typeof Notification !== 'undefined' && Notification.permission === 'granted'")
 
-private fun requestNotificationPermission(): Unit = js("{ if (typeof Notification !== 'undefined') { Notification.requestPermission(); } }")
+/**
+ * The promise `Notification.requestPermission()` settles when the user answers the prompt.
+ *
+ * An external declaration rather than a lambda inside the `js(…)` body: passing a Kotlin function
+ * across the boundary is something Kotlin/Wasm supports on a declaration's parameters, and writing
+ * the same call inside a `js(…)` string would hand the compiler a name it cannot check. The same
+ * reasoning the GIS wrappers carry.
+ */
+private external interface PermissionRequest : JsAny {
+    fun then(onSettled: (JsString) -> Unit)
+}
+
+/** Null where the browser has no Notification API at all, which is an answer of its own. */
+private fun requestNotificationPermission(): PermissionRequest? =
+    js("(typeof Notification !== 'undefined') ? Notification.requestPermission() : null")
+
+/** How often the account card re-asks whether Google's script has finished loading. */
+private val GIS_POLL_INTERVAL = 200.milliseconds
