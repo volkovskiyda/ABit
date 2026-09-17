@@ -174,7 +174,7 @@ private fun TodayRing(today: TodayState) {
     val stage = today.stage()
     val arcs =
         when (today) {
-            is TodayState.Running -> ringArcs(today.session, today.remaining)
+            is TodayState.Running -> ringArcs(today.session, today.sessionRemaining)
 
             // Paused and off hours draw the bare track: no accent at all, which is the design's rule.
             else -> RingArcs.Empty
@@ -184,7 +184,7 @@ private fun TodayRing(today: TodayState) {
             ModeLabel(stage)
             when (today) {
                 is TodayState.Running -> {
-                    CountdownText(today.remaining)
+                    CountdownText(today.stageRemaining)
                 }
 
                 is TodayState.Paused -> {

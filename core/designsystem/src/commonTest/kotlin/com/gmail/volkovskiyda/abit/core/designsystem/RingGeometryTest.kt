@@ -81,8 +81,10 @@ class RingGeometryTest {
     }
 
     @Test
-    fun `minutes left rounds down and never goes negative`() {
-        assertEquals(37, minutesLeft(fortyFiveFifteen, LocalTime(9, 22, 22)))
+    fun `minutes left counts the current block, rounds down and never goes negative`() {
+        // 09:22:22 is 22 minutes and 38 seconds from the end of the focus, not 37 from the session.
+        assertEquals(22, minutesLeft(fortyFiveFifteen, LocalTime(9, 22, 22)))
+        assertEquals(10, minutesLeft(fortyFiveFifteen, LocalTime(9, 50)))
         assertEquals(0, minutesLeft(fortyFiveFifteen, LocalTime(11, 0)))
     }
 }

@@ -50,7 +50,8 @@ private const val SIX_PM = 18
 private const val HALF_PAST_NINE_THIRTY = 30
 private const val FOCUS_MINUTES = 45
 private const val BREAK_MINUTES = 15
-private const val REMAINING_MINUTES = 37
+private const val FOCUS_REMAINING_MINUTES = 22
+private const val SESSION_REMAINING_MINUTES = 37
 private const val REMAINING_SECONDS = 38
 private const val BREAK_REMAINING_MINUTES = 10
 private const val TWENTY_TWO = 22
@@ -98,9 +99,16 @@ private fun running(stage: BlockKind): TodayState.Running {
         sessionNumber = 1,
         sessionCount = plan.sessions.size,
         stage = stage,
-        remaining =
+        // 09:22:38 into the first session: 22:38 left of the focus, 37:38 left of the session itself.
+        stageRemaining =
             if (stage == BlockKind.Focus) {
-                REMAINING_MINUTES.minutes + REMAINING_SECONDS.seconds
+                FOCUS_REMAINING_MINUTES.minutes + REMAINING_SECONDS.seconds
+            } else {
+                BREAK_REMAINING_MINUTES.minutes
+            },
+        sessionRemaining =
+            if (stage == BlockKind.Focus) {
+                SESSION_REMAINING_MINUTES.minutes + REMAINING_SECONDS.seconds
             } else {
                 BREAK_REMAINING_MINUTES.minutes
             },

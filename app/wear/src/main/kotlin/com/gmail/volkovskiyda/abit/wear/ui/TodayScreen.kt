@@ -58,7 +58,7 @@ fun WearTodayContent(
             verticalArrangement = Arrangement.Center,
         ) {
             SessionRing(
-                arcs = if (today is TodayState.Running) ringArcs(today.session, today.remaining) else RingArcs.Empty,
+                arcs = if (today is TodayState.Running) ringArcs(today.session, today.sessionRemaining) else RingArcs.Empty,
                 stage = (today as? TodayState.Running)?.stage ?: BlockKind.Focus,
                 diameter = RING_DIAMETER,
                 strokeWidth = WEAR_RING_STROKE,
@@ -110,7 +110,7 @@ private fun TodayState.mode(): String =
 
 private fun TodayState.headline(): String =
     when (this) {
-        is TodayState.Running -> countdown(remaining)
+        is TodayState.Running -> countdown(stageRemaining)
         is TodayState.Paused -> "—"
         is TodayState.OffHours -> next?.at?.let(::hhmm) ?: "—"
     }

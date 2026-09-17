@@ -68,7 +68,7 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     SessionRing(
-                        arcs = if (today is TodayState.Running) ringArcs(today.session, today.remaining) else RingArcs.Empty,
+                        arcs = if (today is TodayState.Running) ringArcs(today.session, today.sessionRemaining) else RingArcs.Empty,
                         stage = (today as? TodayState.Running)?.stage ?: BlockKind.Focus,
                     ) {
                         Column(
@@ -78,7 +78,7 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
                             ModeLabel((today as? TodayState.Running)?.stage)
                             when (today) {
                                 is TodayState.Running -> {
-                                    CountdownText(today.remaining)
+                                    CountdownText(today.stageRemaining)
                                 }
 
                                 is TodayState.Paused -> {

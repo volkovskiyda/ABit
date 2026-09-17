@@ -94,7 +94,7 @@ class ChimeNotifications(
                 // The system ticks this, so the app posts once per boundary rather than once a second.
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
-                .setWhen(System.currentTimeMillis() + state.remaining.inWholeMilliseconds)
+                .setWhen(System.currentTimeMillis() + state.stageRemaining.inWholeMilliseconds)
                 .build()
         manager.notify(NOTIFICATION_COUNTDOWN, notification)
     }

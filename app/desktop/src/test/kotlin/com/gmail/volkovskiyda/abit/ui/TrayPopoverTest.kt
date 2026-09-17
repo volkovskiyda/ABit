@@ -45,7 +45,8 @@ class TrayPopoverTest {
             }
 
             onNodeWithText("FOCUS").assertIsDisplayed()
-            onNodeWithText("37:38").assertIsDisplayed()
+            // The focus block's own countdown, not the session's 37:38.
+            onNodeWithText("22:38").assertIsDisplayed()
             onNodeWithText("Pause today").assertIsDisplayed()
             onNodeWithText("Skip next").assertIsDisplayed()
         }
@@ -199,7 +200,8 @@ class TrayPopoverTest {
             sessionNumber = 1,
             sessionCount = 9,
             stage = BlockKind.Focus,
-            remaining = 37.minutes + 38.seconds,
+            stageRemaining = 22.minutes + 38.seconds,
+            sessionRemaining = 37.minutes + 38.seconds,
             nextBoundary = LocalTime(9, 45),
         )
     }

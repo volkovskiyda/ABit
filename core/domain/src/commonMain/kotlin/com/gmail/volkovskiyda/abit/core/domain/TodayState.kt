@@ -24,7 +24,13 @@ data class NextSession(
  * they cannot disagree about which session it is.
  */
 sealed interface TodayState {
-    /** A session is in progress. [remaining] counts down to the end of the session, not the block. */
+    /**
+     * A session is in progress. The two countdowns are deliberately different clocks: [stageRemaining]
+     * counts down the block the user is actually in — 45 minutes of focus, then 15 of break — which is
+     * the number every surface prints, and [sessionRemaining] runs to the end of the session, which is
+     * what the ring sweeps. Printing the session's hour instead would tell someone twenty minutes into
+     * a focus block that they have forty minutes to go, when the break is twenty-five away.
+     */
     data class Running(
         val plan: DayPlan,
         val session: Session,
@@ -32,7 +38,8 @@ sealed interface TodayState {
         val sessionNumber: Int,
         val sessionCount: Int,
         val stage: BlockKind,
-        val remaining: Duration,
+        val stageRemaining: Duration,
+        val sessionRemaining: Duration,
         val nextBoundary: LocalTime,
     ) : TodayState
 
@@ -68,15 +75,16 @@ fun todayState(
 
     val session = plan.sessionAt(now.time)
     if (session != null) {
-        val stage = plan.blockAt(now.time)?.kind ?: BlockKind.Focus
-        val remaining = (session.end.toSecondOfDay() - now.time.toSecondOfDay()).seconds
+        val block = plan.blockAt(now.time)
+        val stageEnd = block?.end ?: session.end
         return TodayState.Running(
             plan = plan,
             session = session,
             sessionNumber = session.index + 1,
             sessionCount = plan.sessions.size,
-            stage = stage,
-            remaining = remaining,
+            stage = block?.kind ?: BlockKind.Focus,
+            stageRemaining = (stageEnd.toSecondOfDay() - now.time.toSecondOfDay()).seconds,
+            sessionRemaining = (session.end.toSecondOfDay() - now.time.toSecondOfDay()).seconds,
             nextBoundary = plan.nextBoundaryAfter(now.time) ?: session.end,
         )
     }

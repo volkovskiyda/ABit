@@ -81,7 +81,7 @@ fun TrayPopoverContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SessionRing(
-            arcs = if (today is TodayState.Running) ringArcs(today.session, today.remaining) else RingArcs.Empty,
+            arcs = if (today is TodayState.Running) ringArcs(today.session, today.sessionRemaining) else RingArcs.Empty,
             stage = (today as? TodayState.Running)?.stage ?: BlockKind.Focus,
             diameter = POPOVER_RING_DIAMETER,
             strokeWidth = POPOVER_RING_STROKE,
@@ -90,7 +90,7 @@ fun TrayPopoverContent(
                 ModeLabel((today as? TodayState.Running)?.stage)
                 when (today) {
                     is TodayState.Running -> {
-                        CountdownText(today.remaining, style = MaterialTheme.typography.headlineMedium)
+                        CountdownText(today.stageRemaining, style = MaterialTheme.typography.headlineMedium)
                     }
 
                     is TodayState.Paused -> {

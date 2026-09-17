@@ -46,16 +46,17 @@ fun ringArcs(
 
 /**
  * The same ring from the countdown a surface already holds, so a screen rendering
- * `TodayState.Running` does not have to reconstruct "now" by subtracting.
+ * `TodayState.Running` does not have to reconstruct "now" by subtracting. Note which countdown:
+ * `sessionRemaining`, never the `stageRemaining` the digits inside the ring print.
  */
 fun ringArcs(
     session: Session,
-    remaining: Duration,
+    sessionRemaining: Duration,
 ): RingArcs {
     val sessionSeconds = session.end.toSecondOfDay() - session.start.toSecondOfDay()
     if (sessionSeconds <= 0) return RingArcs.Empty
 
-    val remainingSeconds = remaining.inWholeSeconds.toInt().coerceIn(0, sessionSeconds)
+    val remainingSeconds = sessionRemaining.inWholeSeconds.toInt().coerceIn(0, sessionSeconds)
     val breakSeconds = session.rest?.let { it.end.toSecondOfDay() - it.start.toSecondOfDay() } ?: 0
 
     val perSecond = FULL_TURN_DEG / sessionSeconds
@@ -64,8 +65,15 @@ fun ringArcs(
     return RingArcs(breakSweep = breakSweep, focusSweep = focusSweep)
 }
 
-/** Minutes remaining in the session, rounded down — what the menu bar and the tile render. */
+/**
+ * Minutes remaining in the block [now] falls in — the focus, then the break — rounded down. That is
+ * the same clock the countdown text prints, so a menu bar or a tile rendering this number cannot
+ * disagree with the screen. The ring, and only the ring, still spans the whole session.
+ */
 fun minutesLeft(
     session: Session,
     now: LocalTime,
-): Int = ((session.end.toSecondOfDay() - now.toSecondOfDay()).coerceAtLeast(0)) / SECONDS_IN_MINUTE
+): Int {
+    val stageEnd = if (now < session.focus.end) session.focus.end else session.end
+    return ((stageEnd.toSecondOfDay() - now.toSecondOfDay()).coerceAtLeast(0)) / SECONDS_IN_MINUTE
+}

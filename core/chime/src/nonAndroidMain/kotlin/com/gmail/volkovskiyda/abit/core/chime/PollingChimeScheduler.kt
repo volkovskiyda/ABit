@@ -49,7 +49,10 @@ open class PollingChimeScheduler(
     private val minutesLeftState = MutableStateFlow<Int?>(null)
     private val stageState = MutableStateFlow<TodayState?>(null)
 
-    /** What the menu bar and the page render. Null means nothing is running. */
+    /**
+     * What the menu bar and the page render: the minutes left in the current focus or break, not in
+     * the session. Null means nothing is running.
+     */
     val minutesLeft: StateFlow<Int?> = minutesLeftState.asStateFlow()
 
     /** The whole state, for a surface that wants more than the minutes. */
@@ -94,7 +97,7 @@ open class PollingChimeScheduler(
 
     override suspend fun showCountdown(state: TodayState) {
         stageState.value = state
-        minutesLeftState.value = (state as? TodayState.Running)?.remaining?.inWholeMinutes?.toInt()
+        minutesLeftState.value = (state as? TodayState.Running)?.stageRemaining?.inWholeMinutes?.toInt()
     }
 
     /**

@@ -23,27 +23,41 @@ class TodayStateTest {
     private val schedules = listOf(schedule())
 
     @Test
-    fun `counts down to the end of the session, not the end of the block`() {
+    fun `counts the focus down to its own end, and the session down to the break's`() {
         val state = todayState(schedules, emptyMap(), at(9, 22, 22))
 
         assertIs<TodayState.Running>(state)
         assertEquals(BlockKind.Focus, state.stage)
         assertEquals(1, state.sessionNumber)
         assertEquals(9, state.sessionCount)
-        // 09:22:22 to the end of session 1 at 10:00, which is the end of its break.
-        assertEquals(37.minutes + 38.seconds, state.remaining)
+        // 09:22:22 to the end of the focus at 09:45 — the 45 of a 45/15 day, not the 60.
+        assertEquals(22.minutes + 38.seconds, state.stageRemaining)
+        // The ring still spans the session, which ends with its break at 10:00.
+        assertEquals(37.minutes + 38.seconds, state.sessionRemaining)
         assertEquals(LocalTime(9, 45), state.nextBoundary)
     }
 
     @Test
-    fun `stays in the same session through its break`() {
+    fun `counts the break down on its own once the focus is over`() {
         val state = todayState(schedules, emptyMap(), at(9, 50))
 
         assertIs<TodayState.Running>(state)
         assertEquals(BlockKind.Break, state.stage)
         assertEquals(1, state.sessionNumber)
         assertEquals(LocalTime(10, 0), state.session.end)
-        assertEquals(10.minutes, state.remaining)
+        // The break ends the session, so both clocks agree for the last stretch of it.
+        assertEquals(10.minutes, state.stageRemaining)
+        assertEquals(10.minutes, state.sessionRemaining)
+    }
+
+    @Test
+    fun `counts the day's last focus down to the schedule's end, which has no break after it`() {
+        val state = todayState(schedules, emptyMap(), at(17, 30))
+
+        assertIs<TodayState.Running>(state)
+        assertEquals(BlockKind.Focus, state.stage)
+        assertEquals(15.minutes, state.stageRemaining)
+        assertEquals(15.minutes, state.sessionRemaining)
     }
 
     @Test

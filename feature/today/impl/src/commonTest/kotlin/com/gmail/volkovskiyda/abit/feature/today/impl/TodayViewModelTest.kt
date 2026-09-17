@@ -47,7 +47,8 @@ class TodayViewModelTest {
                 assertEquals(BlockKind.Focus, running.stage)
                 assertEquals(1, running.sessionNumber)
                 assertEquals(9, running.sessionCount)
-                assertEquals(37.minutes + 38.seconds, running.remaining)
+                assertEquals(22.minutes + 38.seconds, running.stageRemaining)
+                assertEquals(37.minutes + 38.seconds, running.sessionRemaining)
                 cancelAndIgnoreRemainingEvents()
             }
         }
