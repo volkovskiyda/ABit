@@ -17,6 +17,25 @@ class AbitFormatTest {
     }
 
     @Test
+    fun `a running clock keeps the seconds, zero padded like the rest`() {
+        assertEquals("09:00:00", hhmmss(LocalTime(9, 0)))
+        assertEquals("18:30:07", hhmmss(LocalTime(18, 30, 7)))
+        assertEquals("23:59:59", hhmmss(LocalTime(23, 59, 59)))
+    }
+
+    @Test
+    fun `a session caption names the next boundary and when the session ends`() {
+        assertEquals("09:45 · ends 10:00", sessionCaption(LocalTime(9, 45), LocalTime(10, 0)))
+        assertEquals("22:50 · ends 22:55", sessionCaption(LocalTime(22, 50), LocalTime(22, 55)))
+    }
+
+    @Test
+    fun `a session caption prints one clock once when the boundary is the session end`() {
+        // Every break: a break's end is its session's, so both halves would read 10:00.
+        assertEquals("ends 10:00", sessionCaption(LocalTime(10, 0), LocalTime(10, 0)))
+    }
+
+    @Test
     fun `a countdown under an hour is mm ss`() {
         assertEquals("37:38", countdown(37.minutes + 38.seconds))
         assertEquals("00:09", countdown(9.seconds))

@@ -7,11 +7,11 @@ import androidx.wear.protolayout.types.LayoutColor
 import com.gmail.volkovskiyda.abit.core.designsystem.AbitTokens
 import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
+import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.NextSession
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 
 /** The label above the digits, shouted the way the app's Today screen shouts it. */
@@ -31,19 +31,10 @@ internal fun TodayState.modeColor(): LayoutColor =
 
 internal fun TodayState.caption(now: LocalDateTime): String =
     when (this) {
-        is TodayState.Running -> runningCaption(nextBoundary, session.end)
+        is TodayState.Running -> sessionCaption(nextBoundary, session.end)
         is TodayState.Skipped -> "until ${dayLabel(resumesOn)}"
         is TodayState.OffHours -> next.caption(now)
     }
-
-/**
- * In a break the next boundary *is* the end of the session, and one clock printed twice reads as a
- * bug rather than as emphasis.
- */
-private fun runningCaption(
-    nextBoundary: LocalTime,
-    sessionEnd: LocalTime,
-): String = if (nextBoundary == sessionEnd) "ends ${hhmm(sessionEnd)}" else "${hhmm(nextBoundary)} · ends ${hhmm(sessionEnd)}"
 
 /**
  * Which schedule is next, and — when it is not today — which day. The digits above say `09:00` and

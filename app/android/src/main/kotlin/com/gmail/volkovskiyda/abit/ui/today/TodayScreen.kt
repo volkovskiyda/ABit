@@ -39,11 +39,14 @@ import com.gmail.volkovskiyda.abit.core.designsystem.components.CountdownText
 import com.gmail.volkovskiyda.abit.core.designsystem.components.ModeLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SessionRing
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SyncBadge
+import com.gmail.volkovskiyda.abit.core.designsystem.components.TabularText
 import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelinePosition
 import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelineRow
 import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
+import com.gmail.volkovskiyda.abit.core.designsystem.hhmmss
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
+import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
@@ -143,12 +146,14 @@ fun TodayContent(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         TodayRing(state.today)
+                        WallClock(state.now)
                         TodayActions(state.today, onSkipToday, onSkipTomorrow)
                     }
                     Column(Modifier.weight(3f)) { RestOfToday(state.today, state.now) }
                 }
             } else {
                 TodayRing(state.today)
+                WallClock(state.now)
                 TodayActions(state.today, onSkipToday, onSkipTomorrow)
                 RestOfToday(state.today, state.now)
             }
@@ -204,6 +209,22 @@ private fun TodayRing(today: TodayState) {
             )
         }
     }
+}
+
+/**
+ * The wall clock, between the ring and the day's one intervention.
+ *
+ * With the seconds, because the countdown inside the ring above it moves every second: a clock beside
+ * a running one that only changed on the minute would read as the stale half of the pair. It costs no
+ * ticker of its own — `TodayUiState.now` is already re-read every second to drive that countdown —
+ * and it is tabular for the same reason the countdown is, so the digits do not jitter the row.
+ */
+@Composable
+private fun WallClock(now: LocalTime) {
+    TabularText(
+        text = hhmmss(now),
+        style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+    )
 }
 
 @Composable
@@ -337,7 +358,7 @@ private fun TodayUiState.subtitle(): String {
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> {
-            "${if (stage == BlockKind.Focus) "break" else "focus"} at ${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
+            sessionCaption(nextBoundary, session.end)
         }
 
         is TodayState.Skipped -> {

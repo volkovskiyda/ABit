@@ -25,16 +25,20 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.TimeSource
 import androidx.wear.compose.material3.TimeText
 import com.gmail.volkovskiyda.abit.core.designsystem.RingArcs
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SessionRing
 import com.gmail.volkovskiyda.abit.core.designsystem.countdown
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
+import com.gmail.volkovskiyda.abit.core.designsystem.hhmmss
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
+import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
+import kotlinx.datetime.LocalTime
 
 /** The brief: the ring hugs the bezel at a 6 dp stroke, everything inside an 8 % inset. */
 private val WEAR_RING_STROKE = 6.dp
@@ -77,7 +81,14 @@ fun WearTodayContent(
     // requestFocusOnHierarchyActive is what hands it over — the older rememberActiveFocusRequester
     // that reads more naturally here is deprecated in Wear Compose 1.6.
     val focusRequester = remember { FocusRequester() }
-    ScreenScaffold(modifier = modifier, scrollState = scrollState, timeText = { TimeText() }) { padding ->
+    // Seconds, because the number in the middle of the ring counts in seconds and a clock above it
+    // that only moves once a minute reads as the stale one of the two.
+    val timeSource = remember(state.now) { FixedTimeSource(state.now) }
+    ScreenScaffold(
+        modifier = modifier,
+        scrollState = scrollState,
+        timeText = { TimeText(timeSource = timeSource) },
+    ) { padding ->
         Column(
             modifier =
                 Modifier
@@ -139,6 +150,22 @@ fun WearTodayContent(
     }
 }
 
+/**
+ * The clock at the top of the screen, from the state rather than from the system.
+ *
+ * Wear's own `DefaultTimeSource` refreshes on `ACTION_TIME_TICK`, which the platform broadcasts once
+ * a **minute**: hand it a pattern with seconds and it draws a seconds field that is right at the
+ * top of each minute and stale for the other fifty-nine. `TodayUiState.now` is already re-read every
+ * second to move the countdown, so the screen has a truthful clock to hand and needs no second
+ * ticker for it.
+ */
+private class FixedTimeSource(
+    private val now: LocalTime,
+) : TimeSource {
+    @Composable
+    override fun currentTime(): String = hhmmss(now)
+}
+
 @Composable
 private fun TodayState.modeColor() =
     when (this) {
@@ -162,7 +189,7 @@ private fun TodayState.headline(): String =
 
 private fun TodayState.caption(): String =
     when (this) {
-        is TodayState.Running -> "${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
+        is TodayState.Running -> sessionCaption(nextBoundary, session.end)
         is TodayState.Skipped -> "until tomorrow"
         is TodayState.OffHours -> next?.scheduleName ?: "no schedule"
     }

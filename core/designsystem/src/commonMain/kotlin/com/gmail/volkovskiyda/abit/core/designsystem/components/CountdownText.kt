@@ -24,7 +24,7 @@ fun CountdownText(
     )
 }
 
-/** A time rendered with the same tabular treatment, for captions like "break at 09:45". */
+/** A time rendered with the same tabular treatment, for captions like "09:45 · ends 10:00". */
 @Composable
 fun TabularText(
     text: String,

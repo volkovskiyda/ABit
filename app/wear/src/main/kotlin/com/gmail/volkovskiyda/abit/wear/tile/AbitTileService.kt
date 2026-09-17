@@ -66,6 +66,9 @@ private const val RING_INSET_FRACTION = 0.08f
 
 private const val RING_STROKE_DP = 6f
 
+/** Between the wall clock and the mode label, so the two read as separate lines rather than a block. */
+private const val CLOCK_GAP_DP = 4f
+
 /**
  * The next boundary, one swipe from the watch face — which is the point of a watch app like this one.
  *
@@ -209,7 +212,21 @@ class AbitTileService :
         ring.addContent(
             LayoutElementBuilders.Column
                 .Builder()
-                .addContent(text(state.mode().layoutString, typography = Typography.LABEL_SMALL, color = state.modeColor()))
+                // The wall clock, which a tile otherwise has none of: the launcher draws one over a
+                // watch face but not over a tile, and the dial is where a glance expects to find it.
+                // Dimmer than the mode label, because it is the one line here that is not about ABit.
+                .addContent(
+                    text(
+                        live.clockText(now),
+                        typography = Typography.BODY_EXTRA_SMALL,
+                        color = AbitTokens.Dark.OUTLINE.layoutColor(),
+                    ),
+                ).addContent(
+                    LayoutElementBuilders.Spacer
+                        .Builder()
+                        .setHeight(DimensionBuilders.dp(CLOCK_GAP_DP))
+                        .build(),
+                ).addContent(text(state.mode().layoutString, typography = Typography.LABEL_SMALL, color = state.modeColor()))
                 .addContent(text(headline.text, typography = headline.typography))
                 .addContent(
                     text(

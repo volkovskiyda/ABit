@@ -30,6 +30,7 @@ import com.gmail.volkovskiyda.abit.core.designsystem.components.TimelineRow
 import com.gmail.volkovskiyda.abit.core.designsystem.dayLabel
 import com.gmail.volkovskiyda.abit.core.designsystem.hhmm
 import com.gmail.volkovskiyda.abit.core.designsystem.ringArcs
+import com.gmail.volkovskiyda.abit.core.designsystem.sessionCaption
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
@@ -150,7 +151,7 @@ internal fun TodayState.plan() =
 private fun TodayState.caption(): String =
     when (this) {
         is TodayState.Running -> {
-            "${if (stage == BlockKind.Focus) "break" else "focus"} at ${hhmm(nextBoundary)} · ends ${hhmm(session.end)}"
+            sessionCaption(nextBoundary, session.end)
         }
 
         is TodayState.Skipped -> {

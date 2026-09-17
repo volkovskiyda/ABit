@@ -7,6 +7,7 @@ import androidx.wear.protolayout.types.LayoutString
 import androidx.wear.protolayout.types.asLayoutString
 import androidx.wear.protolayout.types.stringLayoutConstraint
 import com.gmail.volkovskiyda.abit.core.designsystem.countdown
+import com.gmail.volkovskiyda.abit.core.designsystem.hhmmss
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -18,10 +19,14 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val SECONDS_IN_MINUTE = 60
 private const val SECONDS_IN_HOUR = 3600
+private const val SECONDS_IN_DAY = 86_400
 
 /** Widest `mm:ss` and widest `h:mm:ss`. The renderer reserves this much and centres the digits in it. */
 private const val WIDEST_MINUTES = "88:88"
 private const val WIDEST_HOURS = "8:88:88"
+
+/** The wall clock never narrows, so it reserves exactly what it draws. */
+private const val WIDEST_CLOCK = "88:88:88"
 
 /**
  * The tile's clock, as expressions the **renderer** evaluates rather than numbers the service
@@ -43,14 +48,15 @@ internal class TileCountdown(
     /** Seconds from now until [time] today. */
     fun secondsUntil(time: LocalTime): DynamicInt32 = secondsUntil(LocalDateTime(today, time))
 
-    fun secondsUntil(at: LocalDateTime): DynamicInt32 {
-        val target = java.time.Instant.ofEpochSecond(at.toInstant(zone).epochSeconds)
-        return DynamicInstant
+    fun secondsUntil(at: LocalDateTime): DynamicInt32 =
+        DynamicInstant
             .platformTimeWithSecondsPrecision()
-            .durationUntil(DynamicInstant.withSecondsPrecision(target))
+            .durationUntil(DynamicInstant.withSecondsPrecision(at.javaInstant()))
             .toIntSeconds()
             .atLeastZero()
-    }
+
+    /** Seconds precision is all [DynamicInstant] carries, so that is all this conversion keeps. */
+    private fun LocalDateTime.javaInstant(): java.time.Instant = java.time.Instant.ofEpochSecond(toInstant(zone).epochSeconds)
 
     /**
      * The countdown to [at] as the digits the app prints: `mm:ss`, and `h:mm:ss` once there is an
@@ -82,6 +88,40 @@ internal class TileCountdown(
             layoutConstraint = stringLayoutConstraint(widest),
         )
     }
+
+    /**
+     * The wall clock, to the second.
+     *
+     * Counted from **local midnight** rather than from the epoch, which is not a stylistic choice:
+     * `toIntSeconds` answers a `DynamicInt32`, and seconds since 1970 will overflow one of those in
+     * 2038. Seconds since midnight is a number that cannot, and it is the second-of-day the clock
+     * wants anyway. The modulo carries it over midnight, so the tile does not read 24:01 in the
+     * minute before the service is next woken.
+     *
+     * The zone's offset is the one fixed at build time. A tile that happens to be on screen through
+     * a DST change shows the old offset until the next rebuild, which is a truthful description of
+     * a tile: everything it knows, it knew when it was built.
+     */
+    fun clockText(now: LocalDateTime): LayoutString {
+        val secondOfDay = secondsSince(LocalDateTime(today, LocalTime(0, 0))).rem(SECONDS_IN_DAY)
+        val text =
+            secondOfDay
+                .div(SECONDS_IN_HOUR)
+                .padded()
+                .colon(secondOfDay.rem(SECONDS_IN_HOUR).div(SECONDS_IN_MINUTE).padded())
+                .colon(secondOfDay.rem(SECONDS_IN_MINUTE).padded())
+        return text.asLayoutString(
+            staticValue = hhmmss(now.time),
+            layoutConstraint = stringLayoutConstraint(WIDEST_CLOCK),
+        )
+    }
+
+    /** Seconds elapsed since [at], which for a moment already past is never negative. */
+    private fun secondsSince(at: LocalDateTime): DynamicInt32 =
+        DynamicInstant
+            .withSecondsPrecision(at.javaInstant())
+            .durationUntil(DynamicInstant.platformTimeWithSecondsPrecision())
+            .toIntSeconds()
 
     /** The same countdown as a plain [Duration], for the callers that want to reason about it. */
     fun remainingAt(

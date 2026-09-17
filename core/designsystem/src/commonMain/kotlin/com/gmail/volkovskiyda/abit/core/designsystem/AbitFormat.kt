@@ -16,6 +16,13 @@ private const val SHORT_NAME_LENGTH = 3
  */
 fun hhmm(time: LocalTime): String = "${time.hour.pad()}:${time.minute.pad()}"
 
+/**
+ * [hhmm] with the seconds, for the one place a time is a *running clock* rather than a schedule's
+ * boundary: the wall clock at the top of the watch and of its tile. Everything a schedule is made of
+ * stays to the minute, because that is the resolution a schedule is written in.
+ */
+fun hhmmss(time: LocalTime): String = "${hhmm(time)}:${time.second.pad()}"
+
 /** `mm:ss` under an hour, `h:mm:ss` above. Negative durations read as zero rather than as a minus. */
 fun countdown(remaining: Duration): String {
     val totalSeconds = remaining.inWholeSeconds.coerceAtLeast(0)
@@ -24,6 +31,28 @@ fun countdown(remaining: Duration): String {
     val hours = totalSeconds / SECONDS_IN_MINUTE / MINUTES_IN_HOUR
     return if (hours > 0) "$hours:${minutes.pad()}:${seconds.pad()}" else "${minutes.pad()}:${seconds.pad()}"
 }
+
+/**
+ * What is left of a running session, under the ring: `09:45 · ends 10:00`.
+ *
+ * When the next boundary *is* the end of the session it collapses to `ends 10:00`, because the two
+ * halves would otherwise print one clock twice — which happens through every break, since a break's
+ * end is its session's, and reads as a bug rather than as emphasis.
+ *
+ * The next boundary is the bare time. Naming what happens at it ("break at 09:45") repeated what the
+ * ring and the mode label directly above it already say, and it was the phone and the web's half of
+ * a caption the watch printed without. The rule lives here rather than in each screen because it was
+ * got wrong independently on the watch, the tile, the phone and the web.
+ */
+fun sessionCaption(
+    nextBoundary: LocalTime,
+    sessionEnd: LocalTime,
+): String =
+    if (nextBoundary == sessionEnd) {
+        "ends ${hhmm(sessionEnd)}"
+    } else {
+        "${hhmm(nextBoundary)} · ends ${hhmm(sessionEnd)}"
+    }
 
 /** `Mon 15 Sep`. */
 fun dayLabel(date: LocalDate): String = "${date.dayOfWeek.shortLabel()} ${date.day} ${date.month.shortLabel()}"
