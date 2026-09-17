@@ -12,6 +12,7 @@ import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.core.domain.SyncStatusRepository
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionReader
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,7 +25,13 @@ import kotlinx.coroutines.launch
 private const val STOP_TIMEOUT_MILLIS = 5_000L
 
 data class SettingsUiState(
-    val preferences: UserPreferences = UserPreferences(),
+    /**
+     * `null` until the stored preferences have been read. A screen must not draw a switch or a
+     * theme selector before then: [UserPreferences]' defaults are a real answer for a user who has
+     * never changed anything, and rendering them as a placeholder makes every other user watch
+     * their own settings flip a frame later.
+     */
+    val preferences: UserPreferences? = null,
     val user: AuthUser? = null,
     val syncState: SyncState = SyncState.Unavailable,
     /**
@@ -40,20 +47,25 @@ data class SettingsUiState(
     val appVersion: String = "",
 )
 
+@Suppress("LongParameterList")
 class SettingsViewModel(
     private val preferencesRepository: UserPreferencesRepository,
     private val authRepository: AuthRepository,
     private val chimePreview: ChimePreview,
     syncStatusRepository: SyncStatusRepository,
     appVersion: AppVersion,
+    permissionReader: PermissionReader,
 ) : ViewModel() {
     private val version = appVersion.name
-    private val permissions = MutableStateFlow<List<PermissionState>>(emptyList())
+
+    // Seeded, not empty: reading a permission is a synchronous local call, and a list that starts
+    // empty is read as "denied" by every row that looks itself up in it.
+    private val permissions = MutableStateFlow(permissionReader.read())
     private val authError = MutableStateFlow<String?>(null)
 
     val state: StateFlow<SettingsUiState> =
         combine(
-            preferencesRepository.preferences,
+            preferencesRepository.cached,
             authRepository.currentUser,
             syncStatusRepository.syncState,
             permissions,
@@ -70,7 +82,7 @@ class SettingsViewModel(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = SettingsUiState(appVersion = version),
+            initialValue = SettingsUiState(permissions = permissions.value, appVersion = version),
         )
 
     /** Called by the screen on every resume: a permission can be granted or revoked outside the app. */

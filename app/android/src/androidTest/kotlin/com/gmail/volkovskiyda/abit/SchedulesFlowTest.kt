@@ -1,7 +1,9 @@
 package com.gmail.volkovskiyda.abit
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -79,5 +81,10 @@ class SchedulesFlowTest {
         // on once four devices share one account.
         composeRule.onNodeWithText("Show countdown in notification").assertIsDisplayed()
         composeRule.onNodeWithText("PERMISSIONS").assertIsDisplayed()
+
+        // The switch itself, not the shape that stands in for it while the preferences file is
+        // being read: the screen is built fresh on every visit, and this is what proves it is built
+        // from the stored value rather than from the defaults.
+        composeRule.onNode(isToggleable()).assertIsOff()
     }
 }

@@ -109,8 +109,10 @@ fun main() {
         var schedulesPane by remember { mutableStateOf(false) }
 
         val preferences: UserPreferencesRepository = koinInject()
-        val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
-        val themeMode by themeFlow.collectAsState(initial = ThemeMode.System)
+        // From the cache, so the window opens in the stored theme rather than repainting into it:
+        // the file is read once at launch, and by the time this composes it is usually already there.
+        val themeFlow = remember(preferences) { preferences.cached.map { it?.themeMode ?: ThemeMode.System } }
+        val themeMode by themeFlow.collectAsState(initial = preferences.cached.value?.themeMode ?: ThemeMode.System)
 
         AbitMenuBarItem(
             // The item stays lit for as long as the popover it opened is up, which is what a menu

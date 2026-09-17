@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.core.testing
 
+import com.gmail.volkovskiyda.abit.core.common.Logger
 import com.gmail.volkovskiyda.abit.core.common.TimeProvider
 import com.gmail.volkovskiyda.abit.core.common.TimeZoneProvider
 import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
@@ -143,5 +144,38 @@ class FakeSyncStatusRepository(
 
     fun emit(next: SyncState) {
         state.value = next
+    }
+}
+
+/**
+ * Swallows what a test does not assert on and keeps what it might. A real logger in a test writes to
+ * a console nobody reads; a null one would make a class that logs untestable at the one moment it
+ * matters, which is when it has caught something.
+ */
+class FakeLogger : Logger {
+    val errors = mutableListOf<String>()
+
+    override fun debug(
+        tag: String,
+        message: String,
+    ) = Unit
+
+    override fun info(
+        tag: String,
+        message: String,
+    ) = Unit
+
+    override fun warn(
+        tag: String,
+        message: String,
+        throwable: Throwable?,
+    ) = Unit
+
+    override fun error(
+        tag: String,
+        message: String,
+        throwable: Throwable?,
+    ) {
+        errors += message
     }
 }

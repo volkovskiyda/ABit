@@ -1,12 +1,15 @@
 package com.gmail.volkovskiyda.abit.core.datastore.di
 
+import com.gmail.volkovskiyda.abit.core.common.di.ApplicationScope
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferencesRepository
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 val datastoreModule: Module =
     module {
-        single { UserPreferencesRepository(get()) }
+        // The process scope, not a screen's: the repository reads the file once and holds the
+        // result for everything that asks afterwards.
+        single { UserPreferencesRepository(get(), get(ApplicationScope), get()) }
     }
 
 /**

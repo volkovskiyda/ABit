@@ -14,6 +14,7 @@ import com.gmail.volkovskiyda.abit.core.domain.Session
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.core.testing.FakeDayOverrideRepository
+import com.gmail.volkovskiyda.abit.core.testing.FakeLogger
 import com.gmail.volkovskiyda.abit.core.testing.FakeScheduleRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakeTimeZoneProvider
 import kotlinx.coroutines.flow.Flow
@@ -190,7 +191,7 @@ class SchedulerBehaviourTest {
         val clock = VirtualClock { testScheduler.currentTime }
         val localClock = LocalClock(clock, FakeTimeZoneProvider())
         val bell = RecordingBell()
-        val preferences = UserPreferencesRepository(PollingPreferencesStore())
+        val preferences = UserPreferencesRepository(PollingPreferencesStore(), backgroundScope, FakeLogger())
 
         lateinit var scheduler: PollingChimeScheduler
         val coordinator =

@@ -23,7 +23,7 @@ import com.gmail.volkovskiyda.abit.core.common.AppVersion
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesUiState
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
-import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionReader
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayUiState
 import com.gmail.volkovskiyda.abit.feature.today.impl.TodayViewModel
 import com.gmail.volkovskiyda.abit.wear.auth.GoogleSignIn
@@ -68,9 +68,12 @@ class MainActivity : ComponentActivity() {
 internal fun AbitWearApp() {
     val controller = rememberSwipeDismissableNavController()
     val permissions: ChimePermissions = koinInject()
+    val permissionReader: PermissionReader = koinInject()
     val appVersion: AppVersion = koinInject()
     val context = LocalContext.current
-    var permissionStates by remember { mutableStateOf(emptyList<PermissionState>()) }
+    // Seeded rather than empty: both answers are synchronous local reads, and a list that starts
+    // empty draws every row as "not granted" for the frame before the first resume corrects it.
+    var permissionStates by remember { mutableStateOf(permissionReader.read()) }
 
     // An anonymous watch is a watch whose schedules never arrive, so opening the app on the ring —
     // which would show "no schedule" forever and explain nothing — is the wrong first screen. Send
@@ -94,13 +97,7 @@ internal fun AbitWearApp() {
         }
     }
 
-    OnWearResume {
-        permissionStates =
-            listOf(
-                PermissionState(PermissionId.Notifications, permissions.canPostNotifications()),
-                PermissionState(PermissionId.ExactAlarms, permissions.canScheduleExactAlarms()),
-            )
-    }
+    OnWearResume { permissionStates = permissionReader.read() }
 
     SwipeDismissableNavHost(navController = controller, startDestination = ROUTE_TODAY) {
         composable(ROUTE_TODAY) {

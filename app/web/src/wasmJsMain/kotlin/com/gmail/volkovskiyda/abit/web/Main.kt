@@ -41,8 +41,13 @@ fun main() {
 
     ComposeViewport(document.body!!) {
         val preferences: UserPreferencesRepository = koinInject()
-        val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
-        val themeMode by themeFlow.collectAsStateWithLifecycle(initialValue = ThemeMode.System)
+        // From the cache, so the page paints in the stored theme rather than flashing the default
+        // one first — `localStorage` answers synchronously, so it is almost always already read.
+        val themeFlow = remember(preferences) { preferences.cached.map { it?.themeMode ?: ThemeMode.System } }
+        val themeMode by
+            themeFlow.collectAsStateWithLifecycle(
+                initialValue = preferences.cached.value?.themeMode ?: ThemeMode.System,
+            )
         AbitTheme(
             darkTheme =
                 when (themeMode) {

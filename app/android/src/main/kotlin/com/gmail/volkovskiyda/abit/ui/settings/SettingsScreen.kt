@@ -5,14 +5,18 @@ import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +45,7 @@ import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.designsystem.components.PermissionRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
-import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionReader
 import com.gmail.volkovskiyda.abit.feature.settings.impl.SettingsUiState
 import com.gmail.volkovskiyda.abit.feature.settings.impl.SettingsViewModel
 import com.gmail.volkovskiyda.abit.ui.OnResume
@@ -55,6 +59,9 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val permissions: ChimePermissions = koinInject()
+    // The same reader the view model was seeded from, so what a row shows and what it re-reads on
+    // the way back from a system screen can never be two different lists.
+    val permissionReader: PermissionReader = koinInject()
     val context = LocalContext.current
     val activity = LocalActivity.current
 
@@ -70,13 +77,8 @@ fun SettingsScreen(
     // Both permissions are granted in a system screen the user leaves the app for, so the only
     // reliable moment to re-read them is coming back.
     OnResume {
+        viewModel.onPermissionsChanged(permissionReader.read())
         val canPost = permissions.canPostNotifications()
-        viewModel.onPermissionsChanged(
-            listOf(
-                PermissionState(PermissionId.Notifications, canPost),
-                PermissionState(PermissionId.ExactAlarms, permissions.canScheduleExactAlarms()),
-            ),
-        )
         if (wantsCountdown && canPost) {
             wantsCountdown = false
             viewModel.setShowCountdownNotification(true)
@@ -85,9 +87,9 @@ fun SettingsScreen(
 
     val notificationLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            viewModel.onPermissionsChanged(
-                state.permissions.map { if (it.id == PermissionId.Notifications) it.copy(granted = granted) else it },
-            )
+            // Re-read rather than patch the list in hand: the answer is already on the system's
+            // side of the fence, and a list that starts out empty has nothing to patch.
+            viewModel.onPermissionsChanged(permissionReader.read())
             when {
                 granted -> {
                     if (wantsCountdown) {
@@ -237,7 +239,7 @@ fun SettingsContent(
                 SwitchRow(
                     title = "Show countdown in notification",
                     subtitle = null,
-                    checked = state.preferences.showCountdownNotification,
+                    checked = state.preferences?.showCountdownNotification,
                     onCheckedChange = onShowCountdown,
                 )
             }
@@ -263,7 +265,10 @@ fun SettingsContent(
                 SingleChoiceSegmentedButtonRow {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
-                            selected = state.preferences.themeMode == mode,
+                            selected = state.preferences?.themeMode == mode,
+                            // Nothing is selected until the stored mode has been read, and a
+                            // segment that cannot yet be the answer must not look like one.
+                            enabled = state.preferences != null,
                             onClick = { onThemeMode(mode) },
                             shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
                         ) { Text(mode.name) }
@@ -295,11 +300,16 @@ private fun Section(
     }
 }
 
+/**
+ * @param checked `null` while the stored value is still being read. The row keeps its label and its
+ *   height and withholds the switch, rather than drawing `false` and correcting itself: the two look
+ *   identical to a user whose answer was `false`, and wrong to everyone else.
+ */
 @Composable
 private fun SwitchRow(
     title: String,
     subtitle: String?,
-    checked: Boolean,
+    checked: Boolean?,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
@@ -316,7 +326,16 @@ private fun SwitchRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        if (checked == null) {
+            // The switch's own footprint, so nothing moves when the real one replaces it.
+            Box(
+                Modifier
+                    .size(width = 52.dp, height = 32.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+            )
+        } else {
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
     }
 }
 

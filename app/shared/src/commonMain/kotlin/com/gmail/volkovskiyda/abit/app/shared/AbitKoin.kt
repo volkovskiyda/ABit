@@ -16,6 +16,7 @@ import com.gmail.volkovskiyda.abit.core.observability.di.observabilityModule
 import com.gmail.volkovskiyda.abit.core.observability.di.platformObservabilityModule
 import com.gmail.volkovskiyda.abit.core.sync.di.syncModule
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.di.schedulesModule
+import com.gmail.volkovskiyda.abit.feature.settings.impl.di.platformSettingsModule
 import com.gmail.volkovskiyda.abit.feature.settings.impl.di.settingsModule
 import com.gmail.volkovskiyda.abit.feature.today.impl.di.todayModule
 import org.koin.core.KoinApplication
@@ -45,6 +46,7 @@ val abitModules: List<Module> =
         chimeModule,
         todayModule,
         schedulesModule,
+        platformSettingsModule,
         settingsModule,
     )
 

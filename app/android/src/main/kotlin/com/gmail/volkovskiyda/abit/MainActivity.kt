@@ -47,24 +47,35 @@ import com.gmail.volkovskiyda.abit.ui.theme.AbitTheme
 import com.gmail.volkovskiyda.abit.ui.today.TodayScreen
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
+    // The user's own choice outranks the system's, which is why the theme is read from preferences
+    // rather than from `isSystemInDarkTheme()` inside AbitTheme.
+    private val preferences: UserPreferencesRepository by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // The one window where the stored theme is genuinely unknown. Holding the splash through it
+        // is what the splash is for: the alternative is drawing the app light and repainting it dark
+        // once the file has been read. It ends on the first read — the failure path emits defaults —
+        // and after a warm start the value is already there, so this never waits at all.
+        splash.setKeepOnScreenCondition { preferences.cached.value == null }
+
         setContent {
-            // The user's own choice outranks the system's, which is why the theme is read from
-            // preferences here rather than from `isSystemInDarkTheme()` inside AbitTheme.
-            val preferences: UserPreferencesRepository = koinInject()
             // Remembered: a Flow operator called straight in composition would build a new flow on
             // every recomposition and reset the collection.
-            val themeFlow = remember(preferences) { preferences.preferences.map { it.themeMode } }
-            val themeMode by themeFlow.collectAsStateWithLifecycle(initialValue = ThemeMode.System)
+            val themeFlow = remember(preferences) { preferences.cached.map { it?.themeMode ?: ThemeMode.System } }
+            val themeMode by
+                themeFlow.collectAsStateWithLifecycle(
+                    initialValue = preferences.cached.value?.themeMode ?: ThemeMode.System,
+                )
             AbitTheme(themeMode = themeMode) {
                 AbitNavDisplay()
             }

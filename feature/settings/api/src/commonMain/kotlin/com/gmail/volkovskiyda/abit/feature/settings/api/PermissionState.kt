@@ -20,3 +20,14 @@ data class PermissionState(
     val id: PermissionId,
     val granted: Boolean,
 )
+
+/**
+ * Reads, synchronously, what this platform will say about [PermissionState.granted] right now.
+ *
+ * Synchronously on purpose: every platform's answer is a cheap local check, and a screen that has to
+ * wait a frame for it draws the "not granted" row first and then corrects itself. A platform with no
+ * permissions worth reporting — the desktop — reports none.
+ */
+fun interface PermissionReader {
+    fun read(): List<PermissionState>
+}

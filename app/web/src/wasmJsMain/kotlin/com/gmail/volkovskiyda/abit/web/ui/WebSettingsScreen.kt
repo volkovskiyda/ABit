@@ -16,7 +16,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -30,11 +29,12 @@ import com.gmail.volkovskiyda.abit.core.designsystem.components.PermissionRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
-import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
+import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionReader
 import com.gmail.volkovskiyda.abit.feature.settings.impl.SettingsViewModel
 import com.gmail.volkovskiyda.abit.web.auth.GoogleSignIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -42,15 +42,12 @@ import kotlin.time.Duration.Companion.milliseconds
 fun WebSettingsScreen(modifier: Modifier = Modifier) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // The same reader the view model was seeded from: the browser answers synchronously, so the row
+    // is drawn with the real permission rather than with "not granted" until an effect corrects it.
+    val permissionReader: PermissionReader = koinInject()
     // Remembered rather than injected: it holds nothing worth sharing, and its only input is a
     // committed constant plus whether Google's script finished loading.
     val googleSignIn = remember { GoogleSignIn() }
-
-    LaunchedEffect(Unit) {
-        viewModel.onPermissionsChanged(
-            listOf(PermissionState(PermissionId.BrowserNotifications, notificationsGranted())),
-        )
-    }
 
     Column(
         modifier =
@@ -85,11 +82,7 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                         // to re-read the permission on the next line — before the browser had even
                         // shown the prompt. It said "not granted" however the user answered, until
                         // something else remounted the screen.
-                        val answered = {
-                            viewModel.onPermissionsChanged(
-                                listOf(PermissionState(PermissionId.BrowserNotifications, notificationsGranted())),
-                            )
-                        }
+                        val answered = { viewModel.onPermissionsChanged(permissionReader.read()) }
                         val request = requestNotificationPermission()
                         if (request == null) answered() else request.then { answered() }
                     },
@@ -100,7 +93,9 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                 SingleChoiceSegmentedButtonRow {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
-                            selected = state.preferences.themeMode == mode,
+                            selected = state.preferences?.themeMode == mode,
+                            // Nothing is selected until the stored mode has been read.
+                            enabled = state.preferences != null,
                             onClick = { viewModel.setThemeMode(mode) },
                             shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
                         ) { Text(mode.name) }
@@ -207,8 +202,6 @@ private fun Section(
         content()
     }
 }
-
-private fun notificationsGranted(): Boolean = js("typeof Notification !== 'undefined' && Notification.permission === 'granted'")
 
 /**
  * The promise `Notification.requestPermission()` settles when the user answers the prompt.

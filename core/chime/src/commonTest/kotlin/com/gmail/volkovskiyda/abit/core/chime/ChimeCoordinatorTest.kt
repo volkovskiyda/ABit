@@ -9,6 +9,7 @@ import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import com.gmail.volkovskiyda.abit.core.testing.FakeDayOverrideRepository
+import com.gmail.volkovskiyda.abit.core.testing.FakeLogger
 import com.gmail.volkovskiyda.abit.core.testing.FakeScheduleRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakeTimeProvider
 import com.gmail.volkovskiyda.abit.core.testing.FakeTimeZoneProvider
@@ -106,7 +107,7 @@ class ChimeCoordinatorTest {
                 ChimeCoordinator(
                     scheduleRepository = FakeScheduleRepository(schedules, timeProvider = time),
                     dayOverrideRepository = overrides,
-                    preferencesRepository = UserPreferencesRepository(preferences),
+                    preferencesRepository = UserPreferencesRepository(preferences, backgroundScope, FakeLogger()),
                     scheduler = scheduler,
                     clock = LocalClock(time, FakeTimeZoneProvider()),
                     scope = this,
