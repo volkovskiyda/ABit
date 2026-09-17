@@ -4,10 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +34,8 @@ import com.gmail.volkovskiyda.abit.wear.ui.WearSignInState
 import com.gmail.volkovskiyda.abit.wear.ui.WearTodayContent
 import com.gmail.volkovskiyda.abit.wear.ui.WearTodayScreen
 import com.gmail.volkovskiyda.abit.wear.ui.theme.AbitWearTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -66,6 +70,28 @@ internal fun AbitWearApp() {
     val context = LocalContext.current
     var permissionStates by remember { mutableStateOf(emptyList<PermissionState>()) }
 
+    // An anonymous watch is a watch whose schedules never arrive, so opening the app on the ring —
+    // which would show "no schedule" forever and explain nothing — is the wrong first screen. Send
+    // it to the list instead, where the sign-in card sits at the top.
+    //
+    // Once per launch, not on every recomposition: after this the back stack is the user's, and a
+    // swipe away from the list must not bounce straight back to it.
+    // One Boolean out of the state, not the state. TodayUiState re-emits every second to move the
+    // countdown, and collecting the whole thing here recomposed this composable — and the
+    // SwipeDismissableNavHost builder lambda allocated inside it — once a second for as long as the
+    // watch app was open, to read a field that changes at most twice in a session.
+    val startViewModel: TodayViewModel = koinViewModel()
+    val anonymous by remember(startViewModel) {
+        startViewModel.state.map { it.user?.isAnonymous }.distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = null)
+    var offeredSignIn by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(anonymous) {
+        if (!offeredSignIn && anonymous == true) {
+            offeredSignIn = true
+            controller.navigate(ROUTE_SCHEDULES)
+        }
+    }
+
     OnWearResume {
         permissionStates =
             listOf(
@@ -76,7 +102,10 @@ internal fun AbitWearApp() {
 
     SwipeDismissableNavHost(navController = controller, startDestination = ROUTE_TODAY) {
         composable(ROUTE_TODAY) {
-            WearTodayScreen(viewModel = koinViewModel())
+            WearTodayScreen(
+                viewModel = koinViewModel(),
+                onOpenSchedules = { controller.navigate(ROUTE_SCHEDULES) },
+            )
         }
         composable(ROUTE_SCHEDULES) {
             val todayViewModel: TodayViewModel = koinViewModel()
@@ -118,13 +147,13 @@ internal fun AbitWearApp() {
 @ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
 @Composable
 private fun WearTodayLargeRoundPreview() {
-    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onSkipToday = {}) } }
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onOpenSchedules = {}) } }
 }
 
 @ComposePreview(device = WearDevices.SQUARE, showSystemUi = true)
 @Composable
 private fun WearTodaySquarePreview() {
-    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onSkipToday = {}) } }
+    AbitWearTheme { AppScaffold { WearTodayContent(TodayUiState(), onOpenSchedules = {}) } }
 }
 
 @ComposePreview(device = WearDevices.LARGE_ROUND, showSystemUi = true)
