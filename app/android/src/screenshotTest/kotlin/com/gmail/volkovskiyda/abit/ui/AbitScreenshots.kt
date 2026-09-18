@@ -123,6 +123,7 @@ private fun offHours() =
     TodayState.OffHours(
         today = DayPlan(MONDAY, schedule = null, sessions = emptyList()),
         next = NextSession(TUESDAY, LocalTime(NINE_AM, 0), "Workdays"),
+        canSkipTomorrow = true,
     )
 
 @Composable

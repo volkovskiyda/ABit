@@ -116,7 +116,10 @@ fun TrayPopoverContent(
                 }
 
                 is TodayState.OffHours -> {
-                    FilledTonalButton(onClick = onSkipTomorrow) { Text("Skip tomorrow") }
+                    FilledTonalButton(
+                        onClick = onSkipTomorrow,
+                        enabled = today.canSkipTomorrow,
+                    ) { Text("Skip tomorrow") }
                 }
             }
         }

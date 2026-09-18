@@ -6,12 +6,15 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 private val TUESDAY = LocalDate(2026, 9, 15)
+private val FRIDAY = LocalDate(2026, 9, 18)
 
 private fun at(
     hour: Int,
@@ -74,6 +77,31 @@ class TodayStateTest {
 
         assertIs<TodayState.OffHours>(state)
         assertEquals(NextSession(TUESDAY, LocalTime(9, 0), "Workdays"), state.next)
+    }
+
+    @Test
+    fun `can skip tomorrow when tomorrow runs`() {
+        val state = todayState(schedules, emptyMap(), at(22, 10))
+
+        assertIs<TodayState.OffHours>(state)
+        assertTrue(state.canSkipTomorrow)
+    }
+
+    @Test
+    fun `cannot skip tomorrow when no schedule covers it`() {
+        // Friday evening, with a workdays-only schedule: there is nothing about Saturday to silence.
+        val state = todayState(schedules, emptyMap(), LocalDateTime(FRIDAY, LocalTime(22, 10)))
+
+        assertIs<TodayState.OffHours>(state)
+        assertFalse(state.canSkipTomorrow)
+    }
+
+    @Test
+    fun `cannot skip tomorrow when there are no schedules at all`() {
+        val state = todayState(emptyList(), emptyMap(), at(9, 22))
+
+        assertIs<TodayState.OffHours>(state)
+        assertFalse(state.canSkipTomorrow)
     }
 
     @Test

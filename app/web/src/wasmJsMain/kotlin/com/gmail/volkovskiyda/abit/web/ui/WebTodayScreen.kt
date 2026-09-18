@@ -112,7 +112,10 @@ fun WebTodayScreen(modifier: Modifier = Modifier) {
                             }
 
                             is TodayState.OffHours -> {
-                                FilledTonalButton(onClick = { viewModel.skipTomorrow() }) { Text("Skip tomorrow") }
+                                FilledTonalButton(
+                                    onClick = { viewModel.skipTomorrow() },
+                                    enabled = today.canSkipTomorrow,
+                                ) { Text("Skip tomorrow") }
                             }
                         }
                     }

@@ -2,6 +2,7 @@ package com.gmail.volkovskiyda.abit.ui
 
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -10,6 +11,8 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Density
@@ -78,6 +81,33 @@ class TrayPopoverTest {
             // Silencing one machine belongs to macOS's notification settings, which work whether
             // the app is running or not. An in-app copy of them was one more thing to keep true.
             onNodeWithText("Chime on this Mac").assertDoesNotExist()
+        }
+
+    /**
+     * A Friday evening on a workdays schedule, or a clone with no schedules at all: the one action
+     * off hours offers would write an override nothing would ever read.
+     */
+    @Test
+    fun `offers skipping tomorrow only when tomorrow has something to silence`() =
+        runComposeUiTest {
+            val canSkipTomorrow = mutableStateOf(true)
+            setContent {
+                AbitTheme(darkTheme = false) {
+                    TrayPopoverContent(
+                        state = TodayUiState(today = offHours(canSkipTomorrow.value)),
+                        onSkipToday = {},
+                        onSkipTomorrow = {},
+                        onOpenSchedules = {},
+                        onQuit = {},
+                    )
+                }
+            }
+
+            onNodeWithText("Skip tomorrow").assertIsEnabled()
+
+            canSkipTomorrow.value = false
+
+            onNodeWithText("Skip tomorrow").assertIsNotEnabled()
         }
 
     /**
@@ -242,6 +272,13 @@ class TrayPopoverTest {
 
     /** The solidest ink in the image, which is the glyph — a template image is its alpha channel. */
     private fun PixelMap.mostOpaque(): Float = (0 until height).maxOf { y -> (0 until width).maxOf { x -> this[x, y].alpha } }
+
+    private fun offHours(canSkipTomorrow: Boolean) =
+        TodayState.OffHours(
+            today = DayPlan(LocalDate(2026, 9, 18), schedule = null, sessions = emptyList()),
+            next = null,
+            canSkipTomorrow = canSkipTomorrow,
+        )
 
     private fun running(): TodayState.Running {
         val focus = Block(BlockKind.Focus, LocalTime(9, 0), LocalTime(9, 45))

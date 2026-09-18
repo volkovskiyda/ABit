@@ -53,6 +53,14 @@ sealed interface TodayState {
     data class OffHours(
         val today: DayPlan,
         val next: NextSession?,
+        /**
+         * Whether tomorrow has anything to silence. "Skip tomorrow" is the only action offered in off
+         * hours, and on a day no schedule covers — a Friday evening with weekends off, or a checkout
+         * with no schedules at all — pressing it would write an override nothing reads. The surfaces
+         * disable the button on `false` rather than hide it, so the row does not appear and vanish as
+         * the week turns.
+         */
+        val canSkipTomorrow: Boolean = false,
     ) : TodayState
 }
 
@@ -96,7 +104,11 @@ fun todayState(
         } else {
             schedules.nextRunningDay(overrides, after = now.date, lookaheadDays)?.toNextSession()
         }
-    return TodayState.OffHours(today = plan, next = next)
+    return TodayState.OffHours(
+        today = plan,
+        next = next,
+        canSkipTomorrow = schedules.planFor(now.date.plus(1, DateTimeUnit.DAY)).sessions.isNotEmpty(),
+    )
 }
 
 /** The first of the next [lookaheadDays] days that has sessions and is not skipped. */
