@@ -6,7 +6,7 @@ import org.gradle.api.Project
  * Versioning is a CI concern: nothing in this repository is edited per release.
  *
  * Both delivery workflows pass `-PbuildNumber=$(git rev-list --count HEAD)` — one monotonic
- * versionCode shared by the pre-release every main push publishes and by the tagged releases, so
+ * versionCode shared by the release every main push publishes and by the tagged releases, so
  * neither can ever install "over" the other backwards. (`github.run_number` would not do: it counts
  * per workflow.) They also pass `-PbaseVersion`, the latest v-tag without its "v", so every
  * published build reports

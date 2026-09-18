@@ -188,14 +188,15 @@ versionName = <latest tag without its "v">.<versionCode>
 ```
 
 So tag `v1.3` at commit 348 ships as `1.3.348` with version code `348`. One monotonic code is shared
-by the pre-release every main push publishes and by the tagged releases, so neither can install
+by the release every main push publishes and by the tagged releases, so neither can install
 backwards over the other. A local build passes neither property and stays at `1` / `1.0`.
 
-Every green push to `main` publishes a pre-release on the [Releases page][releases] carrying all four
-platforms and a changelog; a `v*` tag publishes the same four as the full release that
-`releases/latest` points at. There is no Play Store listing and no Firebase App Distribution — which
-means nothing updates itself except the web app. Cut a release with `scripts/release.sh`; everything
-else, including what going store-free costs, is [docs/RELEASING.md](docs/RELEASING.md).
+Every green push to `main` publishes a release on the [Releases page][releases] carrying all four
+platforms and a changelog, so `releases/latest` is the newest main build; a `v*` tag publishes the
+same four as a curated, titled release. There is no Play Store listing and no Firebase App
+Distribution — which means nothing updates itself except the web app. Cut a release with
+`scripts/release.sh`; everything else, including what going store-free costs, is
+[docs/RELEASING.md](docs/RELEASING.md).
 
 [releases]: https://github.com/volkovskiyda/ABit/releases
 

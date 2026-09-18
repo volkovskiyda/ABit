@@ -8,29 +8,32 @@ below — read it before wondering where the update prompt is.
 Two channels, and they answer different questions.
 
 **Continuous** is for "is the current state of main any good?" — every green push to `main`
-publishes a **pre-release** carrying all four platforms, and updates the web app, with no manual
-step.
+publishes a **release** carrying all four platforms, and updates the web app, with no manual step.
+Nothing here is a pre-release, so `releases/latest` is the newest main build.
 
-**Curated** is for "what shipped?" — a pushed `v*` tag publishes the same four platforms as a
-full release, which is the one `releases/latest` resolves to.
+**Curated** is for "what shipped?" — a pushed `v*` tag publishes the same four platforms under a
+`v<version>` title, after a second Test Lab matrix on three devices `ci.yml` never runs.
 
 Neither requires editing a version anywhere. See *Versioning* in the [README](../README.md).
 
 Both build their binaries through the same reusable workflow, `binaries.yml`, and compose their
-notes through the same script, `scripts/publish-release.sh`. The two channels differ in their tag,
-their title and their pre-release flag. They do not differ in what they contain.
+notes through the same script, `scripts/publish-release.sh`. The two channels differ in their tag
+and their title, and the curated one in what it was tested on. They do not differ in what they
+contain.
 
-## Continuous — a pre-release per main push
+## Continuous — a release per main push
 
 Handled by `ci.yml`'s `version` → `binaries` → `publish` chain, on `main` pushes only, and only
 after the checks, the instrumented suite, the Firestore rules tests and Test Lab have all passed.
 
-It tags the commit `build-<versionCode>` and publishes a pre-release named for the full version.
-Pre-release is load-bearing in both directions: GitHub excludes pre-releases from `releases/latest`,
-so a link to "the latest version" keeps pointing at the newest curated tag, while the Releases page
-still accumulates a real archive of every main build — including that build's R8 mappings, which are
-the only way to read a crash report from it. A single rolling release that overwrote itself would
-throw away the mapping for build N the moment N+1 landed.
+It tags the commit `build-<versionCode>` and publishes a full release named for the full version, so
+`releases/latest` resolves to the newest main build and a link to "the latest version" follows
+`main`. A `v*` tag is therefore "latest" only until the next push lands; link to a curated release by
+its own tag URL, `releases/tag/v1.3`, which never moves.
+
+One release per build, and never a single rolling release that overwrote itself: the Releases page is
+the archive of every main build — including that build's R8 mappings, which are the only way to read
+a crash report from it, and which a rolling release would throw away the moment N+1 landed.
 
 The `publish` job also deploys the web app and the Firestore rules together. Those two ship as one
 step deliberately: a rules change that a client change depends on must never lag behind it. Hosting
