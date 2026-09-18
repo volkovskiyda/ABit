@@ -3,7 +3,7 @@ name: Binaries
 # Every artefact a published release carries, built once and uploaded under one naming scheme.
 #
 # It exists as a reusable workflow because both delivery paths need exactly the same binaries and
-# only differ in what they do with them: ci.yml publishes a pre-release on every green main push,
+# only differ in what they do with them: ci.yml publishes a release on every green main push,
 # release.yml publishes a curated release on a tag. Duplicating these three jobs across the two
 # workflows would mean fixing every packaging change twice.
 #

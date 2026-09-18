@@ -8,7 +8,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# --tags as well: every main push leaves a build-<versionCode> pre-release tag behind, and the
+# --tags as well: every main push leaves a build-<versionCode> release tag behind, and the
 # duplicate check below has to see them.
 git fetch --tags origin main
 

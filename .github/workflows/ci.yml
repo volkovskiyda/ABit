@@ -235,11 +235,14 @@ jobs:
 
   # Every green main push becomes a downloadable release, with no manual step.
   #
-  # It is published as a **pre-release**, tagged build-<versionCode>. That keeps two promises at
-  # once: the Releases page stays a real archive — every main build, with the R8 mappings that are
-  # the only way to read a crash report from it — while `releases/latest` still resolves to the most
-  # recent curated v-tag, because GitHub excludes pre-releases from "latest". A rolling release that
-  # overwrote itself would lose the mapping for build N the moment N+1 landed.
+  # It is a full release — not a pre-release — tagged build-<versionCode>, so `releases/latest`
+  # resolves to the newest main build and a link to "the latest version" follows main rather than the
+  # last curated tag. A v-tag still publishes its own release, with its own title and a second Test
+  # Lab matrix behind it; what it no longer is, is the permanent "latest" pointer.
+  #
+  # One release per build, never a single rolling release that overwrites itself: the Releases page
+  # is the archive, and a build's R8 mappings are the only way to read a crash report from it. A
+  # rolling release would lose the mapping for build N the moment N+1 landed.
   publish:
     needs: [version, binaries]
     runs-on: ubuntu-latest
@@ -282,7 +285,7 @@ jobs:
 
       # The script is shared with release.yml, so a change to what a release says lands on both
       # channels at once. Everything it needs comes through the environment.
-      - name: Publish the pre-release
+      - name: Publish the release
         run: scripts/publish-release.sh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -291,4 +294,3 @@ jobs:
           RELEASE_TITLE: ${{ needs.version.outputs.name }}
           RELEASE_VERSION: ${{ needs.version.outputs.name }}
           PREVIOUS_TAG: ${{ needs.version.outputs.previous }}
-          PRERELEASE: 'true'

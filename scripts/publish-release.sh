@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Publishes one GitHub Release from whatever is sitting in artifacts/, and composes its notes.
 #
-# Both delivery paths call it — ci.yml for the pre-release every green main push produces, and
+# Both delivery paths call it — ci.yml for the release every green main push produces, and
 # release.yml for the curated release a v-tag produces — so that what a release *says* is written
-# once. The only differences between the two are the tag, the title and whether it is a pre-release,
+# once. Both publish a full release; the only differences between the two are the tag and the title,
 # and those arrive through the environment.
 #
 # The changelog is composed from `git log` rather than left to `gh --generate-notes`. Generated
@@ -14,7 +14,6 @@
 #   RELEASE_TITLE      what the release is called on the page
 #   RELEASE_VERSION    the full version, 1.3.348, as it appears in every asset's name
 #   PREVIOUS_TAG       the release this one follows; empty means "the whole history"
-#   PRERELEASE         true or false
 #   NOTARIZATION_TEAM_ID  present only once the Apple Developer Program is paid for; its absence is
 #                         what puts the Gatekeeper warning in the notes
 set -euo pipefail
@@ -24,7 +23,6 @@ cd "$(dirname "$0")/.."
 : "${RELEASE_TAG:?set RELEASE_TAG}"
 : "${RELEASE_TITLE:?set RELEASE_TITLE}"
 : "${RELEASE_VERSION:?set RELEASE_VERSION}"
-: "${PRERELEASE:?set PRERELEASE to true or false}"
 PREVIOUS_TAG="${PREVIOUS_TAG:-}"
 
 V="$RELEASE_VERSION"
@@ -43,7 +41,7 @@ if [ -n "$PREVIOUS_TAG" ]; then
 fi
 
 # Linked at main, not at this release's own tag. Pinning it to the tag would freeze the instructions
-# at the version they described, which sounds right until a build-N pre-release is cleaned up: the
+# at the version they described, which sounds right until a build-N release is cleaned up: the
 # tag goes with it and every link in its notes 404s. An install page that always resolves is worth
 # more here than one that is exactly contemporary with a release nobody can reach any more.
 DOCS="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/docs/INSTALL.md"
@@ -63,7 +61,6 @@ if [ -z "${NOTARIZATION_TEAM_ID:-}" ]; then
 fi
 
 ARGS=(--title "$RELEASE_TITLE" --notes "$NOTES")
-if [ "$PRERELEASE" = "true" ]; then ARGS+=(--prerelease); fi
 # --target only when the tag has to be created, which is the main-push path: on the tag path the tag
 # is what triggered the run, and naming a target for a ref that already exists is at best ignored.
 if ! git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then

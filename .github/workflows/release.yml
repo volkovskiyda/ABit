@@ -1,10 +1,11 @@
 name: Release
 
-# A pushed v* tag publishes the curated release: the one that is not a pre-release, and therefore
-# the one `releases/latest` resolves to. Every green main push publishes too — ci.yml tags those
-# build-<versionCode> and marks them pre-releases — so the difference between the two channels is
-# not what they contain, which is the same four platforms built the same way, but which of them a
-# link to "the latest version" points at.
+# A pushed v* tag publishes the curated release: the same four platforms ci.yml builds, carrying a
+# v<version> title and a second Test Lab matrix on three devices ci.yml never runs. Every green main
+# push publishes a release too — ci.yml tags those build-<versionCode> — and both are full releases,
+# so what separates the two channels is what a build is tested on and what it is called, not a flag.
+# `releases/latest` follows whichever published last, which on this repository is normally a main
+# build; link to a curated release by its own tag.
 #
 # Cut one with scripts/release.sh, which checks the working tree and the tag format for you.
 on:
@@ -116,7 +117,7 @@ jobs:
           NUMBER=$(git rev-list --count HEAD)
           # From the tag's parent, so the tag being cut is not its own predecessor. Either kind of
           # tag counts: the changelog should cover what has happened since the last publish, and on
-          # this repository that is almost always a build-N pre-release rather than the previous v.
+          # this repository that is almost always a build-N release rather than the previous v.
           PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' --match 'build-*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
           {
             echo "base=$BASE"
@@ -126,7 +127,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   # The same four platforms ci.yml builds, from the same workflow, with the same names. A tagged
-  # release and the pre-release before it differ in their notes and in nothing else.
+  # release and the main-push release before it differ in their notes and in nothing else.
   binaries:
     needs: [version, testlab]
     uses: ./.github/workflows/binaries.yml
@@ -161,4 +162,3 @@ jobs:
           RELEASE_TITLE: v${{ needs.version.outputs.name }}
           RELEASE_VERSION: ${{ needs.version.outputs.name }}
           PREVIOUS_TAG: ${{ needs.version.outputs.previous }}
-          PRERELEASE: 'false'
