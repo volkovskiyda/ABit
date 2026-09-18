@@ -145,9 +145,14 @@ jobs:
         with:
           fetch-depth: 0   # the notes are a git log, and PREVIOUS is a tag
 
+      # Only the three release artifacts. Without the pattern this downloads every artifact of the
+      # run, and on a main push that includes abit-desktop-unsigned — the smoke DMG the desktop job
+      # above packages with no build number — which then ships on the release as ABit-1.0.1.dmg next
+      # to the real one.
       - uses: actions/download-artifact@v6
         with:
           path: artifacts
+          pattern: '*-release'
           merge-multiple: true
 
       # scripts/publish-release.sh is shared with ci.yml. The tag already exists here, so `gh release

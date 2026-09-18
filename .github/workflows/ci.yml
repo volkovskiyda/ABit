@@ -257,9 +257,14 @@ jobs:
         with:
           node-version: 22
 
+      # Only the three release artifacts. Without the pattern this downloads every artifact of the
+      # run, and on a main push that includes abit-desktop-unsigned — the smoke DMG the desktop job
+      # above packages with no build number — which then ships on the release as ABit-1.0.1.dmg next
+      # to the real one.
       - uses: actions/download-artifact@v6
         with:
           path: artifacts
+          pattern: '*-release'
           merge-multiple: true
 
       # The web app and the security rules ship together, deliberately: a rule change that a client
