@@ -31,12 +31,24 @@ internal fun ApplicationExtension.configureManagedDevices() {
                     apiLevel = TEST_API_LEVEL
                     systemImageSource = "aosp"
                 }
+                // 720 × 1280 at xhdpi — 360 × 640 dp, the shortest screen anything in the Test Lab
+                // matrix runs on, and a hundred dp shorter than the Pixel above. Height is the axis
+                // this suite gets wrong: every screen is one scrolling column, and an assertion that
+                // a section is displayed passes on a tall device whether or not the app would scroll
+                // to it. Test Lab caught exactly that on SmallPhone.arm, but Test Lab runs on main
+                // pushes only — this is the same question asked on every pull request.
+                create(SMALL_DEVICE) {
+                    device = "Small Phone"
+                    apiLevel = TEST_API_LEVEL
+                    systemImageSource = "aosp-atd"
+                }
             }
             groups {
                 // `./gradlew ciGroupDebugAndroidTest` is what CI runs, so adding a device to the
                 // matrix is a change here rather than a change to a workflow file.
                 create("ci") {
                     targetDevices.add(localDevices.getByName(ATD_DEVICE))
+                    targetDevices.add(localDevices.getByName(SMALL_DEVICE))
                 }
             }
         }
@@ -103,6 +115,7 @@ internal fun TestExtension.configureManagedDevices() {
 }
 
 internal const val ATD_DEVICE = "pixel6Api35Atd"
+internal const val SMALL_DEVICE = "smallPhoneApi35Atd"
 internal const val FULL_DEVICE = "pixel6Api35"
 internal const val WEAR_DEVICE = "wearLargeRoundApi34"
 private const val TEST_API_LEVEL = 35
