@@ -62,10 +62,11 @@ private const val FORTY_FIVE = 45
 private const val LARGEST_FONT_SCALE = 2.0f
 
 /**
- * The room a 360x640 dp phone — the shortest screen the app supports, and the SmallPhone.arm the
- * Test Lab matrix runs — actually gives `SchedulesContent`, once the status bar and the
- * NavigationSuiteScaffold band outside this composable have taken theirs. Measured off a Test Lab
- * frame rather than derived, because the band's height is the adaptive library's to choose.
+ * The room a 360x640 dp phone — the shortest screen the app supports — actually gives
+ * `SchedulesContent`, once the status bar and the NavigationSuiteScaffold band outside this
+ * composable have taken theirs. Measured off a SmallPhone.arm Test Lab frame rather than
+ * derived, because the band's height is the adaptive library's to choose; no Test Lab matrix
+ * runs that device now, which is what makes this golden the check that it still fits.
  *
  * The default preview device is tall enough to hide a layout that overflows here, which is how an
  * empty state whose only call to action sat below the fold reached a release.

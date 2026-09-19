@@ -164,13 +164,24 @@ jobs:
           gcloud auth activate-service-account --key-file "$RUNNER_TEMP/firebase-sa.json"
           gcloud config set project abit-kmp
           # Three devices, each carrying something the others do not, and no two overlapping on any
-          # axis — API level, screen size, emulated versus real silicon. They run in parallel, so the
+          # axis — API level, page size, emulated versus real silicon. They run in parallel, so the
           # matrix costs the slowest one rather than the sum.
-          #   SmallPhone.arm 30 — minSdk and the smallest screen in one execution. Layout gives way
-          #     on a small screen first, and API 30 is the floor both apps declare.
-          #   MediumPhone.arm 36 — phone layout at the level most installs actually run.
+          #   MediumPhone.arm 30 — the phone shape at minSdk, which is the floor both apps declare.
+          #   MediumPhone_ps16k.arm 36 — the same phone at the level most installs actually run, on
+          #     a 16 KB page-size image: what every device shipping with Android 15 and later uses,
+          #     and the only thing in either workflow that answers whether the native libraries the
+          #     app pulls in — Room's bundled SQLite, Firebase — are aligned for it. The vendor tags
+          #     it `preview=36`; if it ever leaves `models list`, MediumPhone.arm 36 is the fallback
+          #     and only that one axis goes with it.
           #   tokay 36 — a physical Pixel 9: real silicon, real GPU, real timings. No emulator
           #     exercises the hardware paths, and Compose rendering is exactly where that shows.
+          #
+          # No small phone in either workflow any more. The 360 x 640 dp screen it carried is asked
+          # on every pull request by the `smallPhoneApi35Atd` managed device in the `ci` group and
+          # again by the screenshot goldens, both of which run on a free runner — so the execution
+          # was buying a duplicate at the one price Test Lab actually charges. Note there is no
+          # LargePhone.arm to reach for: MediumPhone.arm is the only generic virtual phone the
+          # catalogue offers above API 35.
           #
           # Quota is what fixes the size at three. The Spark plan allows ten virtual and five
           # physical device executions per Pacific day, counted per device, so two virtual and one
@@ -181,8 +192,8 @@ jobs:
           gcloud firebase test android run --type instrumentation \
             --app app/android/build/outputs/apk/debug/android-debug.apk \
             --test app/android/build/outputs/apk/androidTest/debug/android-debug-androidTest.apk \
-            --device model=SmallPhone.arm,version=30 \
-            --device model=MediumPhone.arm,version=36 \
+            --device model=MediumPhone.arm,version=30 \
+            --device model=MediumPhone_ps16k.arm,version=36 \
             --device model=tokay,version=36 \
             --timeout 20m \
             --num-flaky-test-attempts 1

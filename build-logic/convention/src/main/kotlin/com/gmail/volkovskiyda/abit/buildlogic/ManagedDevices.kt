@@ -31,12 +31,12 @@ internal fun ApplicationExtension.configureManagedDevices() {
                     apiLevel = TEST_API_LEVEL
                     systemImageSource = "aosp"
                 }
-                // 720 × 1280 at xhdpi — 360 × 640 dp, the shortest screen anything in the Test Lab
-                // matrix runs on, and a hundred dp shorter than the Pixel above. Height is the axis
-                // this suite gets wrong: every screen is one scrolling column, and an assertion that
-                // a section is displayed passes on a tall device whether or not the app would scroll
-                // to it. Test Lab caught exactly that on SmallPhone.arm, but Test Lab runs on main
-                // pushes only — this is the same question asked on every pull request.
+                // 720 × 1280 at xhdpi — 360 × 640 dp, the shortest screen the app supports, and
+                // a hundred dp shorter than the Pixel above. Height is the axis this suite gets
+                // wrong: every screen is one scrolling column, and an assertion that a section is
+                // displayed passes on a tall device whether or not the app would scroll to it. Test
+                // Lab caught exactly that on SmallPhone.arm, which no Test Lab matrix runs any
+                // more — so this, and the screenshot goldens, are now the only places it is asked.
                 create(SMALL_DEVICE) {
                     device = "Small Phone"
                     apiLevel = TEST_API_LEVEL

@@ -250,7 +250,7 @@ device in the matrix.
 
 | Workflow | Devices | Cost per run |
 |---|---|---|
-| `ci.yml` on a `main` push | `SmallPhone.arm@30`, `MediumPhone.arm@36`, physical `tokay@36` | 2 virtual + 1 physical |
+| `ci.yml` on a `main` push | `MediumPhone.arm@30`, `MediumPhone_ps16k.arm@36`, physical `tokay@36` | 2 virtual + 1 physical |
 | `release.yml` on a tag | `MediumPhone.arm@30`, `MediumTablet.arm@35`, physical `tangorpro@36` | 2 virtual + 1 physical |
 
 That is five pushes to `main` in a day before either bucket runs dry, and both run out together — a

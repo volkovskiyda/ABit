@@ -49,11 +49,12 @@ jobs:
             exit 1
           fi
 
-  # A second instrumented pass, on three devices ci.yml never runs. The tag always points at a commit
-  # that already went green on main, so repeating that matrix would say nothing new — every device
-  # here is chosen for what the CI three do not carry:
-  #   MediumPhone.arm 30 — phone layout at minSdk, which ci.yml gives up when it pairs API 30 with
-  #     the small phone to save an execution. A release is where that gap is worth closing.
+  # A second instrumented pass. The tag always points at a commit that already went green on main, so
+  # two of the three devices are chosen for what the CI three do not carry, and the third asks the
+  # oldest question once more before anything publishes:
+  #   MediumPhone.arm 30 — the phone shape at minSdk, the same execution ci.yml spends. Deliberately
+  #     repeated: minSdk is the floor both apps declare and this is the last gate before a binary
+  #     reaches anyone, and the virtual slot is paid for whether or not it is spent on something new.
   #   MediumTablet.arm 35 — a large screen, which nothing in ci.yml covers at all.
   #   tangorpro 36 — a physical Pixel Tablet: real silicon and a large screen at once, which no
   #     other device in either workflow has together.
