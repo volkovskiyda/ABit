@@ -32,7 +32,7 @@ jobs:
   # branch filter, so the check has to be a job — and it has to come first, before the run spends
   # Test Lab quota that a bad tag can never earn back.
   guard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -65,7 +65,7 @@ jobs:
   # next day and the release follows; the tag never needs to move.
   testlab:
     needs: [guard]   # never spend an execution on a tag that is not on main
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
@@ -100,7 +100,7 @@ jobs:
   # what it still needs the whole history for is the commit count and the previous release.
   version:
     needs: [guard]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       base: ${{ steps.compute.outputs.base }}
@@ -139,7 +139,7 @@ jobs:
 
   release:
     needs: [version, binaries]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -150,7 +150,7 @@ jobs:
       # run, and on a main push that includes abit-desktop-unsigned — the smoke DMG the desktop job
       # above packages with no build number — which then ships on the release as ABit-1.0.1.dmg next
       # to the real one.
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           pattern: '*-release'

@@ -81,6 +81,11 @@ you do.
   unset because the Compose plugin composes it as `-Xmx:<value>`. CI builds `packageReleaseDmg` on
   every push, because a missing keep rule fails the *app*, not the build.
 - **Compose Hot Reload is applied to `:app:desktop` alone**, and no packaging task goes near it.
+- **CI runner images are pinned, never `-latest`.** `ubuntu-24.04` and `macos-15`, in all four
+  workflows. A floating label moves the Android SDK, the emulator's host libraries and the gcloud
+  build under a green pipeline with nothing in the history saying so — `ubuntu-latest` becomes
+  Ubuntu 26.04 over November 2026. Bumping the pin is a one-line commit that gets its own CI run,
+  which is the point.
 
 ## Layout
 

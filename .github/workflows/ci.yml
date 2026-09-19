@@ -17,8 +17,14 @@ jobs:
   # Everything that needs nothing but a JDK. It deliberately runs with no secrets restored, which
   # makes it the standing proof that a fresh clone of this public repository builds: no signing
   # config, no Kotzilla keys, no google-services.json, and still green.
+  #
+  # `ubuntu-24.04` rather than `ubuntu-latest`, and the same everywhere else in these four workflows:
+  # `ubuntu-latest` becomes Ubuntu 26.04 over November 2026, which would move the image — the Android
+  # SDK, the emulator's host libraries, the gcloud build — under a green pipeline with nothing in the
+  # history saying so. macos-15 was already pinned for that reason; this makes Linux agree. Bumping it
+  # is a one-line commit that gets its own CI run, which is the point.
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
@@ -37,7 +43,7 @@ jobs:
 
       - run: ./gradlew :app:android:assembleDebug :app:wear:assembleDebug :app:web:wasmJsBrowserDistribution
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: reports
@@ -48,7 +54,7 @@ jobs:
   # pull request, which Jellyshelf cannot afford: its APK is arm64-only, so it has to spend Firebase
   # Test Lab quota for any device at all. Nothing here is arm64-only, so a free x86_64 runner does it.
   instrumented:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -72,7 +78,7 @@ jobs:
       # rather than a workflow edit.
       - run: ./gradlew ciGroupDebugAndroidTest
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: instrumented-reports
@@ -83,7 +89,7 @@ jobs:
   # artefact in the project that fails silently and expensively — a wrong rule exposes one user's
   # data to another without breaking anything — so they get their own job.
   emulator-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -127,7 +133,7 @@ jobs:
 
       - run: ./gradlew :app:desktop:test :app:desktop:packageReleaseDmg
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: abit-desktop-unsigned
           path: app/desktop/build/compose/binaries/main-release/dmg/*.dmg
@@ -138,7 +144,7 @@ jobs:
   testlab:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [checks, instrumented]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Has to clear the matrix's own --timeout plus the build ahead of it. Any tighter and a test that
     # actually reached its Test Lab bound would be killed here first: the job would read as cancelled
     # rather than failed, the matrix would carry on in the cloud unwatched, and the executions would
@@ -208,7 +214,7 @@ jobs:
   version:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [checks, instrumented, emulator-tests, testlab]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       base: ${{ steps.compute.outputs.base }}
@@ -256,7 +262,7 @@ jobs:
   # rolling release would lose the mapping for build N the moment N+1 landed.
   publish:
     needs: [version, binaries]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: write   # gh release create, and the tag it creates with it
@@ -272,7 +278,11 @@ jobs:
       # run, and on a main push that includes abit-desktop-unsigned — the smoke DMG the desktop job
       # above packages with no build number — which then ships on the release as ABit-1.0.1.dmg next
       # to the real one.
-      - uses: actions/download-artifact@v6
+      #
+      # v8 fails the step when a download's digest does not match the one the server recorded, where
+      # v6 only logged it. That is the behaviour this job wants: what it downloads here is what gets
+      # published and deployed, and a silently truncated APK would reach the release page.
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           pattern: '*-release'

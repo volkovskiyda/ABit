@@ -4,6 +4,7 @@ import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
@@ -28,6 +29,7 @@ internal val Project.derivedNamespace: String
  * extension instead of a separate `android { }` block. Its test compilations are opt in, so
  * `withHostTest`/`withDeviceTest` are what create `androidHostTest` and `androidDeviceTest`.
  */
+@OptIn(ExperimentalWasmDsl::class)
 internal fun Project.configureKotlinMultiplatform(extension: KotlinMultiplatformExtension) =
     extension.apply {
         val jvmTargetVersion = libs.version("jvmTarget")
@@ -50,6 +52,15 @@ internal fun Project.configureKotlinMultiplatform(extension: KotlinMultiplatform
             all {
                 languageSettings.optIn("kotlin.RequiresOptIn")
                 languageSettings.optIn("kotlin.time.ExperimentalTime")
+            }
+
+            // Every `JsAny` and every `js(…)` body asks for this one, so it is a source-set setting
+            // rather than thirty-odd `@OptIn`s: the browser is a target this project ships, and its
+            // interop stays experimental for as long as Kotlin/Wasm does. Scoped to the wasmJs sets
+            // rather than to `all`, because the marker does not exist off Wasm and naming it there
+            // warns that it is unresolved — once per source set, which is the trade the wrong way.
+            matching { it.name.startsWith("wasmJs") }.configureEach {
+                languageSettings.optIn("kotlin.js.ExperimentalWasmJsInterop")
             }
 
             // Everything Skiko renders: no Android framework, no `android.content.Context`.

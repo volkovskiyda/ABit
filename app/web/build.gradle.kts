@@ -1,3 +1,7 @@
+// The `wasmJs { }` target DSL below is still marked experimental; the convention plugin every other
+// module goes through carries the same opt-in, and this module skips that plugin.
+@file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -15,6 +19,14 @@ kotlin {
     }
 
     sourceSets {
+        // The same opt-in the abit.kmp.library convention plugin gives every other wasmJs source
+        // set, repeated here for the same reason the Koin BoM below is: this module skips that
+        // plugin. Without it every `JsAny` and every `js(…)` body in GoogleSignIn and
+        // WebSettingsScreen warns.
+        matching { it.name.startsWith("wasmJs") }.configureEach {
+            languageSettings.optIn("kotlin.js.ExperimentalWasmJsInterop")
+        }
+
         wasmJsMain.dependencies {
             implementation(projects.app.shared)
 
