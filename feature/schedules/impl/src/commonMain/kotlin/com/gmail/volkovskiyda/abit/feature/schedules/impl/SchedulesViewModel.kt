@@ -85,16 +85,22 @@ class SchedulesViewModel(
     /**
      * Resolving switches the loser **off entirely**, not for that day only — which is what the
      * conflict sheet's copy promises. Keeping it on for other days would leave the overlap in place.
+     *
+     * The loser is switched off **last**, and that ordering is load-bearing. Switching it off is the
+     * write that makes the conflict disappear; the conflict disappearing is what closes the sheet,
+     * which pops its back-stack entry, which cancels this scope. Anything queued after it would be
+     * racing the teardown its own write started. Enabling the winner first can leave the overlap
+     * standing for the frame between the two writes, which costs nothing: the sheet is still up.
      */
     fun resolveConflict(
         keep: ScheduleId,
         disable: ScheduleId,
     ) {
         viewModelScope.launch {
-            repository.findById(disable)?.let { repository.save(it.copy(enabled = false)) }
             // Idempotent on purpose: "this one stays on" is what the sheet promises, and the kept
             // schedule may itself have been switched off on another device between the two taps.
             repository.findById(keep)?.let { if (!it.enabled) repository.save(it.copy(enabled = true)) }
+            repository.findById(disable)?.let { repository.save(it.copy(enabled = false)) }
         }
     }
 }

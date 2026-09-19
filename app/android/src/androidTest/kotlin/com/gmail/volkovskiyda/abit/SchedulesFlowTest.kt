@@ -172,9 +172,13 @@ class SchedulesFlowTest {
      * The conflict sheet, from the banner on Today — the one destination that is the root of the
      * back stack, which is what made this the crash it was rather than a wrong screen.
      *
-     * Resolving dismisses the sheet twice: the tap pops it, and the effect that closes it once its
-     * conflict is gone runs again while the sheet is still composed for its exit animation. Both
-     * dismissals used to pop whatever was on top, so the second one took Today with it and
+     * What the wait after the tap asks is that the overlap is actually **gone**, not merely that the
+     * sheet closed. Those were the same question for as long as the tap dismissed the sheet itself,
+     * and they are not: dismissing on the tap popped the entry out from under the write it had just
+     * started, cancelling it, so the sheet closed over two schedules that were both still on.
+     *
+     * The dismissal is keyed to this entry rather than to whatever is on top, which is separate and
+     * still load-bearing: when this flow dismissed twice, the second one took Today with it and
      * `NavDisplay` threw "NavDisplay backstack cannot be empty" on the next frame.
      */
     @Test

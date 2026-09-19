@@ -257,12 +257,23 @@ private fun ConflictScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val conflict = state.conflicts.firstOrNull { it.first.value == key.first && it.second.value == key.second }
 
-    // Someone resolved it on another device while this sheet was opening — but only once the
-    // repository has actually answered. This ViewModel is scoped to this back-stack entry, so it is
-    // always freshly created here and its first frame carries stateIn's empty initial value; the
-    // sheet used to read that as "already resolved" and pop itself before it ever drew, from both
-    // entry points. Popping from a LaunchedEffect rather than the composition body, too: mutating
-    // the back stack while composing it is its own hazard.
+    // The one way this sheet closes after a choice: the conflict it was opened for is gone. That
+    // covers the tap below and someone resolving it on another device while the sheet was open,
+    // and it is the same shape the editor uses — `saved` flips once the repository has answered and
+    // the screen leaves on that, never on the tap that started it.
+    //
+    // Dismissing on the tap instead is what this used to do, and it lost the resolution outright:
+    // popping the entry clears the ViewModel store scoped to it, which cancels the scope the write
+    // is running on, and `resolveConflict` died at its first suspension point before reaching the
+    // database. The sheet closed, both schedules stayed on, and nothing said so. Whether the write
+    // beat the pop was a race of a few milliseconds, so it read as a flaky test rather than as the
+    // bug it was — Test Lab logged it as flaky on 2026-09-19 and passed the commit.
+    //
+    // `state.loaded` because this ViewModel is scoped to this back-stack entry, so it is always
+    // freshly created here and its first frame carries stateIn's empty initial value; the sheet
+    // used to read that as "already resolved" and pop itself before it ever drew, from both entry
+    // points. Popping from a LaunchedEffect rather than the composition body, too: mutating the
+    // back stack while composing it is its own hazard.
     LaunchedEffect(state.loaded, conflict) {
         if (state.loaded && conflict == null) onDismiss()
     }
@@ -271,10 +282,7 @@ private fun ConflictScreen(
     ConflictSheet(
         conflict = conflict,
         schedules = state.schedules,
-        onKeep = { keep, disable ->
-            viewModel.resolveConflict(keep, disable)
-            onDismiss()
-        },
+        onKeep = { keep, disable -> viewModel.resolveConflict(keep, disable) },
         onEditHours = onEditHours,
         onDismiss = onDismiss,
     )
