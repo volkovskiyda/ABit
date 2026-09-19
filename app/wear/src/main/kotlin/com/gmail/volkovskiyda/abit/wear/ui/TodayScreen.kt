@@ -163,7 +163,7 @@ fun WearTodayContent(
             // Last, under the only button: nothing on the watch updates itself, and this is the
             // number `docs/INSTALL.md` says to compare against the release you have.
             Text(
-                text = "ABit $appVersion",
+                text = "ABit version $appVersion",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

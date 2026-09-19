@@ -42,6 +42,7 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmail.volkovskiyda.abit.core.chime.ChimePermissions
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.designsystem.components.InfoRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.PermissionRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
@@ -223,7 +224,10 @@ fun SettingsContent(
                     // The bottom inset is the navigation suite's, not this Scaffold's, so the last
                     // section needs the gap spelled out or it ends flush against the bar.
                     .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            // Wider than the 8 dp a header sits above its own content, and by enough to be read as
+            // a break rather than as a slightly larger gap: at 20 dp a header was as far from the
+            // section above it as from the line it names, and floated between the two.
+            verticalArrangement = Arrangement.spacedBy(32.dp),
         ) {
             Section("ACCOUNT") {
                 val user = state.user
@@ -277,13 +281,11 @@ fun SettingsContent(
             }
 
             // The app does not update itself — it was installed by hand from a GitHub release — so
-            // the version is the only way to tell whether this build is the current one.
+            // the version is the only way to tell whether this build is the current one. Written as
+            // a row like the ones above it: the label is what makes the number a fact rather than a
+            // title, and the section already says which app it belongs to.
             Section("ABOUT") {
-                Text(
-                    "ABit ${state.appVersion}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                InfoRow(title = "Version", value = state.appVersion)
             }
         }
     }

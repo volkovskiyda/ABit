@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
+import com.gmail.volkovskiyda.abit.core.designsystem.components.InfoRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.PermissionRow
 import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
@@ -57,7 +58,9 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
                 .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(Modifier.widthIn(max = CONTENT_MAX_WIDTH).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        // 32 dp between sections against the 8 dp a header sits above its content, so a header
+        // belongs to what follows it rather than floating between two equal gaps.
+        Column(Modifier.widthIn(max = CONTENT_MAX_WIDTH).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(32.dp)) {
             Text("Settings", style = MaterialTheme.typography.headlineMedium)
 
             Section("ACCOUNT") {
@@ -107,11 +110,7 @@ fun WebSettingsScreen(modifier: Modifier = Modifier) {
             // still says which build it is, because a bug report from a tab is as likely as one from
             // a watch and the number is what makes the two comparable.
             Section("ABOUT") {
-                Text(
-                    "ABit ${state.appVersion}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                InfoRow(title = "Version", value = state.appVersion)
             }
         }
     }

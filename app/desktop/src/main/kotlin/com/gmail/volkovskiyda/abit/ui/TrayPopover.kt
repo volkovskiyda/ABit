@@ -153,7 +153,7 @@ fun TrayPopoverContent(
             // Beside the buttons rather than on a line of its own: the popover is 440 dp tall and
             // the version is not worth a row of it.
             Text(
-                text = "ABit $appVersion",
+                text = "ABit version $appVersion",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
