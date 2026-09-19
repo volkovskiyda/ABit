@@ -1,9 +1,11 @@
 package com.gmail.volkovskiyda.abit.ui.schedules
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmail.volkovskiyda.abit.core.designsystem.components.ScheduleCard
@@ -37,6 +40,11 @@ import com.gmail.volkovskiyda.abit.ui.isWideWindow
 import kotlinx.coroutines.launch
 
 private const val SHORT_DAY_LENGTH = 3
+
+private val GUTTER = 16.dp
+
+/** The extended FAB (56.dp) plus the scaffold's spacing under it, so the last card clears it. */
+private val FAB_CLEARANCE = 88.dp
 
 /**
  * On a compact window this pushes the editor as its own destination, exactly as item 11 had it. On a
@@ -122,11 +130,20 @@ fun SchedulesContent(
             ExtendedFloatingActionButton(onClick = { onOpenEditor(null) }) { Text("New schedule") }
         },
     ) { padding ->
+        // The scaffold's padding goes into `contentPadding`, not a `Modifier.padding`: as a modifier
+        // it shrinks the viewport and clips the list at the FAB, so the last card can never scroll
+        // clear of it. As content padding the list fills the scaffold and scrolls past the button.
+        // The scaffold leaves the FAB out of its own bottom inset, hence FAB_CLEARANCE on top of it.
+        val layoutDirection = LocalLayoutDirection.current
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding =
-                androidx.compose.foundation.layout
-                    .PaddingValues(16.dp),
+                PaddingValues(
+                    start = padding.calculateStartPadding(layoutDirection) + GUTTER,
+                    top = padding.calculateTopPadding() + GUTTER,
+                    end = padding.calculateEndPadding(layoutDirection) + GUTTER,
+                    bottom = padding.calculateBottomPadding() + GUTTER + FAB_CLEARANCE,
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(state.schedules, key = { it.id.value }) { schedule ->
