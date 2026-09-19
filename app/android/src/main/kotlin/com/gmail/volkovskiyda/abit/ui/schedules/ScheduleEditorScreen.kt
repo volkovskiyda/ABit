@@ -76,6 +76,7 @@ fun ScheduleEditorContent(
     modifier: Modifier = Modifier,
 ) {
     var confirmingDelete by remember { mutableStateOf(false) }
+    var confirmingDiscard by remember { mutableStateOf(false) }
     var editingTime by remember { mutableStateOf<TimeField?>(null) }
 
     Scaffold(
@@ -83,7 +84,13 @@ fun ScheduleEditorContent(
         topBar = {
             TopAppBar(
                 title = { Text(if (state.isNew) "New schedule" else "Edit schedule") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Cancel") } },
+                navigationIcon = {
+                    // Cancel leaves without saving, so on a draft that has been touched it asks
+                    // first. An untouched one has nothing to lose and goes straight back.
+                    TextButton(
+                        onClick = { if (state.isDirty) confirmingDiscard = true else onBack() },
+                    ) { Text("Cancel") }
+                },
                 actions = { TextButton(onClick = onSave, enabled = state.canSave) { Text("Save") } },
             )
         },
@@ -185,6 +192,25 @@ fun ScheduleEditorContent(
                 },
             )
         }
+    }
+
+    if (confirmingDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmingDiscard = false },
+            title = { Text(if (state.isNew) "Discard this schedule?" else "Discard changes?") },
+            text = { Text("Nothing you have entered here has been saved yet.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingDiscard = false
+                        onBack()
+                    },
+                ) { Text("Discard") }
+            },
+            // Not "Cancel": the button that opened this dialog says that, and two of them a tap
+            // apart would read as the same action.
+            dismissButton = { TextButton(onClick = { confirmingDiscard = false }) { Text("Keep editing") } },
+        )
     }
 
     if (confirmingDelete) {

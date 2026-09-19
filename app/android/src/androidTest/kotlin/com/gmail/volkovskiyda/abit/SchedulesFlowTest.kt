@@ -102,6 +102,30 @@ class SchedulesFlowTest {
     }
 
     @Test
+    fun cancellingAnEditorWithWorkInItAsksFirst() {
+        composeRule.onNodeWithText("Schedules").performClick()
+        composeRule.onNodeWithText("New schedule").performClick()
+
+        // An untouched draft is the design's defaults and nobody's work, so Cancel just leaves.
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("New schedule").performClick()
+
+        composeRule.onNode(hasSetTextAction()).performTextInput("Flow test")
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Discard this schedule?").assertIsDisplayed()
+
+        // Keeping the dialog's promise: the draft is still there, name and all.
+        composeRule.onNodeWithText("Keep editing").performClick()
+        composeRule.onNodeWithText("Flow test").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Discard").performClick()
+        composeRule.waitUntil { composeRule.onAllNodesWithText("RHYTHM").fetchSemanticsNodes().isEmpty() }
+        // Discarded rather than saved: nothing by that name reached the list.
+        composeRule.onNodeWithText("Flow test").assertDoesNotExist()
+    }
+
+    @Test
     fun settingsShowsThePerDeviceCountdownSwitch() {
         composeRule.onNodeWithText("Settings").performClick()
 

@@ -26,6 +26,12 @@ import kotlinx.datetime.LocalTime
 data class EditorUiState(
     val draft: Schedule,
     val isNew: Boolean,
+    /**
+     * The draft as the editor opened on it — the stored schedule, or the blank one's defaults. Kept
+     * so [isDirty] can be answered by comparison rather than by a flag every setter has to remember
+     * to raise.
+     */
+    val original: Schedule = draft,
     /** The first overlap this draft would create with another enabled schedule, if any. */
     val conflict: Conflict? = null,
     val previewPlan: DayPlan? = null,
@@ -51,6 +57,13 @@ data class EditorUiState(
         get() = draft.breakMinutes !in BREAK_MINUTES_RANGE || draft.breakMinutes % LENGTH_STEP_MINUTES != 0
 
     val canSave: Boolean get() = !nameError && !daysError && !hoursError && !focusError && !breakError
+
+    /**
+     * Whether leaving now would throw work away. A blank editor is opened on the design's defaults
+     * rather than on nothing, so "has the user filled anything in" cannot be read off the draft
+     * alone — it is only the difference from [original] that is the user's.
+     */
+    val isDirty: Boolean get() = draft != original
 }
 
 /**

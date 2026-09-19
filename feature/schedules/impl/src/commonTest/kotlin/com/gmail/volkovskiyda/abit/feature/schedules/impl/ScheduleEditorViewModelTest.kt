@@ -14,6 +14,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private val MONDAY = LocalDate(2026, 9, 14)
@@ -118,6 +119,39 @@ class ScheduleEditorViewModelTest {
                 val conflict = expectMostRecentItem().conflict
                 assertEquals(LocalTime(17, 0), conflict?.from)
                 assertEquals(LocalTime(18, 0), conflict?.to)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a blank editor is not dirty until something is typed into it`() =
+        runTest {
+            val viewModel = editor()
+
+            viewModel.state.test {
+                // The blank editor opens on the design's defaults — workdays, 09:00-18:00, 45/15 —
+                // and none of that is the user's, so cancelling it throws nothing away.
+                assertFalse(awaitItem().isDirty)
+
+                viewModel.edit { it.copy(name = "Deep work") }
+                assertTrue(expectMostRecentItem().isDirty)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an existing schedule is not dirty until it is changed`() =
+        runTest {
+            val viewModel = editor(id = "workdays", stored = listOf(testSchedule()))
+
+            viewModel.state.test {
+                assertFalse(expectMostRecentItem().isDirty, "loading the stored schedule is not an edit")
+
+                viewModel.edit { it.copy(days = setOf(DayOfWeek.SATURDAY)) }
+                assertTrue(expectMostRecentItem().isDirty)
+
+                viewModel.edit { it.copy(days = testSchedule().days) }
+                assertFalse(expectMostRecentItem().isDirty, "edited back to where it started")
                 cancelAndIgnoreRemainingEvents()
             }
         }
