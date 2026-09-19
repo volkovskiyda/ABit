@@ -61,6 +61,17 @@ private const val FIFTY = 50
 private const val FORTY_FIVE = 45
 private const val LARGEST_FONT_SCALE = 2.0f
 
+/**
+ * The room a 360x640 dp phone — the shortest screen the app supports, and the SmallPhone.arm the
+ * Test Lab matrix runs — actually gives `SchedulesContent`, once the status bar and the
+ * NavigationSuiteScaffold band outside this composable have taken theirs. Measured off a Test Lab
+ * frame rather than derived, because the band's height is the adaptive library's to choose.
+ *
+ * The default preview device is tall enough to hide a layout that overflows here, which is how an
+ * empty state whose only call to action sat below the fold reached a release.
+ */
+private const val SHORT_PHONE = "spec:width=360dp,height=480dp,dpi=320"
+
 /** A stand-in for the git-derived version, so the goldens do not move with every commit. */
 private const val SCREENSHOT_VERSION = "1.0.0"
 
@@ -245,6 +256,16 @@ private fun SchedulesEmptySignedInDark() = SchedulesEmpty(ThemeMode.Dark, SIGNED
 @Preview(showBackground = true, fontScale = LARGEST_FONT_SCALE)
 @Composable
 private fun SchedulesEmptyLargestFont() = SchedulesEmpty(ThemeMode.Light, ANONYMOUS)
+
+/**
+ * The empty state on the shortest screen the app supports, anonymous — the tallest of the empty
+ * states, because it is the one carrying the sign-in card. "New schedule" has to be on screen here
+ * without scrolling: the FAB is withheld while the list is empty, so it is the only way in.
+ */
+@PreviewTest
+@Preview(showBackground = true, device = SHORT_PHONE)
+@Composable
+private fun SchedulesEmptyShortPhone() = SchedulesEmpty(ThemeMode.Light, ANONYMOUS)
 
 @PreviewTest
 @Preview(showBackground = true)

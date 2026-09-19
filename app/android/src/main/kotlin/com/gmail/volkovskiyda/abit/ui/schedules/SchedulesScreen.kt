@@ -1,6 +1,7 @@
 package com.gmail.volkovskiyda.abit.ui.schedules
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -60,6 +62,9 @@ private val FAB_CLEARANCE = 88.dp
 
 /** Big enough to read as the app's mark rather than as an icon that lost its row. */
 private val EMPTY_MARK_SIZE = 72.dp
+
+/** Between the empty state's call to action and the sign-in card below it. */
+private val SIGN_IN_GAP = 32.dp
 
 /**
  * On a compact window this pushes the editor as its own destination, exactly as item 11 had it. On a
@@ -224,16 +229,26 @@ private fun SchedulesEmpty(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        // One scrolling column for the whole screen, rather than a centred column with the card
+        // pinned under it. The card is ~180.dp and the block above it ~260.dp, so on the 360x640 dp
+        // phone in the Test Lab matrix — the shortest screen the app supports — pinning the card
+        // left the centred column ~64.dp to scroll inside, and "New schedule" sat below the fold
+        // with nothing on screen saying it was there. The FAB is withheld while the list is empty,
+        // so that was a fresh install with no way at all to make a schedule.
+        //
+        // `heightIn(min = maxHeight)` is what keeps the centring: the column fills the screen and
+        // centres its content when that content fits, and grows past the screen and scrolls when it
+        // does not. Order is priority — the action is above the card, so the card is what goes
+        // under the fold first. Signing in therefore re-centres the block rather than leaving the
+        // headline where it was, which is the one thing the pinned card did better.
         Column(
-            // The weight is what centres this in whatever is left above the card, so the headline
-            // does not jump when signing in takes the card away. It scrolls inside that space
-            // rather than pushing the card off the screen: at the largest font scale on a short
-            // phone this column is taller than the room it has.
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -254,13 +269,14 @@ private fun SchedulesEmpty(
             )
             Spacer(Modifier.height(24.dp))
             Button(onClick = onNewSchedule) { Text("New schedule") }
-        }
-        if (offerSignIn) {
-            SignInCard(
-                onSignIn = onSignIn,
-                title = "Already use ABit elsewhere?",
-                body = "Sign in with Google to bring the schedules from your phone, watch, Mac and browser here.",
-            )
+            if (offerSignIn) {
+                Spacer(Modifier.height(SIGN_IN_GAP))
+                SignInCard(
+                    onSignIn = onSignIn,
+                    title = "Already use ABit elsewhere?",
+                    body = "Sign in with Google to bring the schedules from your phone, watch, Mac and browser here.",
+                )
+            }
         }
     }
 }

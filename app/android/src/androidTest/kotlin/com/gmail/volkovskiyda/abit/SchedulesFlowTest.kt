@@ -193,7 +193,7 @@ class SchedulesFlowTest {
         composeRule.onNodeWithText("Keep Mornings").performClick()
 
         composeRule.waitUntil(timeoutMillis = SEEDED_ROW_TIMEOUT_MS) {
-            composeRule.onAllNodesWithText("Two schedules overlap").fetchSemanticsNodes().isEmpty()
+            composeRule.onAllNodesWithText(OVERLAP_BANNER).fetchSemanticsNodes().isEmpty()
         }
         // Still on Today, and the app is still alive to answer: the banner is gone because the
         // overlap is, not because the destination underneath the sheet went with it. "Today" is the
