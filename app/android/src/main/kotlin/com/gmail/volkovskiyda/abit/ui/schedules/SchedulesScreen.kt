@@ -1,13 +1,21 @@
 package com.gmail.volkovskiyda.abit.ui.schedules
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -25,11 +33,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gmail.volkovskiyda.abit.core.designsystem.components.DialMark
 import com.gmail.volkovskiyda.abit.core.designsystem.components.ScheduleCard
+import com.gmail.volkovskiyda.abit.core.designsystem.components.SignInCard
 import com.gmail.volkovskiyda.abit.core.designsystem.timeRange
 import com.gmail.volkovskiyda.abit.core.domain.Conflict
 import com.gmail.volkovskiyda.abit.core.model.Schedule
@@ -46,6 +58,9 @@ private val GUTTER = 16.dp
 /** The extended FAB (56.dp) plus the scaffold's spacing under it, so the last card clears it. */
 private val FAB_CLEARANCE = 88.dp
 
+/** Big enough to read as the app's mark rather than as an icon that lost its row. */
+private val EMPTY_MARK_SIZE = 72.dp
+
 /**
  * On a compact window this pushes the editor as its own destination, exactly as item 11 had it. On a
  * medium or expanded one the editor is the detail pane beside the list.
@@ -60,6 +75,7 @@ fun SchedulesScreen(
     viewModel: SchedulesViewModel,
     onOpenEditor: (String?) -> Unit,
     onOpenConflict: (String, String) -> Unit,
+    onOpenSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     editorPane: @Composable (id: String?, paneKey: String) -> Unit = { _, _ -> },
 ) {
@@ -71,6 +87,7 @@ fun SchedulesScreen(
             onToggle = viewModel::toggle,
             onOpenEditor = onOpenEditor,
             onOpenConflict = onOpenConflict,
+            onOpenSignIn = onOpenSignIn,
             modifier = modifier,
         )
         return
@@ -95,6 +112,7 @@ fun SchedulesScreen(
                         scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) }
                     },
                     onOpenConflict = onOpenConflict,
+                    onOpenSignIn = onOpenSignIn,
                 )
             }
         },
@@ -114,6 +132,7 @@ fun SchedulesContent(
     onToggle: (ScheduleId, Boolean) -> Unit,
     onOpenEditor: (String?) -> Unit,
     onOpenConflict: (String, String) -> Unit,
+    onOpenSignIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -127,9 +146,24 @@ fun SchedulesContent(
             // The one elevated component in the whole design. The single-content overload rather
             // than the text/icon pair: with an empty icon slot the pair renders a button whose label
             // never reaches the semantics tree, which is invisible to a screen reader and to a test.
-            ExtendedFloatingActionButton(onClick = { onOpenEditor(null) }) { Text("New schedule") }
+            //
+            // Withheld while the list is empty: the empty state carries the same call to action in
+            // the middle of the screen, and two buttons reading "New schedule" are one ambiguous
+            // target for a screen reader and for `onNodeWithText`.
+            if (!state.isEmpty) {
+                ExtendedFloatingActionButton(onClick = { onOpenEditor(null) }) { Text("New schedule") }
+            }
         },
     ) { padding ->
+        if (state.isEmpty) {
+            SchedulesEmpty(
+                offerSignIn = state.offersSignIn,
+                onNewSchedule = { onOpenEditor(null) },
+                onSignIn = onOpenSignIn,
+                modifier = Modifier.padding(padding),
+            )
+            return@Scaffold
+        }
         // The scaffold's padding goes into `contentPadding`, not a `Modifier.padding`: as a modifier
         // it shrinks the viewport and clips the list at the FAB, so the last card can never scroll
         // clear of it. As content padding the list fills the scaffold and scrolls past the button.
@@ -169,6 +203,64 @@ fun SchedulesContent(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * A fresh install, and the one screen where the app has nothing of its own to show. The call to
+ * action sits in the middle rather than in the corner: an empty list with a floating button is a
+ * screen that looks broken until you find the button.
+ *
+ * The sign-in card is the same one Settings and the sheet offer, worded for the case that brings
+ * someone here — schedules that already exist, on another device. It is **below** the primary
+ * action and only for an account that has none: signing in is never what a new user has to do
+ * first, which is the rule the whole auth flow is built on.
+ */
+@Composable
+private fun SchedulesEmpty(
+    offerSignIn: Boolean,
+    onNewSchedule: () -> Unit,
+    onSignIn: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Column(
+            // The weight is what centres this in whatever is left above the card, so the headline
+            // does not jump when signing in takes the card away. It scrolls inside that space
+            // rather than pushing the card off the screen: at the largest font scale on a short
+            // phone this column is taller than the room it has.
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            DialMark(size = EMPTY_MARK_SIZE, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "No schedules yet",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "A schedule is the hours ABit chimes through — say 09:00 to 18:00 on weekdays, " +
+                    "split into focus and breaks.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(24.dp))
+            Button(onClick = onNewSchedule) { Text("New schedule") }
+        }
+        if (offerSignIn) {
+            SignInCard(
+                onSignIn = onSignIn,
+                title = "Already use ABit elsewhere?",
+                body = "Sign in with Google to bring the schedules from your phone, watch, Mac and browser here.",
+            )
         }
     }
 }

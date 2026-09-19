@@ -5,6 +5,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.gmail.volkovskiyda.abit.core.datastore.ThemeMode
 import com.gmail.volkovskiyda.abit.core.datastore.UserPreferences
+import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.BlockKind
 import com.gmail.volkovskiyda.abit.core.domain.Conflict
 import com.gmail.volkovskiyda.abit.core.domain.DayPlan
@@ -14,6 +15,7 @@ import com.gmail.volkovskiyda.abit.core.domain.TodayState
 import com.gmail.volkovskiyda.abit.core.domain.planFor
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
+import com.gmail.volkovskiyda.abit.core.model.UserId
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.SchedulesUiState
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionId
 import com.gmail.volkovskiyda.abit.feature.settings.api.PermissionState
@@ -69,6 +71,10 @@ private val BREAK_NOW = LocalTime(NINE_AM, FIFTY)
 private val MONDAY = LocalDate(YEAR, SEPTEMBER, 14)
 private val TUESDAY = LocalDate(YEAR, SEPTEMBER, 15)
 private val TEST_INSTANT = Instant.fromEpochSeconds(1_700_000_000)
+
+/** The two accounts the empty state tells apart: one that syncs, and one that does not yet. */
+private val ANONYMOUS = AuthUser(UserId("anonymous"), isAnonymous = true)
+private val SIGNED_IN = AuthUser(UserId("google"), isAnonymous = false, email = "user@example.com")
 
 private val WORKDAY_SET =
     setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)
@@ -193,6 +199,53 @@ private fun TodayOffHoursLight() = Today(ThemeMode.Light, TodayUiState(today = o
 private fun TodayLargestFont() =
     Today(ThemeMode.Light, TodayUiState(today = running(BlockKind.Focus), now = FOCUS_NOW, syncState = SyncState.Syncing))
 
+/**
+ * A fresh install, which is the one state where the screen has nothing of its own to show. Both
+ * accounts are covered because they are different screens: an anonymous one is offered sync, and a
+ * signed-in one has the empty state to itself.
+ */
+@Composable
+private fun SchedulesEmpty(
+    themeMode: ThemeMode,
+    user: AuthUser?,
+) {
+    AbitTheme(themeMode = themeMode) {
+        SchedulesContent(
+            state = SchedulesUiState(loaded = true, user = user),
+            onToggle = { _, _ -> },
+            onOpenEditor = {},
+            onOpenConflict = { _, _ -> },
+            onOpenSignIn = {},
+        )
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+private fun SchedulesEmptyAnonymousLight() = SchedulesEmpty(ThemeMode.Light, ANONYMOUS)
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+private fun SchedulesEmptyAnonymousDark() = SchedulesEmpty(ThemeMode.Dark, ANONYMOUS)
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+private fun SchedulesEmptySignedInLight() = SchedulesEmpty(ThemeMode.Light, SIGNED_IN)
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+private fun SchedulesEmptySignedInDark() = SchedulesEmpty(ThemeMode.Dark, SIGNED_IN)
+
+/** The empty state at the largest font scale, where a centred column runs out of room first. */
+@PreviewTest
+@Preview(showBackground = true, fontScale = LARGEST_FONT_SCALE)
+@Composable
+private fun SchedulesEmptyLargestFont() = SchedulesEmpty(ThemeMode.Light, ANONYMOUS)
+
 @PreviewTest
 @Preview(showBackground = true)
 @Composable
@@ -206,6 +259,7 @@ private fun SchedulesLight() {
             onToggle = { _, _ -> },
             onOpenEditor = {},
             onOpenConflict = { _, _ -> },
+            onOpenSignIn = {},
         )
     }
 }
@@ -241,6 +295,7 @@ private fun SchedulesConflictLight() {
             onToggle = { _, _ -> },
             onOpenEditor = {},
             onOpenConflict = { _, _ -> },
+            onOpenSignIn = {},
         )
     }
 }

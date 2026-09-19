@@ -2,6 +2,8 @@ package com.gmail.volkovskiyda.abit.feature.schedules.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
+import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.Conflict
 import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
 import com.gmail.volkovskiyda.abit.core.domain.conflicts
@@ -9,8 +11,8 @@ import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -26,23 +28,44 @@ data class SchedulesUiState(
      * acts on the wrong one.
      */
     val loaded: Boolean = false,
+    /** `null` means signed out entirely; an anonymous user is still a user. */
+    val user: AuthUser? = null,
 ) {
+    /**
+     * Nothing to show, and the repository has answered. [loaded] is the whole point: without it the
+     * frame before the first emission draws the empty state and then replaces it with the list.
+     */
+    val isEmpty: Boolean get() = loaded && schedules.isEmpty()
+
+    /**
+     * Whether this account still has an account to gain. Signed out and anonymous are one case
+     * here, as they are in Settings: neither syncs, and both are fixed by the same button.
+     */
+    val offersSignIn: Boolean get() = user?.isAnonymous != false
+
     /** The conflicts a given schedule is part of, for its card's overlap chip. */
     fun conflictsFor(id: ScheduleId): List<Conflict> = conflicts.filter { it.first == id || it.second == id }
 }
 
 class SchedulesViewModel(
     private val repository: ScheduleRepository,
+    authRepository: AuthRepository,
 ) : ViewModel() {
     val state: StateFlow<SchedulesUiState> =
-        repository
-            .observeSchedules()
-            .map { schedules -> SchedulesUiState(schedules = schedules, conflicts = schedules.conflicts(), loaded = true) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = SchedulesUiState(),
-            )
+        combine(
+            repository.observeSchedules(),
+            // Only the empty screen reads this, to offer sync to an account that has none. It is a
+            // `combine` rather than a second flow the screen collects because `loaded` has to mean
+            // "everything this state says is true", and a list that arrives before the user would
+            // otherwise draw one frame of the wrong empty state.
+            authRepository.currentUser,
+        ) { schedules, user ->
+            SchedulesUiState(schedules = schedules, conflicts = schedules.conflicts(), loaded = true, user = user)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = SchedulesUiState(),
+        )
 
     fun toggle(
         id: ScheduleId,

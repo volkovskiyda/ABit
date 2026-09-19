@@ -160,6 +160,9 @@ internal fun AbitNavDisplay() {
                             viewModel = koinViewModel<SchedulesViewModel>(),
                             onOpenEditor = { id -> backStack.add(ScheduleEditorNavKey(id)) },
                             onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
+                            // Offered from the empty state, to someone whose schedules are on
+                            // another device. The same sheet the sync badge and Settings open.
+                            onOpenSignIn = { backStack.add(SignInNavKey) },
                             // Only reached on a wide window, where the editor is the detail pane
                             // rather than a pushed destination.
                             editorPane = { id, paneKey ->

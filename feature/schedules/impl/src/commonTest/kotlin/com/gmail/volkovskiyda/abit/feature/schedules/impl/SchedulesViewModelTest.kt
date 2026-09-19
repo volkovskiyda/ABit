@@ -1,7 +1,10 @@
 package com.gmail.volkovskiyda.abit.feature.schedules.impl
 
 import app.cash.turbine.test
+import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.model.ScheduleId
+import com.gmail.volkovskiyda.abit.core.model.UserId
+import com.gmail.volkovskiyda.abit.core.testing.FakeAuthRepository
 import com.gmail.volkovskiyda.abit.core.testing.FakeScheduleRepository
 import com.gmail.volkovskiyda.abit.core.testing.MainDispatcherRule
 import com.gmail.volkovskiyda.abit.core.testing.testSchedule
@@ -27,7 +30,7 @@ class SchedulesViewModelTest {
     fun `toggling a schedule writes through`() =
         runTest {
             val repository = FakeScheduleRepository(listOf(testSchedule()))
-            val viewModel = SchedulesViewModel(repository)
+            val viewModel = SchedulesViewModel(repository, FakeAuthRepository())
 
             viewModel.state.test {
                 assertTrue(awaitItem().schedules.single().enabled)
@@ -43,7 +46,7 @@ class SchedulesViewModelTest {
     fun `deleting takes the schedule out of the list`() =
         runTest {
             val repository = FakeScheduleRepository(listOf(testSchedule()))
-            val viewModel = SchedulesViewModel(repository)
+            val viewModel = SchedulesViewModel(repository, FakeAuthRepository())
 
             viewModel.state.test {
                 assertEquals(1, awaitItem().schedules.size)
@@ -73,7 +76,7 @@ class SchedulesViewModelTest {
                         ),
                     ),
                 )
-            val viewModel = SchedulesViewModel(repository)
+            val viewModel = SchedulesViewModel(repository, FakeAuthRepository())
 
             viewModel.state.test {
                 assertEquals(1, awaitItem().conflicts.size)
@@ -84,6 +87,37 @@ class SchedulesViewModelTest {
                 assertTrue(after.schedules.first { it.id == ScheduleId("a") }.enabled)
                 assertEquals(false, after.schedules.first { it.id == ScheduleId("b") }.enabled)
                 assertEquals(0, after.conflicts.size, "a disabled schedule cannot conflict")
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an empty list is only empty once the repository has answered`() =
+        runTest {
+            val viewModel = SchedulesViewModel(FakeScheduleRepository(emptyList()), FakeAuthRepository())
+
+            // The initial value, which is the frame before the first emission: no schedules, and
+            // nothing yet to say there are none. The empty state must not draw here.
+            assertEquals(false, viewModel.state.value.isEmpty)
+
+            viewModel.state.test {
+                assertTrue(awaitItem().isEmpty)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `sync is offered to an anonymous account and to no one else`() =
+        runTest {
+            val auth = FakeAuthRepository(AuthUser(UserId("anonymous"), isAnonymous = true))
+            val viewModel = SchedulesViewModel(FakeScheduleRepository(emptyList()), auth)
+
+            viewModel.state.test {
+                assertTrue(awaitItem().offersSignIn)
+
+                auth.emit(AuthUser(UserId("google-user"), isAnonymous = false, email = "user@example.com"))
+
+                assertEquals(false, awaitItem().offersSignIn)
                 cancelAndIgnoreRemainingEvents()
             }
         }
