@@ -38,6 +38,8 @@ google-services.json
 # NOT ignored: together they are what points this repo at the abit-kmp project, and they carry
 # nothing beyond that id.
 /.firebase/
+# The Firestore emulator's debug log, rewritten on every emulator run. Machine-local noise.
+/firestore-debug.log
 
 # Android Studio's "Generate Signed Bundle / APK" wizard writes outside build/.
 /app/*/release/
