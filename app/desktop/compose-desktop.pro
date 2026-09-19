@@ -52,7 +52,29 @@
 -keep class dev.gitlive.firebase.** { *; }
 -keep class io.grpc.** { *; }
 -keep class com.google.protobuf.** { *; }
+# The generated Firestore messages are not in com.google.protobuf, and protobuf-lite reaches their
+# fields by *name*: `MessageSchema` unpacks a `RawMessageInfo` string and calls `reflectField` for
+# each one, so a private field with no call site — every optional field this app never sets — is
+# shrunk away and the schema fails to build:
+#   RuntimeException: Field select_ for com.google.firestore.v1.StructuredQuery not found.
+#     at com.google.protobuf.MessageSchema.reflectField(MessageSchema.java:621)
+#     at com.google.firebase.firestore.local.SQLiteTargetCache.saveTargetData
+# Keeping the fields of every GeneratedMessageLite covers the generated code wherever it lives,
+# which is four package trees, rather than naming them.
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { <fields>; }
 -keep class android.** { *; }
+# Firestore's local persistence is SQLite, and on this platform that is firebase-java-sdk's
+# `android.database.sqlite` shim over org.xerial:sqlite-jdbc. Its native library resolves the Java
+# callback classes by JNI name from inside `System.load`, so ProGuard sees no call site for any of
+# them and shrinks them away. The first one the loader asks for takes the whole app's sync down:
+#   java.lang.NoClassDefFoundError: org/sqlite/Function$Aggregate
+#     at org.sqlite.SQLiteJDBCLoader.loadNativeLibrary(SQLiteJDBCLoader.java:266)
+#     at com.google.firebase.firestore.local.SQLitePersistence.start(SQLitePersistence.java:138)
+#     -> RuntimeException: Internal error in Cloud Firestore (24.10.0)
+# Packaged builds only, and only once the app touches Firestore — the tray icon still appears, so
+# this reads as "sync quietly does nothing" rather than as a crash. `./gradlew :app:desktop:run`
+# never shows it: nothing shrinks the classpath there.
+-keep class org.sqlite.** { *; }
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 -dontwarn io.grpc.**

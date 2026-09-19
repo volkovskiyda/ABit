@@ -133,6 +133,19 @@ jobs:
 
       - run: ./gradlew :app:desktop:test :app:desktop:packageReleaseDmg
 
+      # Packaging proves the bundle builds. It does not prove the bundle runs, and that gap is not
+      # hypothetical: two keep rules were missing for as long as this job has existed, so every DMG
+      # it ever waved through opened its tray icon and then silently failed to sync. Nothing else in
+      # the build can see it — `:app:desktop:run` and the desktop UI tests both run unshrunk, so
+      # they are green by construction, and a packaged build is the only place ProGuard exists.
+      #
+      # It signs in anonymously against the real project, deliberately: that is the code path a
+      # tester gets, and a smoke test that avoids it would only prove the app starts. One anonymous
+      # Auth user per run is the price. On a failure the script prints everything the app printed,
+      # so the job log is the whole report.
+      - name: Launch the packaged app
+        run: scripts/smoke-desktop.sh
+
       - uses: actions/upload-artifact@v7
         with:
           name: abit-desktop-unsigned

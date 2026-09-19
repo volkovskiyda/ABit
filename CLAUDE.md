@@ -15,7 +15,13 @@ scripts/run-tests.sh --all      # ... plus managed-emulator and Firebase emulato
 scripts/emulator-tests.sh                       # Firestore rules, against the local emulators
 ./gradlew testSummary                           # one HTML page over every layer that has run
 ./gradlew :app:desktop:hotRun --auto            # the tray app, re-composed on every save
+scripts/smoke-desktop.sh                        # launch the *packaged* Mac app and read what it prints
 ```
+
+`smoke-desktop.sh` wants a bundle to launch: `./gradlew :app:desktop:createReleaseDistributable`
+first, and `ABIT_SMOKE_SECONDS` shortens the minute it watches for. Run it after touching
+`compose-desktop.pro` or anything the shrink can reach — it is the only check that reads the
+artifact that ships.
 
 `testSummary` reads reports off disk and runs nothing, so it is safe after a failing run —
 `run-tests.sh` calls it last. A layer nobody ran reads "not run" rather than "0 passed".
@@ -78,8 +84,18 @@ you do.
   it detects the case from the uid changing rather than from any new API.
 - **The desktop ProGuard optimizer stays off.** With it on, the packaged app dies on startup with
   `VerifyError` in `okio.Okio.sink(Socket)`. Obfuscation stays off too, and `maxHeapSize` stays
-  unset because the Compose plugin composes it as `-Xmx:<value>`. CI builds `packageReleaseDmg` on
-  every push, because a missing keep rule fails the *app*, not the build.
+  unset because the Compose plugin composes it as `-Xmx:<value>`.
+- **The packaged Mac app is launched in CI, not merely built.** A missing keep rule fails the *app*,
+  not the build, so `packageReleaseDmg` on every push was never going to catch one — and it did not:
+  sqlite-jdbc's JNI callbacks and protobuf-lite's reflected message fields were both absent from
+  `compose-desktop.pro` for as long as that job existed, and every DMG it passed opened its tray icon
+  and then silently failed to sync. `scripts/smoke-desktop.sh` now runs the bundle and reads what it
+  prints. It fails on a stack trace, on an early exit, and — the case that matters — on the app
+  starting without Firestore opening its local store, which would otherwise pass while proving
+  nothing. Nothing else can see this class of bug: `:app:desktop:run` and the desktop UI tests are
+  unshrunk, so they are green by construction, and a packaged build is the only place ProGuard
+  exists. The run signs in anonymously against the real project, which is the point — that is the
+  code path a tester gets — at one anonymous Auth user per run.
 - **Desktop ProGuard writes one output jar per input**, never a joined one. `joinOutputJars` merges
   126 jars into one, and a jar holds one entry per name, so every duplicate after the first is
   dropped — 125 warnings a build, and among them a `META-INF/services/*` file, which is a
