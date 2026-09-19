@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,23 +105,30 @@ internal fun AbitNavDisplay() {
     val current = backStack.lastOrNull()
     val onDestination = Destination.entries.any { it.key == current }
 
+    // Hidden rather than emptied on the editor and the two sheets. The scaffold measures and paints
+    // its navigation component whether or not it holds items, so dropping the items alone left a
+    // bar-height band of `surfaceContainer` under the editor with nothing in it. Hiding animates the
+    // populated bar off the bottom edge and stops it consuming the navigation-bar inset, which the
+    // screen's own Scaffold then applies.
+    val suiteState = rememberNavigationSuiteScaffoldState()
+    LaunchedEffect(onDestination) { if (onDestination) suiteState.show() else suiteState.hide() }
+
     // One declaration for three form factors: a bottom bar on a compact width, a rail on medium and
     // expanded. The alternative was a second layout file for tablets that could drift from this one.
     NavigationSuiteScaffold(
+        state = suiteState,
         navigationSuiteItems = {
-            if (onDestination) {
-                Destination.entries.forEach { destination ->
-                    item(
-                        selected = destination.key == current,
-                        onClick = {
-                            // One entry per destination: tapping the bar switches rather than stacks.
-                            backStack.removeAll { it in Destination.entries.map(Destination::key) }
-                            backStack.add(destination.key)
-                        },
-                        icon = { DestinationIcon(destination) },
-                        label = { Text(destination.label) },
-                    )
-                }
+            Destination.entries.forEach { destination ->
+                item(
+                    selected = destination.key == current,
+                    onClick = {
+                        // One entry per destination: tapping the bar switches rather than stacks.
+                        backStack.removeAll { it in Destination.entries.map(Destination::key) }
+                        backStack.add(destination.key)
+                    },
+                    icon = { DestinationIcon(destination) },
+                    label = { Text(destination.label) },
+                )
             }
         },
     ) {
