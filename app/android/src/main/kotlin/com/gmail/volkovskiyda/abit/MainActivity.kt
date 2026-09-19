@@ -134,7 +134,7 @@ internal fun AbitNavDisplay() {
     ) {
         NavDisplay(
             backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
+            onBack = { backStack.lastOrNull()?.let { key -> backStack.dismiss(key) } },
             // NavDisplay's own default is the saveable-state holder and nothing else, so without
             // this every `koinViewModel()` below resolves against the *activity's* store: one
             // ScheduleEditorViewModel, shared by every visit to the editor. Tapping "New schedule"
@@ -176,12 +176,12 @@ internal fun AbitNavDisplay() {
                     entry<ScheduleEditorNavKey> { key ->
                         ScheduleEditorScreen(
                             viewModel = koinViewModel { parametersOf(key.id) },
-                            onDone = { backStack.removeLastOrNull() },
+                            onDone = { backStack.dismiss(key) },
                         )
                     }
                     entry<ScheduleConflictNavKey> { key ->
-                        ConflictScreen(key = key, onDismiss = { backStack.removeLastOrNull() }) { id ->
-                            backStack.removeLastOrNull()
+                        ConflictScreen(key = key, onDismiss = { backStack.dismiss(key) }) { id ->
+                            backStack.dismiss(key)
                             backStack.add(ScheduleEditorNavKey(id))
                         }
                     }
@@ -191,12 +191,32 @@ internal fun AbitNavDisplay() {
                             onOpenSignIn = { backStack.add(SignInNavKey) },
                         )
                     }
-                    entry<SignInNavKey> {
-                        GoogleSignInSheet(onDismiss = { backStack.removeLastOrNull() })
+                    entry<SignInNavKey> { key ->
+                        GoogleSignInSheet(onDismiss = { backStack.dismiss(key) })
                     }
                 },
         )
     }
+}
+
+/**
+ * Leaves [key], rather than whatever happens to be on top.
+ *
+ * Every entry that is not a destination has more than one way out — the editor's Cancel button and
+ * the saved flag its view model raises, a sheet's scrim, its buttons and the effect that closes it
+ * once the thing it is asking about is gone — and two of them can fire for the same entry. An entry
+ * stays composed while it animates away, so an effect that reacts on the frame after the tap that
+ * already popped it used to pop a second time and take the destination underneath with it. Popping
+ * *this* key makes the second dismissal a no-op.
+ *
+ * Index 0 is left alone for the same reason: `NavDisplay` requires a back stack with something in
+ * it, and one that empties does not misdraw, it throws — "NavDisplay backstack cannot be empty" —
+ * on the next frame. Back arrives here too, so the root destination stays put and the gesture falls
+ * through to the activity, which is what closes the app.
+ */
+private fun MutableList<NavKey>.dismiss(key: NavKey) {
+    val index = lastIndexOf(key)
+    if (index > 0) removeAt(index)
 }
 
 /** The Today destination wears the app's own dial, not a generic clock. */

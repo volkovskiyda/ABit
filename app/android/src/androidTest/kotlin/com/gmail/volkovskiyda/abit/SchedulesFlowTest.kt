@@ -7,6 +7,7 @@ import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -14,13 +15,18 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
+import com.gmail.volkovskiyda.abit.core.model.Schedule
+import com.gmail.volkovskiyda.abit.core.model.ScheduleId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.GlobalContext
+import kotlin.time.Clock
 
 /**
  * The path from an empty install to a schedule, through the real database. It is the flow every
@@ -162,6 +168,62 @@ class SchedulesFlowTest {
         Espresso.pressBack()
     }
 
+    /**
+     * The conflict sheet, from the banner on Today — the one destination that is the root of the
+     * back stack, which is what made this the crash it was rather than a wrong screen.
+     *
+     * Resolving dismisses the sheet twice: the tap pops it, and the effect that closes it once its
+     * conflict is gone runs again while the sheet is still composed for its exit animation. Both
+     * dismissals used to pop whatever was on top, so the second one took Today with it and
+     * `NavDisplay` threw "NavDisplay backstack cannot be empty" on the next frame.
+     */
+    @Test
+    fun resolvingAConflictClosesTheSheetAndLeavesTodayAlone() {
+        // Seeded through the repository rather than the editor: two overlapping schedules is six
+        // screens of typing, and the ids are what decides which card the sheet draws first.
+        seed(id = "conflict-a", name = "Mornings", start = LocalTime(9, 0), end = LocalTime(12, 0))
+        seed(id = "conflict-b", name = "Afternoons", start = LocalTime(11, 0), end = LocalTime(15, 0))
+
+        // Longer than the one-second default: every other wait in this file is on the UI catching
+        // up with a tap, and this one is on a database write reaching the screen through sync.
+        composeRule.waitUntil(timeoutMillis = SEEDED_ROW_TIMEOUT_MS) {
+            composeRule.onAllNodesWithText(OVERLAP_BANNER).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText(OVERLAP_BANNER).performClick()
+        composeRule.onNodeWithText("Keep Mornings").performClick()
+
+        composeRule.waitUntil(timeoutMillis = SEEDED_ROW_TIMEOUT_MS) {
+            composeRule.onAllNodesWithText("Two schedules overlap").fetchSemanticsNodes().isEmpty()
+        }
+        // Still on Today, and the app is still alive to answer: the banner is gone because the
+        // overlap is, not because the destination underneath the sheet went with it. "Today" is the
+        // screen's title and its navigation label both, so this asks for the first.
+        composeRule.onNodeWithText(OVERLAP_BANNER).assertDoesNotExist()
+        composeRule.onAllNodesWithText("Today").onFirst().assertIsDisplayed()
+    }
+
+    private fun seed(
+        id: String,
+        name: String,
+        start: LocalTime,
+        end: LocalTime,
+    ) = runBlocking {
+        GlobalContext.get().get<ScheduleRepository>().save(
+            Schedule(
+                id = ScheduleId(id),
+                name = name,
+                enabled = true,
+                days = DayOfWeek.entries.toSet(),
+                start = start,
+                end = end,
+                focusMinutes = 25,
+                breakMinutes = 5,
+                // Stamped by the repository on the way in; the value here is never read back.
+                updatedAt = Clock.System.now(),
+            ),
+        )
+    }
+
     @Test
     fun settingsShowsThePerDeviceCountdownSwitch() {
         composeRule.onNodeWithText("Settings").performClick()
@@ -175,5 +237,11 @@ class SchedulesFlowTest {
         // being read: the screen is built fresh on every visit, and this is what proves it is built
         // from the stored value rather than from the defaults.
         composeRule.onNode(isToggleable()).assertIsOff()
+    }
+
+    private companion object {
+        const val OVERLAP_BANNER = "Two schedules overlap — choose which stays on"
+
+        const val SEEDED_ROW_TIMEOUT_MS = 5_000L
     }
 }
