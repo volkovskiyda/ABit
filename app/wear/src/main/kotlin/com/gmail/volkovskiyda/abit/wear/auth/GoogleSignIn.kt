@@ -40,6 +40,10 @@ class GoogleSignIn(
      *
      * Null only on a build whose `google-services.json` predates the project's web OAuth client;
      * with the client in place the resource exists and the card offers the button.
+     *
+     * A name lookup is invisible to the resource shrinker, which removed the string from every
+     * release APK until `res/raw/abit_keep.xml` started naming it — so every release watch fell back
+     * to "Sign in on your phone". That file is what keeps this working.
      */
     val serverClientId: String? by lazy {
         val id = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)

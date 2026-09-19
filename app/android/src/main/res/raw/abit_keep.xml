@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keeps the web OAuth client id in a shrunk release build.
+
+  `GoogleSignIn.serverClientId` looks `default_web_client_id` up by name rather than through `R`,
+  because the resource only exists once the Firebase project has a web OAuth client and referencing
+  it directly would stop a keyless checkout from compiling. The resource shrinker sees no reference
+  to it at all and removes it: a release APK then reported "Google sign-in is not configured for this
+  build" on a device where debug signed in fine, and the shrinker report said
+  `string:default_web_client_id is not reachable`.
+
+  The same mechanism, and the same file shape, firebase-common uses to keep `google_app_id` and the
+  other values the SDK reads with `getIdentifier` — which is why the rest of that file survived and
+  this one did not. Naming the file after the app keeps it from colliding with a library's.
+
+  Naming a resource that a given build does not have is not an error; firebase-common's own list
+  includes `@string/ga_trackingId`, which this project never generates. So a checkout with no
+  `google-services.json` still builds, and still reports Google sign-in unavailable.
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/default_web_client_id" />

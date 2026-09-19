@@ -27,9 +27,12 @@ class GoogleSignIn(
      * exists once a web OAuth client does, and referencing it directly would stop a build without
      * one from compiling at all.
      *
-     * It is null on this project today: creating that client needs the OAuth consent screen to be
-     * configured in the Google Cloud console, which is an interactive step. Until then Google
-     * sign-in reports itself unavailable and anonymous sign-in carries the app.
+     * Null only on a build whose `google-services.json` predates the project's web OAuth client;
+     * with the client in place the resource exists and the sheet offers the button.
+     *
+     * A name lookup is invisible to the resource shrinker, which removed the string from every
+     * release APK until `res/raw/abit_keep.xml` started naming it. That file is what keeps this
+     * working, and the comment in it is the account of what it cost to find.
      */
     val serverClientId: String? by lazy {
         val id = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
