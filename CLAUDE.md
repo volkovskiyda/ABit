@@ -80,6 +80,10 @@ you do.
   `VerifyError` in `okio.Okio.sink(Socket)`. Obfuscation stays off too, and `maxHeapSize` stays
   unset because the Compose plugin composes it as `-Xmx:<value>`. CI builds `packageReleaseDmg` on
   every push, because a missing keep rule fails the *app*, not the build.
+- **Desktop ProGuard writes one output jar per input**, never a joined one. `joinOutputJars` merges
+  126 jars into one, and a jar holds one entry per name, so every duplicate after the first is
+  dropped — 125 warnings a build, and among them a `META-INF/services/*` file, which is a
+  ServiceLoader registry quietly losing providers. Costs 71 KB on the DMG.
 - **Compose Hot Reload is applied to `:app:desktop` alone**, and no packaging task goes near it.
 - **CI runner images are pinned, never `-latest`.** `ubuntu-24.04` and `macos-15`, in all four
   workflows. A floating label moves the Android SDK, the emulator's host libraries and the gcloud

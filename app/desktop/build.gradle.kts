@@ -110,9 +110,23 @@ compose.desktop {
             // shrink is what this build wants anyway; the optimizer's few extra megabytes are not
             // worth a crash that only a packaged build can show.
             optimize.set(false)
-            // One jar rather than one per input. jlink walks the result either way, but a single
-            // jar is what makes `unzip -l` on the bundle a usable answer to "what shipped".
-            joinOutputJars.set(true)
+            // One output jar per input jar. Joining them writes 126 jars into one, and a jar holds
+            // one entry per name, so every duplicate after the first is dropped with a "can't write
+            // resource" warning — 125 of them on each of the two macOS jobs a push runs, which is
+            // most of what a packaging log says.
+            //
+            // Dropping them is survivable rather than safe. 125 are each jar's own MANIFEST.MF and
+            // are no loss; the rest are ten `.kotlin_module` files, a LICENSE, and one
+            // ServiceLoader registry — META-INF/services/io.grpc.LoadBalancerProvider, which
+            // grpc-core and grpc-util both ship with different contents. Only grpc-util's survived
+            // the merge, so pick_first, gRPC's default policy, was registered by nothing. It still
+            // resolves, because LoadBalancerRegistry falls back to a hard-coded list naming that
+            // exact class — measured, not assumed. The next library to collide will not come with
+            // a fallback, and nothing here would report it.
+            //
+            // The cost is that `unzip -l` on the bundle answers "what shipped" one jar at a time
+            // instead of all at once, and 71 KB on the DMG. jlink walks the result either way.
+            joinOutputJars.set(false)
             // `maxHeapSize` is deliberately not set: the Compose plugin composes the flag as
             // `-Xmx:<value>` (measured with 1.12.0), which no JVM accepts, so setting it at all
             // fails the task with "Invalid maximum heap size". ProGuard runs in its own process at
