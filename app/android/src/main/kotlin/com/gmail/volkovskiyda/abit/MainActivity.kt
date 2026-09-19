@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -105,30 +106,44 @@ internal fun AbitNavDisplay() {
     val current = backStack.lastOrNull()
     val onDestination = Destination.entries.any { it.key == current }
 
-    // Hidden rather than emptied on the editor and the two sheets. The scaffold measures and paints
-    // its navigation component whether or not it holds items, so dropping the items alone left a
-    // bar-height band of `surfaceContainer` under the editor with nothing in it. Hiding animates the
-    // populated bar off the bottom edge and stops it consuming the navigation-bar inset, which the
-    // screen's own Scaffold then applies.
-    val suiteState = rememberNavigationSuiteScaffoldState()
-    LaunchedEffect(onDestination) { if (onDestination) suiteState.show() else suiteState.hide() }
-
     // One declaration for three form factors: a bottom bar on a compact width, a rail on medium and
     // expanded. The alternative was a second layout file for tablets that could drift from this one.
     NavigationSuiteScaffold(
-        state = suiteState,
-        navigationSuiteItems = {
-            Destination.entries.forEach { destination ->
-                item(
-                    selected = destination.key == current,
-                    onClick = {
-                        // One entry per destination: tapping the bar switches rather than stacks.
-                        backStack.removeAll { it in Destination.entries.map(Destination::key) }
-                        backStack.add(destination.key)
-                    },
-                    icon = { DestinationIcon(destination) },
-                    label = { Text(destination.label) },
+        // Emptied *and* painted out on the editor and the two sheets, rather than hidden. The
+        // scaffold measures and paints its navigation component whether or not it holds items, so
+        // dropping the items alone left a bar-height band of `surfaceContainer` under the editor
+        // with nothing in it; a transparent container makes that band the scaffold's own background,
+        // which is the colour every screen already draws.
+        //
+        // `NavigationSuiteScaffoldState.hide()` takes the band *back*, which reads better and is the
+        // one thing that cannot be done here: the height it returns resizes the single content
+        // region every destination shares. A list sitting at the end of its scroll has its offset
+        // clamped against the taller viewport, and clamping is not reversible — Schedules came back
+        // from the editor scrolled up by the height of the bar, and Today and Settings would too.
+        // Leaving the band measured costs the editor those dp and keeps every scroll position.
+        navigationSuiteColors =
+            if (onDestination) {
+                NavigationSuiteDefaults.colors()
+            } else {
+                NavigationSuiteDefaults.colors(
+                    shortNavigationBarContainerColor = Color.Transparent,
+                    navigationBarContainerColor = Color.Transparent,
                 )
+            },
+        navigationSuiteItems = {
+            if (onDestination) {
+                Destination.entries.forEach { destination ->
+                    item(
+                        selected = destination.key == current,
+                        onClick = {
+                            // One entry per destination: tapping the bar switches rather than stacks.
+                            backStack.removeAll { it in Destination.entries.map(Destination::key) }
+                            backStack.add(destination.key)
+                        },
+                        icon = { DestinationIcon(destination) },
+                        label = { Text(destination.label) },
+                    )
+                }
             }
         },
     ) {
