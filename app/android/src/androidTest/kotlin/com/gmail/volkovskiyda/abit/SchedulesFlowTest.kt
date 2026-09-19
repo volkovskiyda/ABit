@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.gmail.volkovskiyda.abit.core.domain.ScheduleRepository
 import kotlinx.coroutines.flow.first
@@ -123,6 +124,42 @@ class SchedulesFlowTest {
         composeRule.waitUntil { composeRule.onAllNodesWithText("RHYTHM").fetchSemanticsNodes().isEmpty() }
         // Discarded rather than saved: nothing by that name reached the list.
         composeRule.onNodeWithText("Flow test").assertDoesNotExist()
+    }
+
+    @Test
+    fun theBackGestureAsksBeforeDiscardingWorkAsWell() {
+        composeRule.onNodeWithText("Schedules").performClick()
+        composeRule.onNodeWithText("New schedule").performClick()
+
+        // Nothing typed yet, so the handler stays disabled and back pops the destination itself —
+        // which is what keeps back's own animation rather than replacing it with a dialog.
+        pressBack()
+        composeRule.onNodeWithText("New schedule").assertIsDisplayed()
+
+        composeRule.onNodeWithText("New schedule").performClick()
+        composeRule.onNode(hasSetTextAction()).performTextInput("Back test")
+
+        // Back was the other way out of the editor, and it threw the draft away as silently as
+        // Cancel used to.
+        pressBack()
+        composeRule.onNodeWithText("Discard this schedule?").assertIsDisplayed()
+        composeRule.onNodeWithText("Keep editing").performClick()
+        composeRule.onNodeWithText("Back test").assertIsDisplayed()
+
+        pressBack()
+        composeRule.onNodeWithText("Discard").performClick()
+        composeRule.waitUntil { composeRule.onAllNodesWithText("RHYTHM").fetchSemanticsNodes().isEmpty() }
+        composeRule.onNodeWithText("Back test").assertDoesNotExist()
+    }
+
+    /**
+     * The soft keyboard first, because it eats the press rather than passing it on: typing a name
+     * leaves the IME up, and on a real device that first back closes it and the second reaches the
+     * editor. Without this the test asserts on a press the app never sees.
+     */
+    private fun pressBack() {
+        Espresso.closeSoftKeyboard()
+        Espresso.pressBack()
     }
 
     @Test

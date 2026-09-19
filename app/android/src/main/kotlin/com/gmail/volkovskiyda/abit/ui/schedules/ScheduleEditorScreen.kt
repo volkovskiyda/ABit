@@ -1,5 +1,6 @@
 package com.gmail.volkovskiyda.abit.ui.schedules
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,7 @@ import com.gmail.volkovskiyda.abit.core.model.FOCUS_MINUTES_RANGE
 import com.gmail.volkovskiyda.abit.core.model.Schedule
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.EditorUiState
 import com.gmail.volkovskiyda.abit.feature.schedules.impl.ScheduleEditorViewModel
+import com.gmail.volkovskiyda.abit.ui.isWideWindow
 import kotlinx.datetime.LocalTime
 
 @Composable
@@ -61,6 +63,11 @@ fun ScheduleEditorScreen(
         onSave = viewModel::save,
         onDelete = viewModel::delete,
         onBack = onDone,
+        // Only on a compact window, where the editor is its own destination and back leaves it. On a
+        // wide one it is the detail pane, and back there belongs to NavigableListDetailPaneScaffold,
+        // which collapses the pane rather than leaving the editor — intercepting it would swallow
+        // the list's own back gesture and leave the pane with no way out.
+        guardBackGesture = !isWideWindow(),
         modifier = modifier,
     )
 }
@@ -74,10 +81,16 @@ fun ScheduleEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    guardBackGesture: Boolean = true,
 ) {
     var confirmingDelete by remember { mutableStateOf(false) }
     var confirmingDiscard by remember { mutableStateOf(false) }
     var editingTime by remember { mutableStateOf<TimeField?>(null) }
+
+    // Back is the other way out of the editor, and it discarded a filled-in draft as silently as
+    // Cancel used to. Disabled on a draft that has nothing to lose, so back keeps its own animation
+    // and the destination pops the way it always did.
+    BackHandler(enabled = guardBackGesture && state.isDirty) { confirmingDiscard = true }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
