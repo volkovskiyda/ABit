@@ -6,6 +6,7 @@ import com.gmail.volkovskiyda.abit.core.common.markFirebaseInitialised
 import com.google.firebase.FirebasePlatform
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
+import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.initialize
 import java.io.File
 import java.util.Properties
@@ -41,8 +42,33 @@ actual fun initFirebase(): Boolean =
                     gcmSenderId = FirebaseConfig.PROJECT_NUMBER,
                 ),
         )
+        openLocalStore()
         true
     }.getOrDefault(false).also(::markFirebaseInitialised)
+
+/**
+ * Starts Firestore's client now rather than on the first sign-in, so its local store opens on every
+ * launch.
+ *
+ * Nothing needs it this early. A signed-out app has no listener to run, and `SyncEngine` opens
+ * nothing until a Google-linked user exists — which is exactly the problem: in the *packaged* app
+ * the ProGuard shrink has already broken this store once, by stripping the JNI callbacks that
+ * sqlite-jdbc resolves by name from inside `System.load`, and the failure waited for someone to
+ * sign in before it showed, as a sync that silently never happened. Opening the store at launch
+ * moves that failure to launch, where a person notices it and where `scripts/smoke-desktop.sh`
+ * reads for it: the SQLite reads this triggers are the marker the script insists on seeing, and
+ * without this a fresh machine — every CI runner — would never print them at all.
+ *
+ * `collection` is the least that starts the client. The reference is dropped, no listener is
+ * attached and no query or write is issued, so a signed-out launch still reads and writes nothing
+ * in the project.
+ */
+private fun openLocalStore() {
+    Firebase.firestore.collection(USERS_COLLECTION)
+}
+
+/** The app's own top-level collection. It is not read here; any path would start the client. */
+private const val USERS_COLLECTION = "users"
 
 /** Key-value storage and logging, backed by one properties file in the app's data directory. */
 private class FilePlatform(

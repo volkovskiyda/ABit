@@ -11,10 +11,16 @@
 # both run against an unshrunk classpath, so they are green by construction; a packaged build is the
 # only place the shrink exists. This is therefore the one check that reads the artifact that ships.
 #
-# The app is launched exactly as a user would launch it, which means it reaches the real abit-kmp
-# project and signs in anonymously — one anonymous Auth user per CI run, by design, so that what is
-# exercised here is the same code path a tester gets. Firebase's auto-deletion of anonymous accounts
-# is what keeps that list from growing forever.
+# The app is launched exactly as a user would launch it, on a machine that has never run it. That
+# machine is signed out — nothing signs in on its own, and a signed-out app reads and writes
+# nothing in the real abit-kmp project — so the store this reads for is opened deliberately at
+# launch, by `initFirebase` in app/shared's desktopMain, rather than by the sync a signed-in user
+# would start. That is what makes a fresh runner able to prove anything: without it the app
+# started, printed one line, and sat there.
+#
+# What a signed-out launch proves is the sqlite-jdbc half. The protobuf half is exercised only when
+# a listener is allocated, which takes a Google-linked user; a run on a developer's own Mac, where
+# one is signed in, covers it, and a CI runner does not.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -74,9 +80,10 @@ if grep -nE 'Exception in thread|NoClassDefFoundError|ClassNotFoundException|Int
 fi
 
 # Positive evidence, not merely the absence of a stack trace. This line is Firestore reading its
-# local store, which means sqlite-jdbc's native library loaded and the generated protobuf schemas
-# built — the two things that were broken. Without it the app started but never got as far as the
-# code this script exists to exercise, and a silent pass would be worse than a failure.
+# local store, which means sqlite-jdbc's native library loaded with every JNI callback it resolves
+# by name — the first of the two things that were broken, and the one a signed-out launch reaches.
+# Without it the app started but never got as far as the code this script exists to exercise, and
+# a silent pass would be worse than a failure.
 if ! grep -q 'SQLiteCursor received count' "$LOG"; then
   echo "::error::The app started but Firestore never opened its local store, so this proved nothing."
   echo "If the Firebase SDK changed that log line, update the marker in this script rather than dropping the check."

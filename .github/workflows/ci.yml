@@ -139,10 +139,10 @@ jobs:
       # the build can see it — `:app:desktop:run` and the desktop UI tests both run unshrunk, so
       # they are green by construction, and a packaged build is the only place ProGuard exists.
       #
-      # It signs in anonymously against the real project, deliberately: that is the code path a
-      # tester gets, and a smoke test that avoids it would only prove the app starts. One anonymous
-      # Auth user per run is the price. On a failure the script prints everything the app printed,
-      # so the job log is the whole report.
+      # The runner has never run the app, so the launch is signed out and reads and writes nothing
+      # in the real project; the app opens Firestore's local store at launch on its own, which is
+      # what the script reads for — see `initFirebase` in app/shared's desktopMain. On a failure the
+      # script prints everything the app printed, so the job log is the whole report.
       - name: Launch the packaged app
         run: scripts/smoke-desktop.sh
 

@@ -94,8 +94,11 @@ you do.
   starting without Firestore opening its local store, which would otherwise pass while proving
   nothing. Nothing else can see this class of bug: `:app:desktop:run` and the desktop UI tests are
   unshrunk, so they are green by construction, and a packaged build is the only place ProGuard
-  exists. The run signs in anonymously against the real project, which is the point — that is the
-  code path a tester gets — at one anonymous Auth user per run.
+  exists. The run is signed out — nothing signs in on its own, on any platform — so the desktop
+  `initFirebase` opens Firestore's local store at launch deliberately; a fresh runner would
+  otherwise never touch it and the check would have nothing to read. That covers the sqlite-jdbc
+  rule. The protobuf rule needs a listener, which needs a Google-linked user, so it is exercised
+  only when the script runs on a Mac that is signed in.
 - **Desktop ProGuard writes one output jar per input**, never a joined one. `joinOutputJars` merges
   126 jars into one, and a jar holds one entry per name, so every duplicate after the first is
   dropped — 125 warnings a build, and among them a `META-INF/services/*` file, which is a
