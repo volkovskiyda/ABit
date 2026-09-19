@@ -101,6 +101,14 @@ dependencies {
     // Declared here rather than inherited from a shared UI module: UI is written per platform, so
     // each app names the Compose artifacts it actually uses. These are the Compose Multiplatform
     // coordinates, which resolve to their Android variants in an Android application module.
+    //
+    // The AndroidX BoM sits on every variant, not on debug alone, so release resolves the same
+    // AndroidX Compose the tests ran against. On debug only, the two classpaths drifted: debug took
+    // material3-adaptive 1.3.0 from the BoM while release settled on the 1.2.0 the JetBrains
+    // coordinate asks for, and `currentWindowAdaptiveInfoV2` existed in one and not the other — a
+    // release-only compile error that every check job was blind to, because none of them builds
+    // release.
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.compose.runtime)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
@@ -109,6 +117,8 @@ dependencies {
     implementation(libs.compose.ui.toolingPreview)
     debugImplementation(libs.compose.ui.tooling)
 
+    // The BoM again: the androidTest classpath is resolved on its own and does not inherit the
+    // constraint from `implementation` — without this line ui-test-junit4 has no version.
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     // Runs an accessibility audit as part of an ordinary assertion, so a contrast or touch-target
@@ -117,7 +127,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     // Declared only to lift the version Compose ui-test asks for — see the catalog comment.
     androidTestImplementation(libs.androidx.test.espresso.core)
-    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // Renders @Preview composables through LayoutLib and diffs them against committed PNGs, so a

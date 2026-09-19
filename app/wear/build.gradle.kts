@@ -51,6 +51,10 @@ dependencies {
     implementation(libs.wear.compose.navigation)
     // The tokens, the session ring and the formatting — not the phone's Material 3 theme.
     implementation(projects.core.designsystem)
+    // On every variant, not on debug alone, so the release APK resolves the AndroidX Compose the
+    // instrumented tests ran against — app/android/build.gradle.kts has the compile error the
+    // debug-only split produced there.
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui)
 
@@ -74,10 +78,11 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.wear.compose.uiTooling)
 
+    // The BoM again: the androidTest classpath is resolved on its own and does not inherit the
+    // constraint from `implementation` — without this line ui-test-junit4 has no version.
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
-    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

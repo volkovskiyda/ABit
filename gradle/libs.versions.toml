@@ -95,9 +95,11 @@ androidxUiAutomator = "2.4.0"
 androidxBenchmark = "1.5.0"
 androidxBaselineProfile = "1.5.0"
 composeScreenshot = "0.0.1-alpha16"
-# The Android Compose BoM, for the ui-test artifacts only: those are AndroidX rather than JetBrains
-# Compose Multiplatform, and pairing them by hand with the Compose the app resolves is how versions
-# drift apart.
+# The AndroidX Compose BoM. It pins every AndroidX Compose artifact an Android app resolves — the
+# ui-test ones, which are AndroidX rather than JetBrains Compose Multiplatform, and the AndroidX
+# variants the JetBrains coordinates redirect to — and it sits on every variant of both Android
+# apps, not on debug alone: app/android/build.gradle.kts has the release-only compile error the
+# split produced.
 androidxComposeBom = "2026.09.00"
 turbine = "1.2.1"
 
