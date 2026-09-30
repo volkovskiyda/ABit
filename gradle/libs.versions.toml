@@ -35,8 +35,8 @@ composeHotReload = "1.2.0"
 androidxLifecycle = "2.11.0"
 # The Navigation 3 runtime is Google's (androidx.navigation3) and the UI is JetBrains' KMP port
 # (org.jetbrains.androidx.navigation3). They release on separate cadences and cannot share a ref.
-androidxNavigation3 = "1.1.7"
-composeNavigation3 = "1.1.1"
+androidxNavigation3 = "1.2.0"
+composeNavigation3 = "1.1.2"
 androidxRoom = "3.0.3"
 androidxSqlite = "2.7.1"
 androidxDataStore = "1.2.1"
