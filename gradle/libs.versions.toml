@@ -43,11 +43,11 @@ androidxDataStore = "1.2.1"
 
 # ---- AndroidX, Android only --------------------------------------------------------------------
 androidxActivity = "1.13.0"
-androidxCore = "1.19.0"
+androidxCore = "1.19.1"
 androidxCoreSplashscreen = "1.2.0"
 androidxCredentials = "1.6.0"
-googleId = "1.2.0"
-androidxTracing = "2.0.2"
+googleId = "1.2.1"
+androidxTracing = "2.0.3"
 androidxProfileinstaller = "1.4.1"
 
 # ---- Wear OS -----------------------------------------------------------------------------------
