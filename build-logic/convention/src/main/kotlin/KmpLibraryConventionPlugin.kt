@@ -53,7 +53,7 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                     it.name.startsWith("lintAnalyze") ||
                     it.name.startsWith("lintVitalAnalyze")
             }.configureEach {
-                dependsOn(tasks.matching { task -> task.name.startsWith("ksp") })
+                dependsOn(provider { tasks.names.filter { name -> name.startsWith("ksp") } })
             }
         }
     }

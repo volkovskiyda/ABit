@@ -117,8 +117,14 @@ allprojects {
 // ktlint, which walks every Kotlin source directory a module has (it does not *lint* the generated
 // file — the filter in the ktlint block above drops anything under build/ — but the directory is
 // still an input), and KSP, which arrives with Room in a later plan item.
+//
+// The dependency is chosen from `tasks.names`, which lists what is registered without configuring
+// any of it. A filtered task collection — `matching { }`, and `named { }` too once it is iterated —
+// configures every task in the module to resolve, Kotzilla's iOS-only `setupKotzillaXcode` among
+// them, whose setup reads the Kotlin Android `sourceSets` KGP deprecates: a warning per Android app
+// on every `ktlintCheck`.
 subprojects {
     tasks.matching { it.name.startsWith("ksp") || it.name.startsWith("runKtlint") }.configureEach {
-        dependsOn(tasks.matching { it.name.startsWith("generateKotzilla") })
+        dependsOn(provider { tasks.names.filter { it.startsWith("generateKotzilla") } })
     }
 }
