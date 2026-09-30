@@ -5,6 +5,7 @@ import com.gmail.volkovskiyda.abit.core.database.dao.ScheduleDao
 import com.gmail.volkovskiyda.abit.core.database.model.DayOverrideEntity
 import com.gmail.volkovskiyda.abit.core.database.model.ScheduleEntity
 import com.gmail.volkovskiyda.abit.core.database.model.toEntity
+import com.gmail.volkovskiyda.abit.core.domain.AuthRepository
 import com.gmail.volkovskiyda.abit.core.domain.AuthUser
 import com.gmail.volkovskiyda.abit.core.domain.SyncState
 import com.gmail.volkovskiyda.abit.core.model.DayOverride
@@ -240,6 +241,32 @@ class SyncEngineTest {
             coroutineContext.cancelChildren()
         }
 
+    /**
+     * The composition root builds the engine on the main thread, and building the auth repository
+     * initialises Firebase Auth — the cost Kotzilla reported. Only [SyncEngine.start] may pay it.
+     */
+    @Test
+    fun `building the engine does not build the auth repository`() =
+        runTest {
+            var resolved = 0
+            val fixture =
+                fixture(
+                    authRepository =
+                        lazy {
+                            resolved++
+                            FakeAuthRepository()
+                        },
+                )
+
+            assertEquals(0, resolved)
+
+            fixture.engine.start()
+            advanceUntilIdle()
+
+            assertEquals(1, resolved, "start() resolves it, once")
+            coroutineContext.cancelChildren()
+        }
+
     private class Fixture(
         val engine: SyncEngine,
         val remote: FakeScheduleRemoteSource,
@@ -253,6 +280,7 @@ class SyncEngineTest {
         firebaseAvailable: Boolean = true,
         // Passed in only by the merge tests, which have to drive the auth sequence themselves.
         auth: FakeAuthRepository = FakeAuthRepository(user),
+        authRepository: Lazy<AuthRepository> = lazyOf(auth),
     ): Fixture {
         val scheduleDao = FakeScheduleDao(local.map { it.toEntity() })
         val dayOverrideDao = FakeDayOverrideDao()
@@ -262,7 +290,7 @@ class SyncEngineTest {
                 scheduleDao = scheduleDao,
                 dayOverrideDao = dayOverrideDao,
                 remote = remote,
-                authRepository = auth,
+                authRepository = authRepository,
                 timeProvider = FakeTimeProvider(),
                 timeZoneProvider = FakeTimeZoneProvider(),
                 scope = this,

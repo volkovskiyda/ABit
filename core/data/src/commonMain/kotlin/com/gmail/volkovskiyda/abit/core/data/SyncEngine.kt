@@ -99,7 +99,10 @@ class SyncEngine(
     private val scheduleDao: ScheduleDao,
     private val dayOverrideDao: DayOverrideDao,
     private val remote: ScheduleRemoteSource,
-    private val authRepository: AuthRepository,
+    // Lazy because the composition root builds this engine on the main thread, and building the auth
+    // repository means initialising Firebase Auth — that is what Kotzilla flagged. It is first read
+    // inside [start]'s coroutine, on the application scope.
+    private val authRepository: Lazy<AuthRepository>,
     private val timeProvider: TimeProvider,
     private val timeZoneProvider: TimeZoneProvider,
     private val scope: CoroutineScope,
@@ -149,7 +152,7 @@ class SyncEngine(
         // No dispatcher argument: the injected application scope already carries one, and
         // overriding it here would mean two places deciding where background work runs.
         scope.launch {
-            authRepository.currentUser.collect { user -> onUser(user) }
+            authRepository.value.currentUser.collect { user -> onUser(user) }
         }
     }
 
@@ -277,7 +280,7 @@ class SyncEngine(
             state.value = SyncState.Unavailable
             return null
         }
-        val user = authRepository.currentUser.firstOrNull()
+        val user = authRepository.value.currentUser.firstOrNull()
         return when {
             user == null -> {
                 state.value = SyncState.SignedOut
