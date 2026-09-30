@@ -7,8 +7,14 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.auth
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -20,13 +26,25 @@ import kotlin.coroutines.cancellation.CancellationException
  * step is the whole reason this class exists instead of two calls at the call site.
  */
 class FirebaseAuthRepository(
-    private val auth: FirebaseAuth = Firebase.auth,
+    // Lazy, like FirestoreScheduleRemoteSource: `Firebase.auth` initialises Firebase Auth and reads
+    // the persisted user from disk, and Koin builds this on whatever thread first asks — the main
+    // thread, for every ViewModel. Kotzilla measured that at up to 900 ms on a watch.
+    authProvider: () -> FirebaseAuth = { Firebase.auth },
+    // Where that first touch happens. IO where the platform has one; see DispatcherProvider.
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : AuthRepository {
+    private val auth: FirebaseAuth by lazy(authProvider)
+
+    // `flowOn` moves the upstream — the lazy read and the listener registration — off the
+    // collector's dispatcher, which for a ViewModel is the main thread.
     override val currentUser: Flow<AuthUser?> =
-        auth.authStateChanged.map { user -> user?.toAuthUser() }
+        flow { emitAll(auth.authStateChanged) }
+            .map { user -> user?.toAuthUser() }
+            .flowOn(ioDispatcher)
 
     override suspend fun signInAnonymously(): Result<AuthUser> =
         runCatching {
+            val auth = firebaseAuth()
             auth.signInAnonymously().user.requireUser()
         }
 
@@ -54,6 +72,7 @@ class FirebaseAuthRepository(
      */
     override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
         runCatchingCancellable {
+            val auth = firebaseAuth()
             val anonymous = auth.currentUser?.takeIf { it.isAnonymous }
             if (anonymous == null) {
                 auth.signInWithGoogleCredential(idToken, link = null)
@@ -84,7 +103,10 @@ class FirebaseAuthRepository(
         runCatchingCancellable { delete() }
     }
 
-    override suspend fun signOut() = auth.signOut()
+    override suspend fun signOut() = firebaseAuth().signOut()
+
+    /** The suspend calls come from `viewModelScope` too, so their first touch is moved the same way. */
+    private suspend fun firebaseAuth(): FirebaseAuth = withContext(ioDispatcher) { auth }
 }
 
 /**
