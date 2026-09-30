@@ -1,6 +1,6 @@
 [versions]
 # ---- Build toolchain -------------------------------------------------------------------------
-agp = "9.4.0"
+agp = "9.4.1"
 # Pinned back from 2.4.20, and it is load-bearing: the Kotzilla Gradle plugin (2.3.6) registers its
 # Compose instrumentation through the K1 `ComponentRegistrar` interface that Kotlin 2.4.20 deleted.
 # Read the kotzilla block in app/shared/build.gradle.kts before bumping this.
