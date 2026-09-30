@@ -51,7 +51,7 @@ androidxTracing = "2.0.3"
 androidxProfileinstaller = "1.4.1"
 
 # ---- Wear OS -----------------------------------------------------------------------------------
-wearCompose = "1.6.2"
+wearCompose = "1.7.0"
 # The tile is ProtoLayout, not Compose: a tile is rendered by the system launcher in another process,
 # so it is a serialized layout tree rather than a composition. Nothing from core:designsystem's
 # composables can be reused there — only its Compose-free tokens and formatting.
