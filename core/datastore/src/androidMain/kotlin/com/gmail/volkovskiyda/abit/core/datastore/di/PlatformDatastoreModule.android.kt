@@ -17,13 +17,21 @@ import org.koin.dsl.module
 actual val platformDatastoreModule: Module =
     module {
         single<DataStore<UserPreferences>> {
-            val path = androidContext().filesDir.resolve("datastore/$USER_PREFERENCES_FILE_NAME")
+            val context = androidContext()
             DataStoreFactory.create(
                 storage =
                     OkioStorage(
                         fileSystem = FileSystem.SYSTEM,
                         serializer = UserPreferencesSerializer,
-                        producePath = { path.absolutePath.toPath() },
+                        // Resolved on the first read, on the application scope — not here. Koin builds
+                        // this on main (the activity's splash and the chime engine both ask for it at
+                        // launch), and `filesDir` is disk I/O. The desktop binding does the same.
+                        producePath = {
+                            context.filesDir
+                                .resolve("datastore/$USER_PREFERENCES_FILE_NAME")
+                                .absolutePath
+                                .toPath()
+                        },
                     ),
                 scope = get<CoroutineScope>(ApplicationScope),
             )
