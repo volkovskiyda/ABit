@@ -4,6 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
@@ -96,6 +101,30 @@ private enum class Destination(
 }
 
 /**
+ * How long a pushed destination — the editor, sign-in, a conflict — fades in and out, both ways and
+ * under predictive back. Nav3's own default is 700 ms, and an entry is not RESUMED until its
+ * transition settles, so Kotzilla reported every screen as slow to become interactive when nothing
+ * in it was slow.
+ */
+private const val PUSH_FADE_MILLIS = 250
+
+/**
+ * Switching between the bar's destinations is a fade-through, 200 ms in all: the old screen fades
+ * out, then the new one fades in. Nav3 treats a switch as a push — it replaces the root key — and a
+ * push takes the incoming entry's spec, which is why only the three destinations carry it.
+ */
+private const val BAR_FADE_OUT_MILLIS = 70
+private const val BAR_FADE_IN_MILLIS = 130
+
+private fun pushFade(): ContentTransform = fadeIn(tween(PUSH_FADE_MILLIS)) togetherWith fadeOut(tween(PUSH_FADE_MILLIS))
+
+private val barFadeThrough =
+    NavDisplay.transitionSpec {
+        fadeIn(tween(BAR_FADE_IN_MILLIS, delayMillis = BAR_FADE_OUT_MILLIS)) togetherWith
+            fadeOut(tween(BAR_FADE_OUT_MILLIS))
+    }
+
+/**
  * The `entryProvider { entry<K> { } }` DSL is deliberate: it is the shape the Kotzilla compiler
  * plugin rewrites to record screen views, so a screen is registered by adding a key here rather than
  * by hand-wrapping each composable.
@@ -161,16 +190,21 @@ internal fun AbitNavDisplay() {
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
+            // The pushed destinations' timing. A pop reads the *outgoing* entry's spec, so leaving the
+            // editor for Schedules fades at this pace too, not at the bar's.
+            transitionSpec = { pushFade() },
+            popTransitionSpec = { pushFade() },
+            predictivePopTransitionSpec = { _ -> pushFade() },
             entryProvider =
                 entryProvider<NavKey> {
-                    entry<TodayNavKey> {
+                    entry<TodayNavKey>(metadata = barFadeThrough) {
                         TodayScreen(
                             viewModel = koinViewModel<TodayViewModel>(),
                             onOpenSignIn = { backStack.add(SignInNavKey) },
                             onOpenConflict = { a, b -> backStack.add(ScheduleConflictNavKey(a, b)) },
                         )
                     }
-                    entry<SchedulesNavKey> {
+                    entry<SchedulesNavKey>(metadata = barFadeThrough) {
                         SchedulesScreen(
                             viewModel = koinViewModel<SchedulesViewModel>(),
                             onOpenEditor = { id -> backStack.add(ScheduleEditorNavKey(id)) },
@@ -203,7 +237,7 @@ internal fun AbitNavDisplay() {
                             backStack.add(ScheduleEditorNavKey(id))
                         }
                     }
-                    entry<SettingsNavKey> {
+                    entry<SettingsNavKey>(metadata = barFadeThrough) {
                         SettingsScreen(
                             viewModel = koinViewModel(),
                             onOpenSignIn = { backStack.add(SignInNavKey) },
